@@ -1,0 +1,4006 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <title>Koordinator Kurir Sahabatku</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #000080;
+      --primary-light: #79C9C5;
+      --primary-dark: #0b4870;
+      --secondary: #4a6fa5;
+      --text-primary: #0b3b5a;
+      --text-secondary: #506273;
+      --background: #ffffff;
+      --card-bg: #ffffff;
+      --border: #c9dbf8;
+      --shadow-light: rgba(74, 144, 226, 0.15);
+      --shadow-strong: rgba(74, 144, 226, 0.3);
+      --success: #2ed573;
+      --danger: #ff4757;
+      --warning: #ff9f43;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, Arial, Helvetica, sans-serif;
+      background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 20px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      font-size: 14px; /* Sedikit dikecilkan */
+      line-height: 1.5;
+    }
+    .container {
+        padding: 20px; /* Padding kontainer dikurangi */
+        max-width: 1200px; /* Batasan lebar untuk fokus */
+        margin: 0 auto;
+    }
+    
+    h3 {
+        font-size: 1.5em; /* Tetap jelas, tapi tidak terlalu besar */
+        margin-bottom: 20px;
+        color: var(--text-primary);
+    }
+    
+    .adminPanel {
+        /* Pastikan ada padding atas untuk tombol toggle */
+        padding-top: 80px; 
+    }
+    .login-container {
+      width: 100%;
+      max-width: 420px;
+      margin: 40px auto;
+    }
+
+    .login-card {
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 32px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+      border: 1px solid var(--border);
+      transition: all 0.3s ease;
+    }
+
+    .login-card:hover {
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.2);
+      transform: translateY(-5px);
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .logo h1 {
+      color: var(--primary-dark);
+      font-weight: 800;
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+
+    .logo p {
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+    
+    input[type="search"] {
+        width: 100%;
+        padding: 12px 16px;
+        border-radius: 14px;
+        border: 1.5px solid var(--border);
+        background: #f8fbff;
+        outline: none;
+        font-size: 16px;
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+    }
+
+    input[type="email"],
+    input[type="password"],
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    input[type="month"],
+    select {
+      width: 100%;
+      padding: 16px 18px;
+      border-radius: 14px;
+      border: 1.5px solid var(--border);
+      background: #f8fbff;
+      outline: none;
+      font-size: 16px;
+      color: var(--text-primary);
+      transition: all 0.3s ease;
+    }
+
+    input:focus,
+    select:focus,
+    input[type="search"]:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(0, 202, 255, 0.2);
+      background: #ffffff;
+    }
+
+    .btn {
+      padding: 16px;
+      border-radius: 14px;
+      border: none;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 8px 20px rgba(0, 119, 200, 0.3);
+      margin-top: 10px;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      box-shadow: 0 10px 25px rgba(0, 119, 200, 0.4);
+      transform: translateY(-2px);
+    }
+    .btn-secondary {
+        /* MENGUBAH WARNA MENJADI #00CAFF (Primary) */
+        background-color: var(--primary); 
+        color: white;
+    }
+    .btn-secondary:hover {
+        background-color: #00B1E0; /* Warna biru sedikit lebih gelap saat hover */
+        
+        /* Animasi Hover */
+        transform: translateY(-1px); /* Tombol terangkat sedikit ke atas */
+        box-shadow: 0 4px 10px rgba(0, 202, 255, 0.3); /* Bayangan biru */
+    }
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 1s ease-in-out infinite;
+    }
+    input[type="search"] {
+        width: 100%;
+        padding: 12px 16px;
+        border-radius: 14px;
+        border: 1.5px solid var(--border);
+        background: #f8fbff;
+        outline: none;
+        font-size: 16px;
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+    }
+    
+    input[type="search"]:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(0, 202, 255, 0.2);
+        background: #ffffff;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .message {
+      padding: 12px 16px;
+      border-radius: 12px;
+      margin-top: 20px;
+      font-size: 14px;
+      font-weight: 500;
+      display: none;
+    }
+
+    .error {
+      background-color: rgba(255, 71, 87, 0.1);
+      color: var(--danger);
+      border: 1px solid rgba(255, 71, 87, 0.2);
+    }
+
+    .success {
+      background-color: rgba(46, 213, 115, 0.1);
+      color: var(--success);
+      border: 1px solid rgba(46, 213, 115, 0.2);
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 24px;
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 13px;
+    }
+
+    .footer a {
+      color: white;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 480px) {
+      .login-card {
+        padding: 24px;
+      }
+      
+      .logo h1 {
+        font-size: 24px;
+      }
+      
+      input[type="email"],
+      input[type="password"] {
+        padding: 14px 16px;
+      }
+    }
+
+    /* Admin Panel Styles */
+    .container {
+      max-width: 1200px;
+      margin: 24px auto;
+      padding: 16px 20px;
+      display: none;
+    }
+    .card {
+        /* Ukuran & Padding Compact */
+        padding: 18px; 
+        border-radius: 16px; /* Sudut lebih melengkung */
+        
+        /* Desain Modern */
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05); /* Shadow lebih lembut */
+        margin-bottom: 15px; /* Jarak antar card dikurangi */
+        
+        /* Animasi Hover/Click */
+        transition: all 0.25s cubic-bezier(0.165, 0.84, 0.44, 1);
+    }
+    
+    .card:hover {
+        transform: translateY(-2px); /* Efek melayang saat di-hover */
+        box-shadow: 0 12px 25px rgba(0, 0, 0, 0.1);
+    }
+    .card h4 {
+        font-size: 1em; 
+        font-weight: 600;
+        margin-top: 0;
+        margin-bottom: 15px;
+        color: var(--secondary);
+    }
+    
+    /* Grid Compact */
+    .grid {
+        display: grid;
+        gap: 15px; /* Jarak antar kolom dikurangi */
+    }
+    
+    /* Card pada Dashboard (Efek Skala) */
+    .grid-3 .card {
+        transition: transform 0.3s ease-out;
+    }
+    .grid-3 .card:hover {
+        transform: scale(1.03); /* Sedikit membesar saat di-hover */
+    }
+    
+    /* --- TAB CONTENT ANIMATION (Wajib ada) --- */
+    /* Animasi Transisi Saat Ganti Tab */
+    .tabContent {
+        opacity: 1;
+        transform: translateY(0);
+        transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+    }
+    
+    .tabContent.hidden {
+        display: block !important; /* Agar animasi berjalan, jangan langsung display: none */
+        opacity: 0;
+        transform: translateY(10px);
+        pointer-events: none; /* Pastikan tidak bisa diinteraksi */
+        position: absolute; /* Posisikan di luar layar agar tidak mengganggu */
+        width: 100%;
+    }
+    h2, h3 {
+      margin: 8px 0 16px 0;
+      color: var(--primary);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    #btnLogout {
+      position: fixed;
+      top: 20px;
+      right: 30px;
+      padding: 8px 14px;
+      font-size: 0.85rem;
+      border-radius: 20px;
+      border: none;
+      cursor: pointer;
+      background: linear-gradient(45deg, #ff4b2b, #ff416c);
+      color: white;
+      font-weight: bold;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      transition: all 0.3s ease;
+      z-index: 1001;
+    }
+
+    #btnLogout:hover {
+      transform: scale(1.1) rotate(-3deg);
+      box-shadow: 0 6px 25px rgba(255,65,108,0.6);
+      background: linear-gradient(45deg, #ff416c, #ff4b2b);
+      text-shadow: 0 0 5px #fff;
+    }
+
+    #btnLogout:active {
+      transform: scale(0.95) rotate(0deg);
+      box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+    }
+
+    .btnbar {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .btn.secondary {
+      background: #f5f7fa;
+      color: var(--text-primary);
+      border: 1.5px solid var(--border);
+      box-shadow: none;
+      font-weight: 600;
+    }
+
+    .btn.secondary:hover {
+      background: #e1e9f8;
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .btn.danger {
+      background: #ff6b6b;
+      color: white;
+      box-shadow: none;
+      font-weight: 700;
+      transition: background 0.3s ease;
+    }
+
+    .btn.danger:hover {
+      background: #e04e4e;
+    }
+
+    .btn.success {
+      background: var(--success);
+      color: white;
+      box-shadow: none;
+      font-weight: 700;
+      transition: background 0.3s ease;
+    }
+
+    .btn.success:hover {
+      background: #25b763;
+    }
+
+    .btn.full {
+      width: 100%;
+    }
+    /* --- PENYESUAIAN TINGGI MENU AGAR HANYA 4 ITEM TERLIHAT --- */
+    nav.tab {
+      display: none;
+      flex-direction: column;
+      position: fixed; /* Tetap fixed agar ikut scroll */
+      top: 65px; 
+      left: 30px; 
+      z-index: 1000; 
+      
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-radius: 20px; 
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+      padding: 10px;
+      min-width: 220px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    
+      /* PENTING: Batasan tinggi yang hanya menampilkan sekitar 4 item */
+      max-height: 180px; /* Nilai sekitar 140px-150px akan menampilkan 4 item */
+      overflow-y: auto; /* Memastikan scrollbar muncul */
+    
+      /* Animasi Masuk/Keluar */
+      opacity: 0;
+      transform: translateY(-10px) scale(0.98);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    
+    /* Tampilkan dengan Animasi */
+    nav.tab.open {
+      display: flex;
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    /* Gaya Tombol dalam Dropdown */
+    nav.tab button {
+      width: 100%;
+      text-align: left;
+      padding: 12px 18px; /* Padding sedikit diperbesar */
+      border-radius: 15px; /* Sudut tombol lebih melengkung */
+      background: none;
+      border: none;
+      margin: 2px 0;
+      color: var(--text-primary);
+      transition: background 0.2s ease, color 0.2s ease, transform 0.1s;
+    }
+    
+    nav.tab button:hover:not(.active) {
+      background: rgba(0, 0, 0, 0.05); /* Hover lembut */
+      transform: translateX(3px); /* Sedikit efek geser saat dihover */
+    }
+    
+    nav.tab button.active {
+      background: linear-gradient(90deg, var(--primary), var(--primary-light));
+      color: white;
+      box-shadow: 0 4px 10px var(--shadow-light);
+    }
+    /* --- CSS Khusus untuk Tombol Sembunyikan (Agar warnanya JELAS beda dari Hapus Permanen) --- */
+    .btn-sembunyikan {
+        background-color: #ffc107; 
+        border-color: #ffc107;
+        /* Gunakan warna teks yang gelap agar kontras di atas kuning */
+        color: #343a40 !important; /* Gunakan !important jika teksnya tetap putih */
+    }
+    
+    /* Efek hover untuk tombol Sembunyikan */
+    .btn-sembunyikan:hover {
+        background-color: #e0a800; 
+        border-color: #e0a800;
+    }
+    
+    /* Optional: Untuk memastikan tombol rapat dan kecil */
+    .mini-btn {
+        padding: 4px 8px; /* Contoh ukuran kecil */
+        font-size: 12px;
+    }
+    td button.mini-btn:not(:last-child) {
+        margin-right: 4px; 
+    }
+    
+    /* Optional: Pastikan tombol HAPUS PERMANEN tetap merah tua */
+    .btn.danger {
+        background-color: #dc3545; /* Merah standar/Bootstrap */
+        border-color: #dc3545;
+        color: white;
+    }    
+    /* Scrollbar Modern */
+    nav.tab::-webkit-scrollbar {
+      width: 4px;
+    }
+    nav.tab::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.12);
+      border-radius: 10px;
+    }
+    
+    /* Floating Menu Toggle (Lebih kecil & elegan untuk HP) */
+    .menu-toggle-btn {
+      position: fixed;
+      top: 14px;
+      left: 16px;
+      background: var(--primary);
+      color: white;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      z-index: 1001;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+      transition: 0.25s ease;
+    }
+    
+    .menu-toggle-btn:active {
+      transform: scale(0.95);
+    }
+    
+    /* Dropdown Container */
+    nav.tab {
+      padding: 8px;
+      border-radius: 14px;
+      background: #ffffff;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    
+    /* Tombol dalam dropdown (lebih compact & modern di HP) */
+    nav.tab button {
+      width: 100%;
+      text-align: left;
+      padding: 12px 15px;
+      border-radius: 12px;
+      background: none;
+      border: none;
+      margin: 4px 0;
+      color: var(--text-primary);
+      font-size: 14px;
+      font-weight: 500;
+      transition: background 0.2s, transform 0.15s;
+    }
+    
+    /* Efek hover */
+    nav.tab button:hover:not(.active) {
+      background: #f4f6fc;
+    }
+    
+    /* Efek tekan */
+    nav.tab button:active {
+      transform: scale(0.98);
+    }
+    
+    /* Active tab keren */
+    nav.tab button.active {
+      background: linear-gradient(95deg, var(--primary), var(--primary-light));
+      color: white;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+    }
+
+    /* Pastikan konten utama diberi margin agar tidak tertutup tombol toggle */
+    .adminPanel {
+        padding-top: 80px; /* Tambah ruang di atas agar tombol toggle aman */
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .small {
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    .stack {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .grid > * {
+      flex: 1;
+      min-width: 250px;
+    }
+    
+    .grid-2 > * {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .grid-3 > * {
+      flex: 1;
+      min-width: 250px;
+    }
+
+    .grid-4 > * {
+      flex: 1;
+      min-width: 180px;
+    }
+    
+    .grid-3 {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 16px;
+    }
+    .grid-4 {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+    }
+
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 12px;
+      font-weight: 700;
+      color: var(--primary);
+      font-size: 1.1rem;
+    }
+
+    .list-v {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .admin-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+      overflow-x: auto;
+      display: block;
+      font-size: 0.9em;
+    }
+
+    .admin-table th, .admin-table td {
+      padding: 8px 10px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    .admin-table th {
+      background: linear-gradient(90deg, var(--primary), var(--primary-light));
+      color: white;
+      font-weight: 700;
+    }
+    .admin-table tr {
+        transition: background-color 0.3s ease;
+    }
+    .admin-table tbody tr:hover {
+        background-color: #f7f9fc;
+    }
+    .admin-table tr:hover {
+      background-color: rgba(0, 202, 255, 0.05);
+    }
+
+    .status-badge {
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .status-active {
+      background-color: rgba(46, 213, 115, 0.2);
+      color: var(--success);
+    }
+
+    .status-inactive {
+      background-color: rgba(255, 71, 87, 0.2);
+      color: var(--danger);
+    }
+    
+    .status-published {
+        background-color: rgba(0, 119, 200, 0.2);
+        color: var(--primary);
+    }
+
+    .mini-btn {
+      padding: 8px 12px;
+      font-size: 0.9rem;
+      border-radius: 12px;
+    }
+    /* Pastikan Anda sudah punya variabel :root { ... } yang mendefinisikan warna dan shadow */
+    
+    /* --- 1. MODAL OVERLAY (Layar Gelap di Belakang Nota) --- */
+    .modal {
+        position: fixed;
+        z-index: 2000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.7);
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        padding: 10px; /* Padding luar dikurangi agar lebih lega di HP */
+    }
+    .modal.hidden { 
+        display: none; 
+    }
+    /* --- Tambahan Khusus untuk Rata Kanan Tambahan --- */
+    #notaTambahan {
+        /* Wajib menggunakan display: block agar text-align berfungsi */
+        display: block; 
+        text-align: right; 
+        /* Menggunakan flex-grow agar span ini mengambil seluruh sisa ruang yang tersedia */
+        flex-grow: 1; 
+        /* Penting: Pastikan teks di dalam span ini menggunakan ukuran font yang sama dengan summary */
+        font-size: 0.9rem; /* Mengikuti .nota-summary p yang lain */
+    }
+    /* --- 2. KARTU NOTA (Isi Konten) - Dibuat Sangat Kompak --- */
+    .modal-content.nota-card {
+        background-color: var(--card-bg);
+        border-radius: 8px; /* Sudut lebih kecil */
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2); 
+        max-width: 350px; /* Sangat Kompak untuk HP */
+        width: 100%;
+        animation: fadeIn 0.3s ease-out;
+        padding: 15px; /* Padding internal minimalis */
+        font-family: 'Inter', sans-serif;
+    }
+     
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+     
+    /* --- 3. HEADER & META NOTA --- */
+    .nota-header {
+        text-align: center;
+        margin-bottom: 15px;
+        padding-bottom: 5px;
+    }
+     
+    .nota-header h2 {
+        font-size: 1.4rem; /* Font header lebih kecil */
+        font-weight: 800;
+        color: var(--primary-dark);
+        margin: 0 0 5px 0;
+    }
+     
+    .nota-meta {
+        font-size: 0.8rem; /* Ukuran font info dasar sangat kecil */
+        color: var(--text-secondary);
+        line-height: 1.4;
+        display: grid; 
+        grid-template-columns: 1fr 1fr;
+        gap: 3px; 
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px dashed var(--border);
+    }
+    .nota-meta p {
+        margin: 1px 0; 
+        text-align: left;
+    }
+    .nota-meta p:nth-child(even) {
+        text-align: right;
+    }
+    .nota-meta strong {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+     
+    /* --- 4. TABEL ITEM (Isi Nota) - Dibuat Lebih Ramping --- */
+    .nota-body {
+        margin: 15px 0; 
+    }
+     
+    .nota-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem; /* Font tabel lebih kecil */
+    }
+     
+    .nota-table thead tr {
+        border-bottom: 1px solid var(--text-primary); 
+    }
+     
+    .nota-table th {
+        padding: 8px 3px; 
+        text-align: left;
+        font-weight: 700;
+        color: var(--text-primary);
+        border: none;
+    }
+     
+    .nota-table td {
+        padding: 6px 3px; /* Padding sangat minimal */
+        border-bottom: 1px dashed var(--border); 
+        color: var(--text-primary);
+        border: none;
+    }
+     
+    /* Alignment rata kanan untuk Qty, Harga, Subtotal */
+    .nota-table th:nth-child(3), .nota-table td:nth-child(3),
+    .nota-table th:nth-child(4), .nota-table td:nth-child(4),
+    .nota-table th:nth-child(5), .nota-table td:nth-child(5) {
+        text-align: right;
+    }
+     
+    /* --- 5. RINGKASAN & TOTAL --- */
+    .nota-summary {
+        font-size: 0.9rem; 
+        padding-top: 10px;
+        border-top: 1px dashed var(--border);
+        margin-bottom: 15px; 
+        text-align: left;
+    }
+     
+    .nota-summary p {
+        display: flex;
+        justify-content: space-between;
+        padding: 3px 0; 
+        color: var(--text-secondary);
+        margin: 0;
+    }
+     
+    .nota-summary h3 {
+        display: flex;
+        justify-content: space-between;
+        font-weight: 800;
+        font-size: 1.3rem; /* Font total lebih kecil */
+        color: var(--primary); 
+        margin: 8px 0 0 0;
+        padding-top: 8px;
+        border-top: 3px double var(--text-primary); 
+    }
+     
+    /* --- 6. FOOTER NOTA --- */
+    .nota-footer {
+        text-align: center;
+        margin-top: 15px; 
+        padding-top: 10px;
+        border-top: 1px dashed var(--border);
+        font-size: 0.75rem; /* Font footer sangat kecil */
+        color: var(--text-secondary);
+        line-height: 1.4;
+    }
+     
+    /* --- 7. ACTIONS (Tombol) --- */
+    .nota-actions {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px; 
+        margin-top: 20px; 
+        padding-top: 15px;
+        border-top: 1px solid var(--border);
+        text-align: unset;
+    }
+    .nota-actions button {
+        flex-grow: 1; 
+    }
+    
+    /* --- 8. BUTTONS (Umum - Kompak) --- */
+    .btn {
+      padding: 8px 15px; /* Kompak */
+      border-radius: 0.5rem;
+      font-size: 0.9rem; /* Kompak */
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: 1px solid transparent;
+    }
+    .btn.primary {
+      background: var(--primary);
+      color: white;
+    }
+    .btn.secondary {
+      background: var(--card-bg);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+     
+    /* --- PRINT FRIENDLY (Wajib) --- */
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        .modal-content.nota-card, .modal-content.nota-card * {
+            visibility: visible;
+            box-shadow: none !important;
+        }
+        .modal-content.nota-card {
+            position: absolute;
+            left: 0;
+            top: 0;
+            margin: 0;
+            padding: 0;
+            border: none;
+            box-shadow: none; 
+            max-width: none;
+            width: 100%;
+        }
+        .nota-actions {
+            display: none; 
+        }
+    }
+    @media (max-width: 768px) {
+        /* Membuat input dan button di grid 3 kolom menjadi full-width di mobile */
+        .grid-3 > div {
+            /* Memastikan setiap div mengambil seluruh lebar di mobile */
+            width: 100%; 
+            margin-bottom: 15px;
+        }
+        
+        /* Memastikan input pencarian mengambil lebar penuh */
+        #trxMitraInputSearch, 
+        #trxMitraInput {
+            width: 100% !important;
+            box-sizing: border-box; 
+        }
+    }
+    
+    /* Style dasar untuk input yang kurang lengkap di HTML Anda */
+    #trxMitraInputSearch, 
+    #trxMitraInput,
+    #searchMitra {
+        /* Asumsi Anda memiliki style .form-control. Jika tidak, pakai style ini */
+        padding: 10px;
+        border: 1px solid var(--border, #ccc);
+        border-radius: 6px;
+        font-size: 16px;
+        line-height: 1.5;
+        /* Tambahkan style jika belum ada */
+    }
+    @media (max-width: 1100px) {
+      nav.tab {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+    @media (max-width: 900px) {
+      nav.tab {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .container {
+        padding: 12px 16px;
+      }
+      .admin-table {
+        font-size: 0.9rem;
+      }
+      .admin-table th, .admin-table td {
+        padding: 8px 10px;
+      }
+      .grid-3, .grid-4 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 600px) {
+      nav.tab {
+        grid-template-columns: 1fr;
+      }
+      
+      body {
+        padding: 10px;
+      }
+    }
+
+    .error-message {
+      color: var(--danger);
+      font-size: 14px;
+      margin-top: 8px;
+    }
+    
+    .filter-controls {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+    .filter-controls label {
+        margin-bottom: 0;
+    }
+    /* --- GAYA ICON SVG --- */
+    .nav-icon {
+        width: 20px;            /* Ukuran ikon */
+        height: 20px;
+        margin-right: 10px;     /* Jarak ke teks */
+        flex-shrink: 0;         /* Penting: mencegah ikon menyusut */
+        
+        /* Gaya Garis (Outline) */
+        stroke: var(--text-primary); 
+        stroke-width: 2;
+        fill: none;
+        transition: stroke 0.2s ease;
+    }
+    
+    /* --- PENYESUAIAN TOMBOL MENU (Agar Ikon Berada di Kiri) --- */
+    nav.tab button {
+      width: 100%;
+      padding: 12px 18px; 
+      border-radius: 15px; 
+      background: none;
+      border: none;
+      margin: 2px 0;
+      color: var(--text-primary);
+      
+      /* PENTING: Untuk menata ikon dan teks */
+      display: flex;            
+      align-items: center;
+      text-align: left;
+      
+      transition: background 0.2s ease, color 0.2s ease, transform 0.1s;
+    }
+    
+    
+    /* --- Efek Warna saat Tombol Hover dan Aktif --- */
+    
+    /* Warna Ikon saat di-hover */
+    nav.tab button:hover:not(.active) .nav-icon {
+        stroke: var(--primary); /* Ikon berubah warna saat hover */
+    }
+    
+    /* Warna Ikon saat Tombol AKTIF */
+    nav.tab button.active {
+      background: linear-gradient(90deg, var(--primary), var(--primary-light));
+      color: white; /* Warna teks tombol aktif putih */
+      box-shadow: 0 4px 10px var(--shadow-light);
+    }
+    
+    /* Ikon SVG di dalam Tombol AKTIF harus berwarna putih */
+    nav.tab button.active .nav-icon {
+        stroke: white; 
+    } 
+    /* --- Gaya Khusus Filter KPI --- */
+    .filter-controls {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+    .filter-controls label {
+        margin-bottom: 0;
+    }
+    
+    /* --- Gaya Penghargaan Khusus (Untuk visualisasi Kurir Terbaik) --- */
+    .card[style*="border: 2px solid var(--success)"] {
+        /* Gaya untuk Kurir Paling Aktif (Hijau) */
+        border: 2px solid var(--success); 
+        background: #e6ffe6;
+        transition: transform 0.3s ease;
+    }
+    .card[style*="border: 2px solid #ff9f43"] {
+        /* Gaya untuk Kurir TRX Mitra Terbanyak (Oranye) */
+        border: 2px solid var(--warning); 
+        background: #fff5e6;
+        transition: transform 0.3s ease;
+    }
+    .card[style*="border: 2px solid var(--primary)"] {
+        /* Gaya untuk Kurir Terbaik Keseluruhan (Biru) */
+        border: 2px solid var(--primary); 
+        background: #e6f7ff;
+        transition: transform 0.3s ease;
+    }
+    
+    /* Penyesuaian Badge Rating */
+    .status-published {
+        background-color: rgba(0, 119, 200, 0.2);
+        color: var(--primary);
+    }
+    /* --- CSS UNTUK MERAPIHKAN TOMBOL AKSI TABEL --- */
+    .action-group {
+        display: flex;
+        gap: 6px; /* Memberi jarak horizontal yang rapi antar tombol */
+        flex-wrap: nowrap; /* Memastikan tombol tidak pecah baris */
+        justify-content: center; /* Memusatkan tombol di kolom */
+        align-items: center;
+    }
+    
+    /* Opsional: Membuat tombol mini lebih kompak dan seragam */
+    .mini-btn {
+        padding: 6px 12px;
+        font-size: 0.85rem;
+        line-height: 1; /* Memastikan tinggi tombol seragam */
+    }
+    
+    /* Responsif: Jika layar terlalu kecil, tumpuk tombol secara vertikal */
+    @media (max-width: 600px) {
+        .action-group {
+            flex-direction: column; /* Tumpuk vertikal di HP */
+            gap: 3px;
+            align-items: stretch; /* Membuat tombol vertikal selebar container */
+        }
+    }
+    /* --- CSS UNTUK FRAUD ALERT --- */
+    .status-badge {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        display: inline-block;
+        font-weight: 600;
+    }
+    .status-danger {
+        background-color: #ffcccc; 
+        color: #cc0000; 
+        border: 1px solid #cc0000;
+    }
+    .status-success {
+        background-color: #e6ffe6; 
+        color: #2ed573;
+    }
+    .small-text-alert {
+        display: block;
+        font-size: 0.75rem;
+        color: var(--secondary); 
+        cursor: pointer;
+        text-decoration: underline;
+        margin-top: 2px;
+    }
+    .badge-admin {
+        background: #e3f2fd !important;
+        color: #1976d2 !important;
+        border: 1px solid #bbdefb;
+    }
+    
+    .badge-ol {
+        background: #fff3e0 !important;
+        color: #e65100 !important;
+        border: 1px solid #ffe0b2;
+    }
+    
+    .status-badge {
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: bold;
+        display: inline-block;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container" id="loginContainer">
+    <div class="login-card">
+      <div class="logo">
+        <h1>Sahabatku Delivery</h1>
+        <p>Admin Panel - Masuk ke sistem</p>
+      </div>
+      
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="email">Email Admin</label>
+          <input type="email" id="email" placeholder="admin@sahabatkudelivery.com" required autocomplete="username">
+        </div>
+        
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="Masukkan password Anda" required autocomplete="current-password">
+        </div>
+        
+        <button type="submit" class="btn btn-primary btn-full">
+          <span id="btnText">Masuk</span>
+          <span id="btnSpinner" class="loading" style="display: none;"></span>
+        </button>
+      </form>
+      
+      <div id="message" class="message"></div>
+    </div>
+    
+    <div class="footer">
+      &copy; 2025 Sahabatku Delivery • <a href="#">Butuh bantuan?</a>
+    </div>
+  </div>
+  <div class="container" id="adminPanel" style="display: none;">
+      <button class="menu-toggle-btn" id="menuToggleButton">
+          ☰ Menu Navigasi
+      </button>
+      
+      <button id="btnLogout" class="btn danger">Logout</button>
+      
+          <nav class="tab" id="adminTabNav">
+              <button data-tab="dashboardTab" class="active">
+                  <svg viewBox="0 0 24 24" class="nav-icon"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
+                  Dashboard
+              </button>
+          
+              <button data-tab="kpiKurirTab">
+                  <svg viewBox="0 0 24 24" class="nav-icon"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                  KPI Kurir
+              </button>
+          
+              <button data-tab="notaTab">
+                  <svg viewBox="0 0 24 24" class="nav-icon"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 15h8M8 11h8"/></svg>
+                  Nota
+              </button>
+          
+              <button data-tab="mitraTab">
+                  <svg viewBox="0 0 24 24" class="nav-icon"><path d="M22 10s-3 3-5 5L8 9l5-5c2 2 5-3 5-3m-6 4L9 8 3 14l5 6 6-5z"/></svg>
+                  Mitra
+              </button>
+          
+              <button data-tab="laporanTab">
+                  <svg viewBox="0 0 24 24" class="nav-icon"><path d="M18 20V6H6v14m12 0H6M4 22h16M12 18V6"/></svg>
+                  Laporan
+              </button>
+          
+              <button onclick="window.location.href='absensi-kurir-sahabatku.html'">
+                  <svg viewBox="0 0 24 24" class="nav-icon"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zM12 10v4M15 12h-6"/></svg>
+                  Absensi Kurir
+              </button>
+          </nav>
+     </nav>
+    <div id="dashboardTab" class="tabContent">
+      <h3>Dashboard Overview</h3>
+        
+      <div class="grid grid-3">
+        <div class="card">
+          <h4>Total Kurir Aktif</h4>
+          <div id="totalKurir" style="font-size:32px;font-weight:800;color:var(--primary)">0</div>
+          <div class="small">Jumlah kurir dengan status aktif</div>
+        </div>
+            
+        <div class="card">
+          <h4>Nota Hari Ini</h4>
+          <div id="notaHariIni" style="font-size:32px;font-weight:800;color:var(--primary)">0</div>
+          <div class="small">Nota dibuat hari ini</div>
+        </div>
+            
+        <div class="card">
+          <h4>Pendapatan Hari Ini</h4>
+          <div id="pendapatanHariIni" style="font-size:32px;font-weight:800;color:var(--success)">Rp 0</div>
+          <div class="small">Total dari Ongkir + Tambahan</div>
+        </div>
+      </div>
+        
+      <div class="card" style="margin-top:20px">
+        <h4>Nota Terbaru</h4>
+        <div id="recentNota" class="list-v"></div>
+      </div>
+    </div>
+
+    <div id="kurirTab" class="tabContent hidden">
+      <h3>Manajemen Data Kurir</h3>
+      
+      <div class="card">
+        <h4>Tambah Kurir Baru</h4>
+        <div class="grid grid-3">
+          <div>
+            <label>Username</label>
+            <input id="newKurirUsername" type="text" placeholder="Nama pengguna kurir">
+          </div>
+          <div>
+            <label>Password</label>
+            <input id="newKurirPassword" type="password" placeholder="Password kurir">
+          </div>
+          <div style="align-self:end">
+            <button id="btnAddKurir" class="btn btn-primary">Tambah Kurir</button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <h4>Daftar Semua Kurir</h4>
+        <table class="admin-table" aria-label="Daftar Kurir">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Password</th>
+              <th>Status</th>
+              <th>Jumlah Nota</th>
+              <th>Tanggal Bergabung</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="kurirList"></tbody>
+        </table>
+      </div>
+    </div>
+    <div id="kpiKurirTab" class="tabContent hidden">
+        <h3>KPI & Analisis Kinerja Kurir</h3>
+        
+        <div class="card" style="margin-bottom: 20px;">
+            <h4>Filter Data Analisis</h4>
+            <div class="filter-controls">
+                <div>
+                    <label for="kpiMonthFilter">Periode Bulan</label>
+                    <input type="month" id="kpiMonthFilter" style="width: 250px;">
+                </div>
+                <div>
+                    <label for="kpiDateFilter">Periode Hari (Opsional)</label>
+                    <input type="date" id="kpiDateFilter" style="width: 250px;">
+                </div>
+                <div style="align-self: end;">
+                    <button id="btnGenerateKpi" class="btn btn-primary mini-btn">Tampilkan Data</button>
+                </div>
+            </div>
+        </div>
+        <div class="card" style="margin-bottom: 20px;">
+            <div class="card-body">
+                <p><strong>Rekomendasi Admin:</strong></p>
+                <p id="kpiSuggestionBox">Memuat saran...</p>
+            </div>
+        </div>
+    
+        <h4 style="margin-bottom: 10px;">🏆 Penghargaan Kurir</h4>
+        <div class="grid-3" style="margin-bottom: 20px;">
+            <div class="card" style="border: 2px solid var(--success); background: #e6ffe6;">
+                <p class="small">Kurir Paling Aktif (Bulan Ini)</p>
+                <h3 id="kpiMostActiveMonthly" style="color: var(--success); margin-bottom: 0;">-</h3>
+            </div>
+            <div class="card" style="border: 2px solid #ff9f43; background: #fff5e6;">
+                <p class="small">Kurir TRX Mitra Terbanyak (Bulan Ini)</p>
+                <h3 id="kpiBestTrxMonthly" style="color: #ff9f43; margin-bottom: 0;">-</h3>
+            </div>
+            <div class="card" style="border: 2px solid var(--primary); background: #e6f7ff;">
+                <p class="small">Kurir Terbaik (Skor Gabungan Bulan Ini)</p>
+                <h3 id="kpiBestOverallMonthly" style="color: var(--primary); margin-bottom: 0;">-</h3>
+            </div>
+        </div>
+        
+        <h4 style="margin-top: 25px; margin-bottom: 10px;">🏅 Top 5 Kurir Berdasarkan Kategori</h4>
+        <div class="grid-4" style="margin-bottom: 20px;">
+            <div class="card">
+                <p class="small">Top 5 Total Nota (Bulan)</p>
+                <ol id="top5NotaMonthly" style="padding-left: 20px; margin-top: 10px;"><li>Tidak Ada Data</li></ol>
+            </div>
+            <div class="card">
+                <p class="small">Top 5 Penghasilan (Bulan)</p>
+                <ol id="top5IncomeMonthly" style="padding-left: 20px; margin-top: 10px;"><li>Tidak Ada Data</li></ol>
+            </div>
+            <div class="card">
+                <p class="small">Top 5 Total Nota (Hari)</p>
+                <ol id="top5NotaDaily" style="padding-left: 20px; margin-top: 10px;"><li>Pilih tanggal untuk melihat harian.</li></ol>
+            </div>
+            <div class="card">
+                <p class="small">Top 5 Penghasilan (Hari)</p>
+                <ol id="top5IncomeDaily" style="padding-left: 20px; margin-top: 10px;"><li>Pilih tanggal untuk melihat harian.</li></ol>
+            </div>
+        </div>
+    
+        <div class="card">
+            <h4>Detail Peringkat Semua Kurir (Bulan Ini)</h4>
+            <p class="small" style="margin-bottom: 15px;">Peringkat dihitung dari skor gabungan: Total Nota (40%), Penghasilan (40%), dan TRX Mitra (20%). Rating <span class="status-badge status-active">Aktif > 80</span>, <span class="status-badge status-published">Normal 60-80</span>, <span class="status-badge status-inactive">Kurang < 60</span>.</p>
+            <table class="admin-table" aria-label="Detail Peringkat Kurir">
+                <thead>
+                    <tr>
+                        <th>Peringkat</th>
+                        <th>Kurir</th>
+                        <th>Rating (1-100)</th>
+                        <th>TRX Mitra (Bulan)</th>
+                        <th>Total Nota (Bulan)</th>
+                        <th>Total Penghasilan (Bulan)</th>
+                        <th>Konsistensi</th>                         <th>Kerajinan</th>                       </tr>
+                </thead>
+                <tbody id="kpiKurirDetailList">
+                    <tr><td colspan="6" class="small" style="text-align: center;">Silakan pilih bulan dan klik 'Tampilkan Data'</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div id="notaTab" class="tabContent hidden">
+      <h3>Semua Nota System</h3>
+      <div class="card">
+        <div class="grid grid-3">
+          <div>
+            <label>Pilih Tanggal Nota</label>
+            <input id="filterSingleDate" type="date">
+          </div>
+          <div>
+            <label>Kurir</label>
+            <select id="filterKurir">
+              <option value="">Semua Kurir</option>
+            </select>
+          </div>
+          <div style="visibility: hidden;">&nbsp;</div>
+        </div>
+        <div class="btnbar">
+          <button id="btnFilterNotaNew" class="btn btn-primary">Filter</button>
+          <button id="btnResetFilterNew" class="btn secondary">Reset (Hari Ini)</button>
+          <button id="btnExportNota" class="btn secondary">Export CSV</button>
+        </div>
+      </div>
+      
+      <div class="card">
+        <table class="admin-table" aria-label="Daftar Nota">
+          <thead>
+            <tr>
+              <th>No Nota</th>
+              <th>Kurir</th>
+              <th>Status</th>
+              <th>Tanggal</th>
+              <th>Ongkir</th>
+              <th>Tambahan</th>
+              <th>Total</th>
+              <th>Item</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="allNotaList"></tbody>
+        </table>
+      </div>
+    </div>
+    
+    <div id="notaModal" class="modal hidden">
+      <div class="modal-content nota-card" id="notaArea">
+        <div class="nota-header">
+          <div>
+            <h2>Sahabatku Delivery</h2>
+          </div>
+          <div class="nota-meta">
+            <p><strong>Kurir:</strong> <span id="notaKurir"></span></p>
+            <p><strong>Status:</strong> <span id="notaStatus" style="font-weight:800; color:var(--primary-dark);"></span></p>
+            <p><strong>No Nota:</strong> <span id="notaNo"></span></p>
+            <p><strong>Tanggal:</strong> <span id="notaTanggal"></span></p>
+          </div>
+        </div>
+        <hr>
+        <div class="nota-body">
+          <table class="nota-table">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Item</th>
+                <th>Qty</th>
+                <th>Harga</th>
+                <th>Subtotal</th>
+              </tr>
+            </thead>
+            <tbody id="notaItems"></tbody>
+          </table>
+        </div>
+        <hr>
+        <div class="nota-summary">
+          <p>Ongkir: <span id="notaOngkir"></span></p>
+          <p>Tambahan: <span id="notaTambahan"></span></p>
+          <h3>Total: <span id="notaTotal"></span></h3>
+        </div>
+        <div class="nota-footer">
+          <p>Terima kasih sudah menggunakan layanan kami 🙏</p>
+          <p><em>— Sahabatku Delivery —</em></p>
+        </div>
+        <div class="nota-actions">
+          <button id="btnSaveNota" class="btn primary">💾 Simpan Nota</button>
+          <button id="btnCloseNota" class="btn secondary">Tutup</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="ongkirTab" class="tabContent hidden">
+        <h3>Manajemen Daftar Ongkir</h3>
+        <div class="card">
+            <h4>Tambah Wilayah & Ongkir Baru</h4>
+            <div class="grid grid-3">
+                <div>
+                    <label>Nama Wilayah</label>
+                    <input id="newWilayah" type="text" placeholder="Contoh: Jatibarang Kota">
+                </div>
+                <div>
+                    <label>Tarif Ongkir (Rp)</label>
+                    <input id="newOngkir" type="number" placeholder="Contoh: 6000">
+                </div>
+                
+                <div style="align-self:end; display: flex; gap: 10px; justify-content: flex-end;">
+                    
+                    <a href="cekongkir.html" class="btn btn-secondary">
+                        Hitung Ongkir
+                    </a>
+    
+                    <button id="btnAddOngkir" class="btn btn-primary">
+                        Tambah Ongkir
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <h4>Daftar Semua Ongkir</h4>
+            <div class="form-group">
+                <input type="search" id="searchOngkir" placeholder="🔍 Cari nama wilayah...">
+            </div>
+            <table class="admin-table" aria-label="Daftar Ongkir">
+                <thead>
+                    <tr>
+                        <th>Wilayah</th>
+                        <th>Ongkir</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="ongkirList"></tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div id="testimoniTab" class="tabContent hidden">
+        <h3>Daftar Testimoni Pelanggan</h3>
+        <div class="card">
+            <table class="admin-table" aria-label="Daftar Testimoni">
+                <thead>
+                    <tr>
+                        <th>Nama</th>
+                        <th>Tanggal/Jam</th>
+                        <th>Rating</th>
+                        <th>Status</th>
+                        <th>Kecepatan</th>
+                        <th>Sikap Kurir</th>
+                        <th>Komentar</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="testimoniList"></tbody>
+            </table>
+        </div>
+    </div>
+    <div id="mitraTab" class="tabContent hidden">
+      <h3>Manajemen Data Mitra</h3>
+      <div class="card">
+        <h4>Tambah Mitra Baru</h4>
+        <div class="grid grid-4">
+          <div>
+            <label>Nama Mitra</label>
+            <input id="newMitraName" type="text" placeholder="Nama Mitra" required>
+          </div>
+          <div>
+            <label>Alamat</label>
+            <input id="newMitraAddress" type="text" placeholder="Alamat Mitra" required>
+          </div>
+          <div>
+            <label>No HP</label>
+            <input id="newMitraPhone" type="text" placeholder="No HP" required>
+          </div>
+          <div>
+            <label>Target Transaksi</label>
+            <input id="newMitraTarget" type="number" placeholder="Target Transaksi Harian" required>
+          </div>
+        </div>
+        <div class="btnbar">
+          <button id="btnAddMitra" class="btn btn-primary">Tambah Mitra</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4>Tambah/Ubah TRX Bulanan Mitra</h4>
+        <div class="grid grid-3">
+          <div>
+            <label for="trxMitraInputSearch">Pilih Mitra</label>
+            <input id="trxMitraInputSearch" list="mitraDatalist" type="text" placeholder="Ketik untuk mencari mitra...">
+            <datalist id="mitraDatalist"></datalist>
+            <input type="hidden" id="trxMitraSelect" value=""> 
+          </div>
+          <div>
+            <label for="trxMitraInput">Jumlah TRX</label>
+            <input id="trxMitraInput" type="number" placeholder="Masukkan jumlah TRX">
+          </div>
+          <div style="align-self:end">
+            <button id="btnAddTrxButton" class="btn btn-primary">Set TRX</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h4>Riwayat Transaksi Mitra (Cek TRX Kurir)</h4>
+        <p class="small" style="margin-bottom: 15px;">Fitur ini menampilkan log input nota yang terhubung ke mitra, untuk memonitor aktivitas kurir.</p>
+        <div class="btnbar" style="justify-content: flex-start; margin-bottom: 20px;">
+            <button id="btnCekTrxMitra" class="btn btn-primary">Cek Semua TRX Mitra</button>
+        </div>
+        <div id="trxMitraLogArea" class="hidden">
+            <div class="filter-controls" style="margin-bottom: 20px;">
+                <label for="trxLogMonthFilter">Bulan:</label>
+                <input type="month" id="trxLogMonthFilter" class="form-control" style="width: auto; display: inline-block;">
+                <input type="date" id="trxLogDateFilter" class="input-field" style="width: 150px;">
+                <label for="trxLogKurirFilter">Kurir:</label>
+                <select id="trxLogKurirFilter" class="form-control" style="width: auto; display: inline-block;">
+                    <option value="">Semua Kurir</option>
+                </select>
+                <button id="btnFilterTrxLog" class="btn secondary mini-btn">Filter</button>
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="admin-table" aria-label="Log Transaksi Mitra">
+                    <thead>
+                        <tr>
+                            <th>Waktu Input</th>
+                            <th>Nama Mitra</th>
+                            <th>TRX Input</th> <th>Kurir Input</th>
+                            <th>Aksi (Hapus)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="trxMitraLogList">
+                        <tr><td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 20px;">Tekan 'Cek Semua TRX Mitra' untuk memuat data.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+      </div>
+      <div class="card">
+        <h4>Daftar Semua Mitra</h4>
+        <div class="filter-controls" style="margin-bottom: 20px;">
+          <label for="monthFilter">Bulan:</label>
+          <input type="month" id="monthFilter" class="form-control" style="width: auto; display: inline-block;">
+        </div>
+        <div class="form-group">
+          <input type="search" id="searchMitra" placeholder="🔍 Cari nama mitra...">
+        </div>
+        <table class="admin-table" aria-label="Daftar Mitra">
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Nama Mitra</th>
+              <th>Alamat</th>
+              <th>No HP</th>
+              <th>Target Trx</th>
+              <th>TRX Bulan Ini</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="mitraListBody"></tbody>
+        </table>
+      </div>
+    </div>
+    
+    <div id="laporanTab" class="tabContent hidden">
+      <h3>Laporan Keuangan</h3>
+      
+      <div class="card">
+        <div class="grid grid-3">
+          <div>
+            <label>Bulan</label>
+            <input id="reportMonth" type="month">
+          </div>
+          <div>
+            <label>Kurir</label>
+            <select id="reportKurir">
+              <option value="">Semua Kurir</option>
+            </select>
+          </div>
+          <div style="align-self:end">
+            <button id="btnGenerateReport" class="btn btn-primary">Buat Laporan</button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <h4>Ringkasan Laporan</h4>
+        <div id="reportSummary" class="grid grid-4">
+          </div>
+      </div>
+      
+      <div class="card">
+        <h4>Detail Laporan per Hari</h4>
+        <table class="admin-table" aria-label="Detail Laporan">
+          <thead>
+            <tr>
+              <th>Tanggal</th>
+              <th>Jumlah Nota</th>
+              <th>Total Pendapatan</th>
+              <th>Rata-rata per Nota</th>
+              <th>Kurir Aktif</th>
+            </tr>
+          </thead>
+          <tbody id="reportDetails"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="settingsTab" class="tabContent hidden">
+      <h3>Pengaturan Sistem</h3>
+      
+      <div class="card">
+        <h4>Kirim Pesan Broadcast</h4>
+        <div class="stack">
+          <div>
+            <label for="broadcastRecipient">Penerima Pesan</label>
+            <select id="broadcastRecipient" class="form-control">
+              <option value="all">Semua Kurir</option>
+            </select>
+          </div>
+          <div>
+            <label for="broadcastMessage">Isi Pesan</label>
+            <textarea id="broadcastMessage" rows="4" placeholder="Tulis pesan yang ingin dikirim..."></textarea>
+          </div>
+          <div style="align-self:end">
+            <button id="btnBroadcast" class="btn btn-primary">Kirim Pesan</button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <h4>Admin Baru</h4>
+        <div class="grid grid-3">
+          <div>
+            <label>Email Admin</label>
+            <input id="newAdminEmail" type="email" placeholder="email@admin.com">
+          </div>
+          <div>
+            <label>Password</label>
+            <input id="newAdminPassword" type="password" placeholder="Password admin">
+          </div>
+          <div style="align-self:end">
+            <button id="btnAddAdmin" class="btn btn-primary">Tambah Admin</button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <h4>Daftar Admin</h4>
+        <table class="admin-table" aria-label="Daftar Admin">
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Tanggal Dibuat</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="adminList"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { 
+      getAuth, 
+      signInWithEmailAndPassword, 
+      createUserWithEmailAndPassword,
+      signOut,
+      onAuthStateChanged 
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { 
+      getDatabase, 
+      ref, 
+      set, 
+      get, 
+      onValue, 
+      update, 
+      remove, 
+      push,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCtva8TeL40-WotK4kFL_vL8uUXL3GDfww",
+      authDomain: "sahabatkuu-bisa.firebaseapp.com",
+      databaseURL: "https://sahabatkuu-bisa-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "sahabatkuu-bisa",
+      storageBucket: "sahabatkuu-bisa.firebasestorage.app",
+      messagingSenderId: "315555564115",
+      appId: "1:315555564115:web:56f46dbceb8c154589d4a6",
+      measurementId: "G-PFGYL96VPS"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    const SUPER_ADMIN_UID = "9TKVsuTG1mfME9TstOGYTa4dwr53";
+
+    const el = (id) => document.getElementById(id);
+    const loginContainer = el('loginContainer');
+    const adminPanel = el('adminPanel');
+    const loginForm = el('loginForm');
+    const messageDiv = el('message');
+    const btnText = el('btnText');
+    const btnSpinner = el('btnSpinner');
+    const btnLogout = el('btnLogout');
+
+    const formatRp = n => "Rp " + (n || 0).toLocaleString("id-ID");
+    // Helper untuk mendapatkan tanggal hari ini dalam format YYYY-MM-DD
+    function getTodayDate() {
+        // Menggunakan timezone lokal
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+    const calculatePendapatanNota = (nota) => {
+        const ongkir = Number(nota.ongkir) || 0;
+        const tambahan = nota.tambahans ? nota.tambahans.reduce((sum, t) => sum + (Number(t.nominal) || 0), 0) : 0;
+        return ongkir + tambahan;
+    };
+
+    function showLoading(loading) {
+      const button = loginForm.querySelector('button');
+      if (loading) {
+        btnText.textContent = 'Memproses...';
+        btnSpinner.style.display = 'inline-block';
+        if (button) button.disabled = true;
+      } else {
+        btnText.textContent = 'Masuk';
+        btnSpinner.style.display = 'none';
+        if (button) button.disabled = false;
+      }
+    }
+
+    function showMessage(text, type) {
+      messageDiv.textContent = text;
+      messageDiv.className = `message ${type}`;
+      messageDiv.style.display = 'block';
+      
+      if (type === 'error') {
+        setTimeout(() => {
+          messageDiv.style.display = 'none';
+        }, 5000);
+      }
+    }
+    
+    async function isAdmin(user) {
+        if (!user) return false;
+        if (user.uid === SUPER_ADMIN_UID) return true;
+        
+        const adminRef = ref(db, 'admins/' + user.uid);
+        const adminSnap = await get(adminRef);
+        return adminSnap.exists();
+    }
+
+    async function doAdminLogin(email, password) {
+      showLoading(true);
+      messageDiv.style.display = 'none';
+      
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        
+        if (await isAdmin(user)) {
+          showMessage('Login berhasil! Mengarahkan ke dashboard...', 'success');
+        } else {
+          await signOut(auth);
+          showMessage('Anda tidak memiliki akses admin', 'error');
+        }
+        
+      } catch (error) {
+        console.error("Login error:", error);
+        if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+          showMessage('Email atau password salah', 'error');
+        } else if (error.code === 'auth/invalid-email') {
+          showMessage('Format email tidak valid', 'error');
+        } else {
+          showMessage('Terjadi kesalahan saat login: ' + error.message, 'error');
+        }
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    async function doAdminLogout() {
+      try {
+        await signOut(auth);
+        adminPanel.style.display = 'none';
+        loginContainer.style.display = 'block';
+        loginForm.reset();
+      } catch (error) {
+        console.error("Logout error:", error);
+      }
+    }
+
+    onAuthStateChanged(auth, async (user) => {
+      if (await isAdmin(user)) {
+        loginContainer.style.display = 'none';
+        adminPanel.style.display = 'block';
+        el('adminUser').textContent = user.email;
+        setActiveTab('dashboardTab');
+      } else {
+        adminPanel.style.display = 'none';
+        loginContainer.style.display = 'block';
+      }
+    });
+
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const email = el('email').value.trim();
+      const password = el('password').value;
+      if (!email || !password) {
+        showMessage('Email dan password harus diisi', 'error');
+        return;
+      }
+      doAdminLogin(email, password);
+    });
+
+    btnLogout.addEventListener('click', doAdminLogout);
+
+    function setActiveTab(id) {
+      document.querySelectorAll('nav#adminTabNav button').forEach(button => {
+        button.classList.toggle('active', button.dataset.tab === id);
+      });
+      
+      document.querySelectorAll('.tabContent').forEach(tab => {
+        tab.classList.toggle('hidden', tab.id !== id);
+      });
+      
+      if (id === 'dashboardTab') loadDashboard();
+      if (id === 'kurirTab') loadKurirData();
+      if (id === 'kpiKurirTab') {initKpiKurirTab();}
+      if (id === 'notaTab') {
+          loadKurirOptions();
+          // Tentukan tanggal hari ini untuk dijadikan filter default
+          const today = getTodayDate(); 
+          // Panggil fungsi pemuatan nota dengan filter tanggal hari ini.
+          // Ini akan menampilkan nota hari ini secara default.
+          loadAllNota({ 
+              startDate: today, 
+              endDate: today 
+          });
+      }
+      if (id === 'ongkirTab') loadOngkirData();
+      if (id === 'testimoniTab') loadTestimoniData();
+      if (id === 'laporanTab') initReportTab();
+      if (id === 'settingsTab') loadAdminSettings();
+      if (id === 'mitraTab') {
+        el('monthFilter').value = new Date().toISOString().slice(0, 7);
+        loadMitraData();
+      }
+    }
+
+    document.querySelectorAll('nav#adminTabNav button').forEach(button => {
+      button.addEventListener('click', () => setActiveTab(button.dataset.tab));
+    });
+    
+    // Mitra Management
+    const newMitraName = el('newMitraName');
+    const newMitraAddress = el('newMitraAddress');
+    const newMitraPhone = el('newMitraPhone');
+    const newMitraTarget = el('newMitraTarget');
+    const btnAddMitra = el('btnAddMitra');
+    const mitraListBody = el('mitraListBody');
+    const monthFilter = el('monthFilter');
+    const trxMitraSelect = el('trxMitraSelect');
+    const trxMitraInputSearch = el('trxMitraInputSearch'); // Input Cari
+    const mitraDatalist = el('mitraDatalist'); // Datalist
+    const trxMitraInput = el('trxMitraInput');
+    const btnAddTrxButton = el('btnAddTrxButton');
+
+    // Deklarasi Elemen untuk Fitur Baru Cek TRX
+    const btnCekTrxMitra = el('btnCekTrxMitra');
+    const trxMitraLogArea = el('trxMitraLogArea');
+    const trxMitraLogList = el('trxMitraLogList');
+    const trxLogMonthFilter = el('trxLogMonthFilter');
+    const trxLogDateFilter = el('trxLogDateFilter'); // <<< TAMBAH INI
+    const trxLogKurirFilter = el('trxLogKurirFilter');
+    const btnFilterTrxLog = el('btnFilterTrxLog');
+    
+    // Variabel Global untuk Log TRX
+    let allTrxLogData = [];
+    let mitraDataMap = {}; // Untuk menyimpan { mitraId: mitraName }
+    let kurirDataMap = {}; // Untuk menyimpan { kurirId: kurirUsername }
+    
+    const addMitra = async () => {
+        const name = newMitraName.value.trim();
+        const address = newMitraAddress.value.trim();
+        const phone = newMitraPhone.value.trim();
+        const target = newMitraTarget.value.trim();
+    
+        if (!name || !address || !phone || !target) {
+            alert('Semua data mitra harus diisi.');
+            return;
+        }
+    
+        if (!confirm(`Tambahkan mitra baru: ${name}?`)) return;
+    
+        try {
+            const newMitraRef = push(ref(db, 'mitra'));
+            
+            await set(newMitraRef, {
+                nama: name,
+                alamat: address,
+                noHp: phone,
+                targetTransaksi: parseInt(target),
+                createdAt: serverTimestamp() 
+            });
+            alert('Mitra berhasil ditambahkan!');
+            newMitraName.value = '';
+            newMitraAddress.value = '';
+            newMitraPhone.value = '';
+            newMitraTarget.value = '';
+            loadMitraData(); 
+        } catch (e) {
+            console.error("Gagal menambahkan mitra:", e);
+            alert('Gagal menambahkan mitra.');
+        }
+    };
+    trxMitraInputSearch.addEventListener('input', () => {
+        const inputVal = trxMitraInputSearch.value;
+        // Cari elemen <option> yang value-nya cocok dengan yang diketik/dipilih user
+        const option = mitraDatalist.querySelector(`option[value="${inputVal}"]`);
+        
+        if (option) {
+            // Jika ada kecocokan di datalist, simpan ID mitra ke hidden input
+            trxMitraSelect.value = option.getAttribute('data-id');
+        } else {
+            // Jika tidak ada kecocokan, reset ID
+            trxMitraSelect.value = '';
+        }
+    });
+// --- Logika Baru untuk Fitur Cek TRX Mitra Kurir ---
+
+    const fetchMitraAndKurirData = async () => {
+        // Ambil data Mitra
+        const mitraSnapshot = await get(ref(db, 'mitra'));
+        mitraDataMap = {};
+        mitraSnapshot.forEach(childSnap => {
+            mitraDataMap[childSnap.key] = childSnap.val().nama;
+        });
+
+        // Ambil data Kurir
+        const kurirSnapshot = await get(ref(db, 'kurir'));
+        kurirDataMap = {};
+        let kurirOptionsHtml = '<option value="">Semua Kurir</option>';
+        kurirSnapshot.forEach(childSnap => {
+            const data = childSnap.val();
+            // Asumsi kurirId adalah childSnap.key dan username ada di childSnap.val().username
+            kurirDataMap[childSnap.key] = data.username; 
+            kurirOptionsHtml += `<option value="${childSnap.key}">${data.username}</option>`;
+        });
+        trxLogKurirFilter.innerHTML = kurirOptionsHtml;
+    };
+
+
+    const displayFilteredTrxLog = () => {
+        const selectedMonth = trxLogMonthFilter.value; // Format: YYYY-MM
+        const selectedDate = trxLogDateFilter.value; // <<< TAMBAH INI (Format: YYYY-MM-DD)
+        const selectedKurirId = trxLogKurirFilter.value; // Kurir ID
+
+        const filteredData = allTrxLogData.filter(log => {
+            const monthMatch = !selectedMonth || log.monthYear === selectedMonth;
+            const dateMatch = !selectedDate || log.dateOnly === selectedDate; // KONDISI FILTER INI AKAN BERJALAN
+            const kurirMatch = !selectedKurirId || log.kurirId === selectedKurirId;
+            return monthMatch && kurirMatch && dateMatch; // Gabungan ketiga filter
+        });
+
+        if (filteredData.length === 0) {
+            trxMitraLogList.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 20px;">Tidak ada transaksi mitra yang ditemukan untuk filter ini.</td></tr>`;
+            return;
+        }
+        const html = filteredData.map(log => `
+            <tr>
+                <td>${log.dateString}</td>
+                
+                <td>${log.mitraName}</td>
+                
+                <td><strong>${log.trxInput || 1} TRX</strong> (Bulan: ${log.bulanTujuan || '-'})</td> 
+                
+                <td>${log.kurirName}</td> 
+                
+                <td>
+                    <button class="btn danger mini-btn" onclick="deleteMitraTrxLog(
+                        '${log.id}', 
+                        ${log.trxInput || 1}, 
+                        '${log.mitraId}', 
+                        '${log.bulanTujuan}',
+                        '${log.mitraName}', // Nama Mitra
+                        '${log.kurirName}'  // Nama Kurir
+                    )">Hapus</button>
+                </td>
+            </tr>
+        `).join('');
+        
+        trxMitraLogList.innerHTML = html;
+        
+    }
+    window.deleteMitraTrxLog = async (logId, trxCount, mitraId, selectedMonth, namaMitra, namaKurir) => {
+        
+        // --- PERBAIKAN PESAN KONFIRMASI (CONFIRM) ---
+        // Sekarang menggunakan Nama Mitra dan Nama Kurir
+        if (!confirm(`Yakin ingin menghapus ${trxCount} TRX untuk Mitra ${namaMitra} (Kurir: ${namaKurir})?\nTotal TRX bulanan juga akan dikurangi!`)) {
+            return;
+        }
+        
+        if (!logId || !mitraId || !selectedMonth) {
+            alert("Error: Data log tidak lengkap untuk dihapus.");
+            return;
+        }
+
+        try {
+            // 1. Hapus Log Detail Transaksi (TRX)
+            await remove(ref(db, `mitra_trx_log/${logId}`));
+
+            // 2. Kurangi Total TRX Bulanan
+            const trxRef = ref(db, `mitra_trx_monthly/${mitraId}/${selectedMonth}`);
+            const snap = await get(trxRef);
+            
+            if (snap.exists()) {
+                const currentTrx = snap.val().trx;
+                const newTrx = Math.max(0, currentTrx - trxCount); 
+                
+                if (newTrx === 0) {
+                    await remove(trxRef);
+                } else {
+                    await update(trxRef, { trx: newTrx });
+                }
+            }
+
+            // --- PERBAIKAN PESAN SUKSES AKHIR (ALERT) ---
+            // Sesuai permintaan Anda: "tanggal | Nama Mitra | TRX Input | Kurir Input berhasil dihapus..."
+            alert(
+                `${selectedMonth} | ${namaMitra} | ${trxCount} TRX | ${namaKurir} berhasil dihapus dan dikoreksi.`
+            );
+            // ---------------------------------------------
+
+            // Muat ulang data
+            loadMitraTrxLog(); 
+            
+            if (typeof loadMitraData === 'function') {
+                loadMitraData(); 
+            }
+
+        } catch (error) {
+            console.error("Gagal menghapus log:", error);
+            alert("Gagal menghapus log transaksi: " + error.message);
+        }
+    }
+    const deleteMitra = async (mitraId) => {
+        if (confirm("🚨 PERINGATAN: Yakin ingin MENGHAPUS PERMANEN mitra ini? Aksi ini tidak dapat dibatalkan dan akan menghapus semua data transaksi mitra terkait.")) {
+            try {
+                // Hapus data mitra utama
+                await remove(ref(db, `mitra/${mitraId}`));
+                // Hapus data transaksi bulanan terkait
+                await remove(ref(db, `mitra_trx_monthly/${mitraId}`));
+                await remove(ref(db, `mitra_status_monthly/${mitraId}`));
+    
+                alert('Mitra berhasil dihapus secara permanen!');
+                loadMitraData(); // Muat ulang data tabel
+            } catch (e) {
+                console.error("Error deleting mitra permanently: ", e);
+                alert('Gagal menghapus mitra secara permanen.');
+            }
+        }
+    };
+    const loadMitraTrxLog = async () => {
+        trxMitraLogArea.classList.remove('hidden');
+        trxMitraLogList.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px;">Memuat data...</td></tr>';
+
+        // 1. Ambil data Kurir dan Mitra untuk pemetaan ID ke Nama
+        await fetchMitraAndKurirData();
+
+        // 2. Ambil semua Log TRX data DARI PATH BARU
+        try {
+            // >>> UBAH SUMBER DATA DARI 'nota' KE 'mitra_trx_log' <<<
+            const logSnapshot = await get(ref(db, 'mitra_trx_log')); 
+            allTrxLogData = [];
+
+            logSnapshot.forEach(childSnap => {
+                const log = childSnap.val();
+                
+                // Asumsi: Transaksi Mitra diidentifikasi dari log input kurir
+                if (log.mitraId && log.kurirId) {
+                    const logDate = new Date(log.timestamp); 
+                    allTrxLogData.push({
+                        id: childSnap.key,
+                        mitraId: log.mitraId,
+                        kurirId: log.kurirId,
+                        timestamp: log.timestamp, 
+                        // Menggunakan trxCount/trxToAdd dari log kurir sebagai pengganti No Nota/TRX
+                        trxInput: log.trxCount || 1, 
+                        bulanTujuan: log.bulanTujuan || '-', // Bulan yang dituju saat input
+                        
+                        dateString: logDate.toLocaleDateString('id-ID', {day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'}),
+                        monthYear: logDate.toISOString().slice(0, 7), // YYYY-MM
+                        dateOnly: logDate.toISOString().slice(0, 10), // YYYY-MM-DD <<< TAMBAH INI
+
+                        // Pemetaan ID ke Nama
+                        mitraName: mitraDataMap[log.mitraId] || 'Mitra Tidak Ditemukan',
+                        kurirName: kurirDataMap[log.kurirId] || 'Kurir Tidak Ditemukan',
+                    });
+                }
+            });
+
+            // Urutkan berdasarkan waktu input terbaru
+            allTrxLogData.sort((a, b) => b.timestamp - a.timestamp);
+            
+            // Atur nilai default filter bulan ke bulan saat ini
+            if (!trxLogMonthFilter.value) {
+                trxLogMonthFilter.value = new Date().toISOString().slice(0, 7);
+            }
+            const today = new Date();
+            // Gunakan metode getFullYear(), getMonth(), dan getDate() perangkat
+            // dan pastikan formatnya YYYY-MM-DD
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0'); // Tambah 1 karena bulan dari 0-11
+            const day = String(today.getDate()).padStart(2, '0');
+            
+            const todayDateFormatted = `${year}-${month}-${day}`; // Hasilnya: 2025-10-10
+            
+            // 2. Set nilai default input tanggal ke HARI INI
+            trxLogDateFilter.value = todayDateFormatted; 
+            
+            // Tampilkan hasil yang sudah difilter
+            displayFilteredTrxLog();
+
+        } catch (e) {
+            console.error("Gagal memuat log TRX mitra:", e);
+            trxMitraLogList.innerHTML = '<tr><td colspan="4" class="small error" style="padding: 20px;">Gagal memuat log transaksi. Cek koneksi database.</td></tr>';
+        }
+    };
+
+    // Event listeners untuk fitur baru
+    btnCekTrxMitra.addEventListener('click', loadMitraTrxLog);
+    btnFilterTrxLog.addEventListener('click', displayFilteredTrxLog);
+    trxLogMonthFilter.addEventListener('change', displayFilteredTrxLog);
+    trxLogKurirFilter.addEventListener('change', displayFilteredTrxLog);
+    trxLogDateFilter.addEventListener('change', displayFilteredTrxLog); // <<< TAMBAH INI
+
+    const setMitraTrx = async () => {
+        const mitraId = trxMitraSelect.value;
+        const trxToSet = parseInt(trxMitraInput.value);
+        const selectedMonth = monthFilter.value;
+
+        if (!mitraId) {
+            alert('Pilih mitra terlebih dahulu.');
+            return;
+        }
+        if (isNaN(trxToSet) || trxToSet < 0) {
+            alert('Jumlah TRX harus berupa angka positif.');
+            return;
+        }
+
+        try {
+            const trxRef = ref(db, `mitra_trx_monthly/${mitraId}/${selectedMonth}`);
+            await set(trxRef, { trx: trxToSet });
+            alert(`Jumlah TRX bulanan untuk mitra berhasil di-set menjadi ${trxToSet}.`);
+            trxMitraInput.value = '';
+            loadMitraData();
+        } catch (e) {
+            console.error("Error setting TRX:", e);
+            alert('Gagal mengubah TRX.');
+        }
+    };
+    const deleteMitraForMonth = async (mitraId, mitraName) => {
+        const selectedMonth = monthFilter.value;
+        if (!confirm(`Yakin ingin menyembunyikan mitra "${mitraName}" untuk bulan ${selectedMonth}? Mitra akan tetap ada di bulan lainnya.`)) return;
+        
+        try {
+            await set(ref(db, `mitra_status_monthly/${mitraId}/${selectedMonth}`), 'inactive');
+            alert('Mitra berhasil disembunyikan dari daftar bulan ini!');
+            loadMitraData();
+        } catch (e) {
+            console.error("Error hiding mitra for month: ", e);
+            alert('Gagal menyembunyikan mitra.');
+        }
+    };
+    
+    const editMitra = async (mitraId) => {
+        const mitraSnap = await get(ref(db, `mitra/${mitraId}`));
+        if (!mitraSnap.exists()) {
+            alert('Mitra tidak ditemukan!');
+            return;
+        }
+        const data = mitraSnap.val();
+        
+        const newName = prompt("Nama Mitra:", data.nama || "");
+        const newAddress = prompt("Alamat:", data.alamat || "");
+        const newPhone = prompt("No HP:", data.noHp || "");
+        const newTarget = prompt("Target Transaksi:", data.targetTransaksi || 0);
+
+        if (newName === null || newAddress === null || newPhone === null || newTarget === null) return;
+        
+        if (!confirm(`Yakin ingin mengubah data mitra "${data.nama}"?`)) return;
+    
+        try {
+            await update(ref(db, `mitra/${mitraId}`), {
+                nama: newName,
+                alamat: newAddress,
+                noHp: newPhone,
+                targetTransaksi: parseInt(newTarget)
+            });
+            alert('Data mitra berhasil diubah!');
+            loadMitraData();
+        } catch (e) {
+            console.error("Error updating mitra: ", e);
+            alert('Gagal mengubah data mitra.');
+        }
+    };
+    
+    const loadMitraData = () => {
+        const mitraRef = ref(db, 'mitra');
+        onValue(mitraRef, (mitraSnapshot) => {
+            const selectedMonth = monthFilter.value;
+            const trxRef = ref(db, `mitra_trx_monthly`);
+            const statusRef = ref(db, `mitra_status_monthly`);
+            
+            onValue(trxRef, (trxSnapshot) => {
+                onValue(statusRef, (statusSnapshot) => {
+                    try {
+                        // KOREKSI SINKRONISASI: Ubah colspan menjadi 7
+                        mitraListBody.innerHTML = '<tr><td colspan="7" class="small">Memuat data...</td></tr>'; 
+                        
+                        if (!mitraSnapshot.exists()) {
+                             // KOREKSI SINKRONISASI: Ubah colspan menjadi 7
+                             mitraListBody.innerHTML = '<tr><td colspan="7" class="small">Belum ada mitra.</td></tr>';
+                             mitraDatalist.innerHTML = ``; 
+                             trxMitraSelect.value = ''; 
+                             return;
+                        }
+    
+                        const mitraArray = [];
+                        mitraSnapshot.forEach((childSnapshot) => {
+                            mitraArray.push({ id: childSnapshot.key, ...childSnapshot.val() });
+                        });
+                        
+                        mitraArray.sort((a, b) => (a.nama || "").localeCompare(b.nama || ""));
+                        
+                        const trxData = trxSnapshot.val() || {};
+                        const statusData = statusSnapshot.val() || {};
+                        
+                        // ISI DATALIST UNTUK PENCARIAN (Gunakan semua mitra, termasuk inactive)
+                        const trxOptionsHtml = mitraArray.map(mitra => 
+                            // Gunakan data-id untuk menyimpan ID mitra
+                            `<option value="${mitra.nama}" data-id="${mitra.id}"></option>`
+                        ).join('');
+                        mitraDatalist.innerHTML = trxOptionsHtml;
+                        
+                        
+                        // Filter mitra yang aktif untuk ditampilkan di tabel
+                        const filteredMitra = mitraArray.filter(mitra => {
+                            const status = statusData[mitra.id]?.[selectedMonth];
+                            return status !== 'inactive'; 
+                        });
+                        
+                        if (filteredMitra.length === 0) {
+                            // KOREKSI SINKRONISASI: Ubah colspan menjadi 7
+                            mitraListBody.innerHTML = '<tr><td colspan="7" class="small">Tidak ada mitra aktif di bulan ini.</td></tr>'; 
+                            return;
+                        }
+    
+                        // ISI TABEL DAFTAR MITRA
+                        const html = filteredMitra.map((mitra, index) => { 
+                            const currentTrx = trxData[mitra.id]?.[selectedMonth]?.trx || 0;
+                            const namaMitra = mitra.nama || '-';
+    
+                            // Logika Link
+                            const alamatText = mitra.alamat || '-';
+                            const isGoogleMapsLink = alamatText.startsWith('http://') || alamatText.startsWith('https://');
+                            const googleMapsLink = isGoogleMapsLink ? alamatText : `http://maps.google.com/?q=${encodeURIComponent(alamatText)}`;
+    
+                            const cleanNoHp = mitra.noHp ? mitra.noHp.replace(/\D/g, '') : '';
+                            const whatsappLink = cleanNoHp ? `https://wa.me/${cleanNoHp.startsWith('62') ? cleanNoHp : '62' + cleanNoHp}` : '#';
+                            
+                            return `
+                            <tr>
+                                <td>${index + 1}</td> <td>${namaMitra}</td>
+                                <td>${mitra.alamat ? `<a href="${googleMapsLink}" target="_blank">${alamatText}</a>` : '-'}</td>
+                                <td>${mitra.noHp ? `<a href="${whatsappLink}" target="_blank">${mitra.noHp}</a>` : '-'}</td>
+                                <td>${new Intl.NumberFormat('id-ID').format(mitra.targetTransaksi || 0)}</td>
+                                <td>${currentTrx}</td>
+                                <td>
+                                    <button class="btn secondary mini-btn" onclick="window.app.editMitra('${mitra.id}')">Edit</button> 
+                                    <button class="btn danger mini-btn" onclick="window.app.deleteMitra('${mitra.id}')">Hapus</button> 
+                                    <button class="btn btn-sembunyikan mini-btn" onclick="window.app.deleteMitraForMonth('${mitra.id}', '${namaMitra}')">Sembunyikan</button>
+                                </td>
+                            </tr>`;
+                        }).join('');
+                        mitraListBody.innerHTML = html;
+                    
+                    } catch (error) {
+                        console.error("Error loading mitra data:", error);
+                        // KOREKSI SINKRONISASI: Ubah colspan menjadi 7
+                        mitraListBody.innerHTML = '<tr><td colspan="7" class="small error">Gagal memuat data</td></tr>'; 
+                    }
+                }, { onlyOnce: true });
+            }, { onlyOnce: true });
+        });
+    };    
+    btnAddMitra.addEventListener('click', addMitra);
+    btnAddTrxButton.addEventListener('click', setMitraTrx);
+    monthFilter.addEventListener('change', loadMitraData);
+    
+    const filterMitraTable = () => {
+        const input = el('searchMitra');
+        const filter = input.value.toUpperCase(); 
+        const tableBody = el('mitraListBody');
+        const tr = tableBody.getElementsByTagName('tr');
+
+        for (let i = 0; i < tr.length; i++) {
+            const tdNama = tr[i].getElementsByTagName('td')[1]; 
+            const tdAlamat = tr[i].getElementsByTagName('td')[2]; 
+            const tdNoHP = tr[i].getElementsByTagName('td')[3]; 
+
+            // Pastikan ini adalah baris data, bukan baris pesan error/loading
+            if (tdNama) { 
+                let rowMatches = false;
+
+                // Cek di kolom Nama Mitra
+                if (tdNama.textContent.toUpperCase().indexOf(filter) > -1) {
+                    rowMatches = true;
+                } 
+                // Cek di kolom Alamat
+                else if (tdAlamat && tdAlamat.textContent.toUpperCase().indexOf(filter) > -1) {
+                    rowMatches = true;
+                } 
+                // Cek di kolom No HP
+                else if (tdNoHP && tdNoHP.textContent.toUpperCase().indexOf(filter) > -1) {
+                    rowMatches = true;
+                }
+
+                // Tampilkan atau sembunyikan baris
+                if (rowMatches) {
+                    tr[i].style.display = ''; 
+                } else {
+                    tr[i].style.display = 'none'; 
+                }
+            } 
+        }
+    };
+    
+    // Pastikan event listener ini tetap ada
+    el('searchMitra').addEventListener('keyup', filterMitraTable);
+
+    async function loadDashboard() {
+        try {
+            const [kurirSnap, allNotaSnap] = await Promise.all([get(ref(db, 'kurir')), get(ref(db, 'nota'))]);
+    
+            // 1. Total Kurir Aktif
+            let totalKurirAktif = 0;
+            if (kurirSnap.exists()) {
+                const kurirData = kurirSnap.val();
+                // Asumsi: Kurir aktif jika 'enabled' = true
+                totalKurirAktif = Object.values(kurirData).filter(k => k.enabled === true).length;
+            }
+            el('totalKurir').textContent = totalKurirAktif;
+    
+            if (!allNotaSnap.exists()) {
+                el('notaHariIni').textContent = 0;
+                el('pendapatanHariIni').textContent = formatRp(0);
+                el('recentNota').innerHTML = '<p class="small">Tidak ada nota terbaru</p>';
+                return;
+            }
+    
+            // Tanggal Hari Ini (YYYY-MM-DD, cocok dengan format nota.createdAt)
+            const today = new Date().toISOString().slice(0, 10);
+            
+            let notaHariIni = 0;
+            let totalPendapatanHariIni = 0; // Variabel ini yang akan diisi dengan pendapatan hari ini
+            let recentNota = [];
+    
+            const allNota = allNotaSnap.val();
+            
+            // Asumsi struktur 'nota': nota/{kurirUsername}/{notaId}
+            Object.keys(allNota).forEach(kurirUsername => {
+                Object.values(allNota[kurirUsername]).forEach(nota => {
+                    
+                    // Pastikan nota memiliki timestamp
+                    if (nota.createdAt) {
+                        
+                        const notaDate = nota.createdAt.slice(0, 10); // Ambil hanya bagian tanggal
+                        
+                        // 2. Hitung Nota Hari Ini dan Pendapatan Hari Ini
+                        if (notaDate === today) {
+                            notaHariIni++;
+                            // Menggunakan fungsi helper Anda untuk menghitung pendapatan nota
+                            totalPendapatanHariIni += calculatePendapatanNota(nota); 
+                        }
+                    
+                        // Kumpulkan semua nota untuk riwayat terbaru
+                        recentNota.push({ ...nota, kurir: kurirUsername });
+                    }
+                });
+            });
+    
+            // Tampilkan hasil harian
+            el('notaHariIni').textContent = notaHariIni;
+            el('pendapatanHariIni').textContent = formatRp(totalPendapatanHariIni); // Sudah terisi dengan data hari ini
+    
+            // 3. Nota Terbaru (Diurutkan & Dibatasi 10 Baris)
+            
+            // Urutkan nota berdasarkan waktu masuknya (createdAt, descending/terbaru)
+            recentNota.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    
+            el('recentNota').innerHTML = recentNota.length > 0
+                // Ambil 10 nota terbaru
+                ? recentNota.slice(0, 10).map(nota => { 
+                    const notaTime = new Date(nota.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                    // Asumsi: field 'total' di nota adalah total pembayaran (pendapatan + ongkir)
+                    const totalBayar = nota.total || calculatePendapatanNota(nota); 
+                    
+                    return `
+                        <div class="card" style="padding:12px; border-left: 3px solid var(--primary); margin-bottom: 5px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <strong style="font-size: 14px;">No: ${nota.noNota || 'N/A'}</strong> <span class="small" style="margin-left: 10px;">(${notaTime})</span>
+                                </div>
+                            </div>
+                            <div class="small">Kurir: ${nota.kurir} - Total: ${formatRp(totalBayar)}</div>
+                        </div>
+                    `;
+                }).join('')
+                : '<p class="small" style="text-align: center; padding: 10px;">Tidak ada nota terbaru</p>';
+    
+        } catch (error) {
+            console.error("Error loading dashboard:", error);
+            // Tampilkan pesan error pada dashboard
+            el('totalKurir').textContent = 'ERR';
+            el('notaHariIni').textContent = 'ERR';
+            el('pendapatanHariIni').textContent = formatRp(0);
+            el('recentNota').innerHTML = '<p class="small error" style="text-align: center;">Gagal memuat data dashboard.</p>';
+        }
+    }
+    async function loadKurirData() {
+      try {
+        const [kurirSnap, notaSnap] = await Promise.all([get(ref(db, 'kurir')), get(ref(db, 'nota'))]);
+        if (!kurirSnap.exists()) {
+          el('kurirList').innerHTML = '<tr><td colspan="5" class="small">Tidak ada kurir terdaftar</td></tr>';
+          return;
+        }
+        
+        const kurirData = kurirSnap.val();
+        const noteCounts = {};
+        if (notaSnap.exists()) {
+          Object.keys(notaSnap.val()).forEach(kurir => {
+            noteCounts[kurir] = Object.keys(notaSnap.val()[kurir]).length;
+          });
+        }
+        
+        const kurirList = Object.values(kurirData);
+        const html = kurirList.map(kurir => `
+          <tr>
+            <td>${kurir.username}</td>
+            <td>${kurir.password}</td>
+            <td><span class="status-badge ${kurir.enabled ? 'status-active' : 'status-inactive'}">${kurir.enabled ? 'Aktif' : 'Nonaktif'}</span></td>
+            <td>${noteCounts[kurir.username] || 0}</td>
+            <td>${kurir.createdAt ? new Date(kurir.createdAt).toLocaleDateString('id-ID') : '-'}</td>
+            <td>
+              <button class="btn secondary mini-btn" onclick="window.app.toggleKurirStatus('${kurir.username}', ${!kurir.enabled})">${kurir.enabled ? 'Nonaktifkan' : 'Aktifkan'}</button>
+              <button class="btn danger mini-btn" onclick="window.app.deleteKurir('${kurir.username}')">Hapus</button>
+            </td>
+          </tr>
+        `).join('');
+      
+        el('kurirList').innerHTML = html;
+        const kurirOptions = kurirList.map(k => `<option value="${k.username}">${k.username}</option>`).join('');
+        el('filterKurir').innerHTML = '<option value="">Semua Kurir</option>' + kurirOptions;
+        el('reportKurir').innerHTML = '<option value="">Semua Kurir</option>' + kurirOptions;
+        el('broadcastRecipient').innerHTML = '<option value="all">Semua Kurir</option>' + kurirOptions;
+      } catch (error) {
+        console.error("Error loading kurir data:", error);
+      }
+    }
+
+    el('btnAddKurir').addEventListener('click', async () => {
+      const username = el('newKurirUsername').value.trim();
+      const password = el('newKurirPassword').value.trim();
+      if (!username || !password) return alert('Username dan password harus diisi');
+      try {
+        const existing = await get(ref(db, `kurir/${username}`));
+        if (existing.exists()) return alert('Username sudah terdaftar');
+        await set(ref(db, `kurir/${username}`), {
+          username: username,
+          password: password,
+          enabled: true,
+          createdAt: new Date().toISOString()
+        });
+        alert('Kurir berhasil ditambahkan');
+        el('newKurirUsername').value = '';
+        el('newKurirPassword').value = '';
+        loadKurirData();
+      } catch (error) {
+        console.error("Error adding kurir:", error);
+        alert('Gagal menambahkan kurir');
+      }
+    });
+
+    const appFunctions = {
+        toggleKurirStatus: async (username, newStatus) => {
+            try {
+                await update(ref(db, `kurir/${username}`), { enabled: newStatus });
+                alert(`Status kurir ${username} berhasil diubah.`);
+                loadKurirData();
+            } catch (error) {
+                console.error("Error toggling kurir status:", error);
+                alert('Gagal mengubah status kurir');
+            }
+        },
+        deleteKurir: async (username) => {
+            if (!confirm(`Yakin ingin menghapus kurir ${username}? Ini akan menghapus semua nota terkait.`)) return;
+            try {
+                await remove(ref(db, `kurir/${username}`));
+                await remove(ref(db, `nota/${username}`));
+                alert('Kurir berhasil dihapus');
+                loadKurirData();
+            } catch (error) {
+                console.error("Error deleting kurir:", error);
+                alert('Gagal menghapus kurir');
+            }
+        },
+        viewNotaDetail: async (kurir, notaId) => {
+            try {
+                const notaSnap = await get(ref(db, `nota/${kurir}/${notaId}`));
+                if (!notaSnap.exists()) return alert('Nota tidak ditemukan');
+                
+                const nota = notaSnap.val();
+                
+                // 1. ISI DATA NOTA
+                el("notaNo").textContent = nota.noNota || "-";
+                el("notaTanggal").textContent = new Date(nota.createdAt).toLocaleString('id-ID');
+                
+                el("notaKurir").textContent = kurir;
+                el("notaStatus").textContent = nota.statusOrder || "Admin";
+                el("notaItems").innerHTML = nota.items ? nota.items.map((item, i) => `
+                    <tr>
+                      <td>${i+1}</td>
+                      <td>${item.name}</td>
+                      <td>${item.qty}</td>
+                      <td>${formatRp(item.price)}</td>
+                      <td>${formatRp(item.subtotal)}</td>
+                    </tr>`).join('') : `<tr><td colspan="5" style="text-align:center">Tidak ada item</td></tr>`;
+        
+                el("notaOngkir").textContent = formatRp(nota.ongkir);
+                // Tambahan (diubah agar lebih rapi di nota yang kompak)
+                if (nota.tambahans && nota.tambahans.length > 0) {
+                    // Gabungkan setiap item tambahan menjadi string dengan pemisah <br>
+                    const tambahanItems = nota.tambahans.map(t => `${t.type}: ${formatRp(t.nominal)}`);
+                    el("notaTambahan").innerHTML = tambahanItems.join('<br>'); // Menggunakan innerHTML
+                } else {
+                    // Jika tidak ada tambahan, tampilkan 0
+                    el("notaTambahan").textContent = formatRp(0);
+                }
+        
+                el("notaTotal").textContent = formatRp(nota.total);
+                
+                el("notaModal").classList.remove("hidden");
+                
+                // 2. LOGIKA SIMPAN NOTA (FIXED)
+                el("btnSaveNota").onclick = async () => {
+                    const notaElement = el("notaArea");
+                    const actions = notaElement.querySelector('.nota-actions');
+                    const modal = el("notaModal"); 
+        
+                    // --- A. Simpan dan Bersihkan Style Sementara ---
+                    // Simpan style asli
+                    const originalModalBg = modal.style.backgroundColor;
+                    const originalNotaShadow = notaElement.style.boxShadow;
+                    const originalNotaPadding = notaElement.style.padding;
+                    
+                    // Terapkan style bersih (seperti struk cetak)
+                    actions.style.display = 'none'; // Sembunyikan tombol aksi
+                    modal.style.backgroundColor = 'transparent'; // Hapus background gelap modal
+                    notaElement.style.boxShadow = 'none'; // Hapus shadow kartu
+                    notaElement.style.padding = '5px'; // Padding sangat minimal
+                    
+                    // --- B. Ambil Gambar (Screenshot) ---
+                    const canvas = await html2canvas(notaElement, {
+                        scale: 3, // Resolusi tinggi (wajib agar gambar tajam)
+                        useCORS: true 
+                    });
+        
+                    // --- C. Kembalikan Style dan Unduh Gambar ---
+                    // Kembalikan style segera setelah canvas dibuat
+                    actions.style.display = 'flex'; // Tampilkan lagi tombol aksi
+                    
+                    modal.style.backgroundColor = originalModalBg || 'rgba(0, 0, 0, 0.7)'; 
+                    notaElement.style.boxShadow = originalNotaShadow || '0 5px 15px rgba(0, 0, 0, 0.2)';
+                    notaElement.style.padding = originalNotaPadding || '15px'; // Kembali ke padding kompak
+                    
+                    // Unduh Gambar
+                    const link = document.createElement("a");
+                    link.href = canvas.toDataURL("image/png");
+                    link.download = `nota_${nota.noNota || notaId}.png`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                };
+            } catch (error) {
+                console.error("Error viewing nota:", error);
+                alert('Gagal memuat detail nota');
+            }
+        },
+        deleteNota: async(kurir, notaId, noNota) => {
+            if (!confirm(`Yakin ingin menghapus nota ${noNota}?`)) return;
+            try {
+                await remove(ref(db, `nota/${kurir}/${notaId}`));
+                alert('Nota berhasil dihapus');
+                loadAllNota();
+            } catch (error) {
+                console.error("Error deleting nota:", error);
+                alert('Gagal menghapus nota');
+            }
+        },
+        deleteAdmin: async (uid, email) => {
+            if (uid === SUPER_ADMIN_UID) return alert('Super Admin tidak bisa dihapus.');
+            if (!confirm(`Yakin ingin menghapus admin ${email}? Pengguna ini tidak akan bisa login lagi.`)) return;
+            try {
+                await remove(ref(db, `admins/${uid}`));
+                alert('Admin berhasil dihapus dari daftar.');
+                loadAdminSettings();
+            } catch (error) {
+                console.error("Error deleting admin:", error);
+                alert('Gagal menghapus admin');
+            }
+        },
+        editOngkir: async (wilayah, currentOngkir) => {
+            const newOngkir = prompt(`Masukkan tarif ongkir baru untuk wilayah "${wilayah}":`, currentOngkir);
+            if (newOngkir && !isNaN(newOngkir)) {
+                try {
+                    const snapshot = await get(ref(db, 'daftar_ongkir'));
+                    if (snapshot.exists()) {
+                        const dbKey = Object.keys(snapshot.val()).find(k => k.replace(/_/g, ' ') === wilayah);
+                        if(dbKey) {
+                            await update(ref(db, `daftar_ongkir/${dbKey}`), { ongkir: Number(newOngkir) });
+                            alert('Ongkir berhasil diperbarui.');
+                            loadOngkirData();
+                        }
+                    }
+                } catch (error) {
+                    alert('Gagal memperbarui ongkir.');
+                    console.error(error);
+                }
+            }
+        },
+        deleteOngkir: async (wilayah) => {
+            if (confirm(`Yakin ingin menghapus wilayah "${wilayah}"?`)) {
+                try {
+                    const snapshot = await get(ref(db, 'daftar_ongkir'));
+                     if (snapshot.exists()) {
+                        const dbKey = Object.keys(snapshot.val()).find(k => k.replace(/_/g, ' ') === wilayah);
+                        if(dbKey) {
+                            await remove(ref(db, `daftar_ongkir/${dbKey}`));
+                            alert('Wilayah berhasil dihapus.');
+                            loadOngkirData();
+                        }
+                    }
+                } catch (error) {
+                    alert('Gagal menghapus wilayah.');
+                    console.error(error);
+                }
+            }
+        },
+        toggleTestimoniStatus: async (id, newStatus) => {
+            try {
+                await update(ref(db, `testimoni/${id}`), { isPublished: newStatus });
+                alert(`Status testimoni berhasil diubah.`);
+                loadTestimoniData();
+            } catch (e) {
+                alert('Gagal mengubah status testimoni.');
+                console.error(e);
+            }
+        },
+        editMitra: editMitra,
+        deleteMitraForMonth: deleteMitraForMonth,
+        deleteMitra: deleteMitra,
+    };
+    window.app = appFunctions; 
+    
+    el("btnCloseNota").addEventListener('click', () => el("notaModal").classList.add("hidden"));
+
+    // GANTI SELURUH FUNGSI loadAllNota ANDA DENGAN KODE DI BAWAH INI:
+    
+    async function loadAllNota(filters = {}) {
+        // 1. Set default tanggal hari ini pada input HTML baru
+        const singleDateInput = el('filterSingleDate');
+        const today = getTodayDate();
+        
+        // Set nilai input filter, jika filter kosong, gunakan hari ini sebagai default
+        const filterDate = filters.startDate || today; 
+        if (singleDateInput) {
+            singleDateInput.value = filterDate;
+        }
+        
+        // Set kurir filter (jika ada)
+        if (el('filterKurir')) {
+            el('filterKurir').value = filters.kurir || '';
+        }
+        
+        // Tampilkan loading state
+        // Perbaikan: colspan diubah dari 8 menjadi 9
+        el('allNotaList').innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-secondary); padding: 20px;">Memuat data...</td></tr>';
+        
+        try {
+            // Karena struktur DB Anda berdasarkan Kurir, kita tetap ambil semua lalu filter di client
+            const notaSnap = await get(ref(db, 'nota'));
+            if (!notaSnap.exists()) {
+              // Perbaikan: colspan diubah dari 8 menjadi 9
+              el('allNotaList').innerHTML = '<tr><td colspan="9" class="small">Tidak ada nota</td></tr>';
+              return;
+            }
+            
+            let allNota = [];
+            const notaData = notaSnap.val();
+            Object.keys(notaData).forEach(kurir => {
+              Object.keys(notaData[kurir]).forEach(notaId => {
+                // Catatan: Asumsi properti tanggal di nota adalah 'createdAt'
+                allNota.push({ id: notaId, kurir: kurir, ...notaData[kurir][notaId] });
+              });
+            });
+            
+            // 2. Logika Filtering Baru (hanya menggunakan filterDate yang tunggal)
+            const filtered = allNota.filter(nota => {
+                const date = nota.createdAt ? nota.createdAt.slice(0, 10) : '';
+                
+                // Filter hanya berdasarkan tanggal tunggal (filterDate)
+                const dateMatch = !filterDate || date === filterDate;
+                
+                // Filter berdasarkan kurir
+                const kurirMatch = !filters.kurir || nota.kurir === filters.kurir;
+                
+                return dateMatch && kurirMatch;
+            });
+    
+            filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            
+            const totalTambahan = (tambahans) => {
+                if (!tambahans) return 0;
+                return tambahans.reduce((sum, t) => sum + Number(t.nominal || 0), 0);
+            };
+            
+            // --- BLOK MAPPING (TEMPAT KODE FRAUD STATUS DITAMBAHKAN) ---
+            el('allNotaList').innerHTML = filtered.length > 0 ? filtered.map(nota => {
+                
+                // ⭐️ LOGIKA BARU UNTUK FRAUD STATUS
+                const statusOrder = nota.statusOrder || 'Admin'; 
+                const statusClass = statusOrder.includes('OL') ? 'badge-ol' : 'badge-admin';
+                const isSuspicious = nota.isSuspicious === true; 
+                const tanggalNota = nota.createdAt ? new Date(nota.createdAt).toLocaleDateString('id-ID') : '-';
+                // ⭐️ AKHIR LOGIKA BARU
+    
+                return `
+                  <tr>
+                    <td>${nota.noNota || ''}</td>
+                    <td>${nota.kurir || ''}</td>
+                    <td>
+                        <span class="status-badge ${statusClass}">
+                            ${statusOrder}
+                        </span>
+                    </td>
+                    
+                    <td>${tanggalNota}</td>
+                    <td>${formatRp(nota.ongkir || 0)}</td>
+                    <td>${formatRp(totalTambahan(nota.tambahans))}</td>
+                    <td>${formatRp(calculatePendapatanNota(nota))}</td>
+                    <td>${nota.items ? nota.items.length : 0}</td>
+                    <td>
+                      <button class="btn secondary mini-btn" onclick="window.app.viewNotaDetail('${nota.kurir}', '${nota.id}')">Lihat</button>
+                      <button class="btn danger mini-btn" onclick="window.app.deleteNota('${nota.kurir}', '${nota.id}', '${nota.noNota}')">Hapus</button>
+                    </td>
+                  </tr>
+                `;
+            }).join('') : `<tr><td colspan="9" class="small">Tidak ada nota pada tanggal ${new Date(filterDate).toLocaleDateString('id-ID')}</td></tr>`;
+            // --- AKHIR BLOK MAPPING ---
+            
+        } catch (error) {
+            console.error("Error loading all nota:", error);
+            el('allNotaList').innerHTML = '<tr><td colspan="9" class="small error">Gagal memuat data nota</td></tr>';
+        }
+    }
+    // Listener untuk tombol Filter Baru
+    el('btnFilterNotaNew').addEventListener('click', () => {
+        const filterDate = el('filterSingleDate').value;
+        const filterKurir = el('filterKurir').value;
+        
+        if (!filterDate) {
+            alert("Harap pilih tanggal filter!");
+            return;
+        }
+        
+        // Panggil loadAllNota dengan filter tanggal tunggal
+        loadAllNota({
+            startDate: filterDate, 
+            endDate: filterDate, // Gunakan tanggal yang sama untuk Start dan End
+            kurir: filterKurir
+        });
+    });
+    
+    // Listener untuk tombol Reset Baru
+    el('btnResetFilterNew').addEventListener('click', () => {
+        // Muat nota hari ini sebagai default
+        loadAllNota({ startDate: getTodayDate(), endDate: getTodayDate() });
+    });
+
+    el('btnExportNota').addEventListener('click', async () => {
+      try {
+        const notaSnap = await get(ref(db, 'nota'));
+        if (!notaSnap.exists()) return alert('Tidak ada data untuk diekspor');
+        let allNota = [];
+        const notaData = notaSnap.val();
+        Object.keys(notaData).forEach(kurir => {
+            Object.keys(notaData[kurir]).forEach(id => {
+                allNota.push({kurir, ...notaData[kurir][id]});
+            })
+        })
+        let csv = 'No Nota,Kurir,Tanggal,Total,Ongkir,Jumlah Item,Nomor HP\n';
+        allNota.forEach(n => {
+          csv += `"${n.noNota||''}","${n.kurir||''}","${new Date(n.createdAt).toLocaleDateString('id-ID')}","${n.total||0}","${n.ongkir||0}","${n.items?n.items.length:0}","${n.custPhone||''}"\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `sahabatku_nota_export_${new Date().toISOString().slice(0,10)}.csv`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+      } catch (error) {
+        console.error("Error exporting data:", error);
+        alert('Gagal mengekspor data');
+      }
+    });
+
+    // Listener untuk tombol Filter Baru
+    el('btnFilterNotaNew').addEventListener('click', () => {
+        const filterDate = el('filterSingleDate').value;
+        const filterKurir = el('filterKurir').value;
+        
+        if (!filterDate) {
+            alert("Harap pilih tanggal filter!");
+            return;
+        }
+        
+        // Panggil loadAllNota dengan filter tanggal tunggal
+        loadAllNota({
+            startDate: filterDate, 
+            endDate: filterDate, // Gunakan tanggal yang sama untuk Start dan End
+            kurir: filterKurir
+        });
+    });
+    
+    // Listener untuk tombol Reset Baru
+    el('btnResetFilterNew').addEventListener('click', () => {
+        // Muat nota hari ini sebagai default
+        loadAllNota({ startDate: getTodayDate(), endDate: getTodayDate() });
+    });
+
+    el('btnExportNota').addEventListener('click', async () => {
+      try {
+        const notaSnap = await get(ref(db, 'nota'));
+        if (!notaSnap.exists()) return alert('Tidak ada data untuk diekspor');
+        let allNota = [];
+        const notaData = notaSnap.val();
+        Object.keys(notaData).forEach(kurir => {
+            Object.keys(notaData[kurir]).forEach(id => {
+                allNota.push({kurir, ...notaData[kurir][id]});
+            })
+        })
+        let csv = 'No Nota,Kurir,Tanggal,Total,Ongkir,Jumlah Item,Nomor HP\n';
+        allNota.forEach(n => {
+          csv += `"${n.noNota||''}","${n.kurir||''}","${new Date(n.createdAt).toLocaleDateString('id-ID')}","${n.total||0}","${n.ongkir||0}","${n.items?n.items.length:0}","${n.custPhone||''}"\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `sahabatku_nota_export_${new Date().toISOString().slice(0,10)}.csv`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+      } catch (error) {
+        console.error("Error exporting data:", error);
+        alert('Gagal mengekspor data');
+      }
+    });
+
+    function initReportTab() {
+      const now = new Date();
+      el('reportMonth').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      generateReport();
+    }
+    el('btnGenerateReport').addEventListener('click', generateReport);
+
+    async function generateReport() {
+      const month = el('reportMonth').value;
+      const kurirFilter = el('reportKurir').value;
+      if (!month) return alert('Pilih bulan terlebih dahulu');
+      
+      try {
+        const [notaSnap, kurirSnap] = await Promise.all([get(ref(db, 'nota')), get(ref(db, 'kurir'))]);
+        if (!notaSnap.exists()) {
+          el('reportSummary').innerHTML = '';
+          el('reportDetails').innerHTML = '<tr><td colspan="5" class="small">Tidak ada data</td></tr>';
+          return;
+        }
+
+        const activeKurirUsernames = new Set();
+        if (kurirSnap.exists()) {
+            Object.values(kurirSnap.val()).forEach(kurir => {
+                if (kurir.enabled) {
+                    activeKurirUsernames.add(kurir.username);
+                }
+            });
+        }
+
+        let allNota = [];
+        const notaData = notaSnap.val();
+        Object.keys(notaData).forEach(kurirName => {
+            if (!kurirFilter || kurirName === kurirFilter) {
+                Object.values(notaData[kurirName]).forEach(nota => {
+                    if (nota.createdAt && nota.createdAt.startsWith(month)) {
+                        allNota.push({ kurir: kurirName, ...nota });
+                    }
+                });
+            }
+        });
+
+        const byDate = {};
+        const totalKurirAktifDiLaporan = new Set();
+        let totalPendapatan = 0;
+
+        allNota.forEach(nota => {
+            const date = nota.createdAt.slice(0, 10);
+            if (!byDate[date]) {
+              byDate[date] = { count: 0, total: 0, kurir: new Set() };
+            }
+            byDate[date].count++;
+            
+            const pendapatanNota = calculatePendapatanNota(nota);
+            byDate[date].total += pendapatanNota;
+            totalPendapatan += pendapatanNota;
+
+            if (activeKurirUsernames.has(nota.kurir)) {
+                byDate[date].kurir.add(nota.kurir);
+                totalKurirAktifDiLaporan.add(nota.kurir);
+            }
+        });
+        
+        const totalNota = allNota.length;
+        
+        el('reportSummary').innerHTML = `
+          <div class="card"><h4>Total Nota</h4><div style="font-size:24px;font-weight:800;">${totalNota}</div></div>
+          <div class="card"><h4>Total Pendapatan</h4><div style="font-size:24px;font-weight:800;color:var(--success)">${formatRp(totalPendapatan)}</div></div>
+          <div class="card"><h4>Rata-rata Pendapatan/Nota</h4><div style="font-size:24px;font-weight:800;">${formatRp(totalNota > 0 ? totalPendapatan / totalNota : 0)}</div></div>
+          <div class="card"><h4>Kurir Aktif</h4><div style="font-size:24px;font-weight:800;color:var(--secondary)">${totalKurirAktifDiLaporan.size}</div></div>
+        `;
+        
+        el('reportDetails').innerHTML = Object.keys(byDate).sort().map(date => {
+            const data = byDate[date];
+            return `
+            <tr>
+              <td>${new Date(date).toLocaleDateString('id-ID')}</td>
+              <td>${data.count}</td>
+              <td>${formatRp(data.total)}</td>
+              <td>${formatRp(data.count > 0 ? data.total / data.count : 0)}</td>
+              <td>${data.kurir.size}</td>
+            </tr>`;
+        }).join('') || '<tr><td colspan="5" class="small">Tidak ada data</td></tr>';
+        
+      } catch (error) {
+        console.error("Error generating report:", error);
+        alert('Gagal membuat laporan');
+      }
+    }
+
+    async function loadAdminSettings() {
+      try {
+        const adminSnap = await get(ref(db, 'admins'));
+        if (!adminSnap.exists()) {
+          el('adminList').innerHTML = '<tr><td colspan="3" class="small">Tidak ada admin tambahan</td></tr>';
+          return;
+        }
+        
+        const html = Object.keys(adminSnap.val()).map(uid => {
+          const admin = { uid, ...adminSnap.val()[uid] };
+          return `
+          <tr>
+            <td>${admin.email}</td>
+            <td>${admin.createdAt ? new Date(admin.createdAt).toLocaleDateString('id-ID') : '-'}</td>
+            <td>
+              ${uid !== auth.currentUser.uid && uid !== SUPER_ADMIN_UID
+                ? `<button class="btn danger mini-btn" onclick="window.app.deleteAdmin('${uid}', '${admin.email}')">Hapus</button>` 
+                : `<span class="small">${uid === SUPER_ADMIN_UID ? '(Super Admin)' : '(Anda)'}</span>`}
+            </td>
+          </tr>`;
+        }).join('');
+        
+        el('adminList').innerHTML = html || '<tr><td colspan="3" class="small">Tidak ada admin</td></tr>';
+        
+      } catch (error) {
+        console.error("Error loading admin settings:", error);
+      }
+    }
+    
+    el('btnAddAdmin').addEventListener('click', async () => {
+      const email = el('newAdminEmail').value.trim();
+      const password = el('newAdminPassword').value.trim();
+      if (!email || !password) return alert('Email dan password harus diisi');
+      
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        
+        await set(ref(db, `admins/${user.uid}`), {
+          email: email,
+          createdAt: new Date().toISOString(),
+          createdBy: auth.currentUser.email
+        });
+        
+        alert('Admin berhasil ditambahkan. Mereka sekarang bisa login.');
+        el('newAdminEmail').value = '';
+        el('newAdminPassword').value = '';
+        loadAdminSettings();
+        
+      } catch (error) {
+        console.error("Error adding admin:", error);
+        if (error.code === 'auth/email-already-in-use') alert('Email sudah terdaftar');
+        else if (error.code === 'auth/weak-password') alert('Password terlalu lemah (minimal 6 karakter)');
+        else alert('Gagal menambahkan admin: ' + error.message);
+      }
+    });
+    el('btnBroadcast').addEventListener('click', async () => {
+      const recipient = el('broadcastRecipient').value;
+      const message = el('broadcastMessage').value.trim();
+    
+      if (!message) {
+        alert('Pesan tidak boleh kosong.');
+        return;
+      }
+    
+      try {
+        const timestamp = new Date().toISOString();
+        const messageData = {
+          message: message,
+          sender: auth.currentUser.email,
+          timestamp: timestamp,
+          read: false
+        };
+    
+        if (recipient === 'all') {
+          const kurirSnap = await get(ref(db, 'kurir'));
+          if (kurirSnap.exists()) {
+            const kurirList = Object.values(kurirSnap.val());
+            const updates = {};
+            kurirList.forEach(kurir => {
+              updates[`messages/${kurir.username}/${Date.now()}`] = messageData;
+            });
+            await update(ref(db), updates);
+          }
+        } else {
+          await set(ref(db, `messages/${recipient}/${Date.now()}`), messageData);
+        }
+        
+        alert('Pesan berhasil dikirim!');
+        el('broadcastMessage').value = '';
+    
+      } catch (error) {
+        console.error("Error sending broadcast message:", error);
+        alert('Gagal mengirim pesan: ' + error.message);
+      }
+    });
+    async function loadOngkirData() {
+        try {
+            const snapshot = await get(ref(db, 'daftar_ongkir'));
+            if (!snapshot.exists()) {
+                el('ongkirList').innerHTML = '<tr><td colspan="3" class="small">Belum ada data ongkir</td></tr>';
+                return;
+            }
+            const data = snapshot.val();
+            const ongkirArray = Object.values(data);
+            ongkirArray.sort((a, b) => a.wilayah.localeCompare(b.wilayah));
+
+            const html = ongkirArray.map(item => `
+                <tr>
+                    <td>${item.wilayah}</td>
+                    <td>${formatRp(item.ongkir)}</td>
+                    <td>
+                        <button class="btn secondary mini-btn" onclick="window.app.editOngkir('${item.wilayah}', ${item.ongkir})">Edit</button>
+                        <button class="btn danger mini-btn" onclick="window.app.deleteOngkir('${item.wilayah}')">Hapus</button>
+                    </td>
+                </tr>
+            `).join('');
+            el('ongkirList').innerHTML = html;
+        } catch (error) {
+            console.error("Error loading ongkir data:", error);
+            el('ongkirList').innerHTML = '<tr><td colspan="3" class="small error">Gagal memuat data</td></tr>';
+        }
+    }
+    
+    function filterOngkirTable() {
+        const input = el('searchOngkir');
+        const filter = input.value.toLowerCase();
+        const table = el('ongkirList');
+        const tr = table.getElementsByTagName('tr');
+
+        for (let i = 0; i < tr.length; i++) {
+            const td = tr[i].getElementsByTagName('td')[0];
+            if (td) {
+                const txtValue = td.textContent || td.innerText;
+                if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                    tr[i].style.display = "";
+                } else {
+                    tr[i].style.display = "none";
+                }
+            }
+        }
+    }
+    el('searchOngkir').addEventListener('keyup', filterOngkirTable);
+
+
+    el('btnAddOngkir').addEventListener('click', async () => {
+        const wilayah = el('newWilayah').value.trim();
+        const ongkir = el('newOngkir').value.trim();
+        if (!wilayah || !ongkir) return alert('Wilayah dan Ongkir harus diisi.');
+        const dbKey = wilayah.replace(/[^a-zA-Z0-9]/g, '_');
+        try {
+            await set(ref(db, `daftar_ongkir/${dbKey}`), { wilayah, ongkir: Number(ongkir) });
+            alert('Data ongkir baru berhasil ditambahkan.');
+            el('newWilayah').value = '';
+            el('newOngkir').value = '';
+            loadOngkirData();
+        } catch (error) {
+            alert('Gagal menambahkan data ongkir.');
+            console.error("Error adding ongkir:", error);
+        }
+    });
+
+    async function loadTestimoniData() {
+        try {
+            const snapshot = await get(ref(db, 'testimoni'));
+            if (!snapshot.exists()) {
+                el('testimoniList').innerHTML = '<tr><td colspan="8" class="small">Belum ada testimoni</td></tr>';
+                return;
+            }
+            const data = snapshot.val();
+            const testimoniArray = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+            testimoniArray.sort((a, b) => b.timestamp - a.timestamp); 
+    
+            const html = testimoniArray.map(item => {
+                const isPublished = item.isPublished === true;
+                
+                // --- LOGIKA BARU UNTUK FORMAT TANGGAL/JAM ---
+                const tanggalWaktu = item.timestamp 
+                    ? new Date(item.timestamp).toLocaleString('id-ID', { 
+                          year: 'numeric', 
+                          month: 'short', 
+                          day: 'numeric',
+                          hour: '2-digit',     
+                          minute: '2-digit'    
+                      }) 
+                    : '-';
+                // ---------------------------------------------
+    
+                return `
+                    <tr>
+                        <td>${item.fullname || '-'}</td>
+                        <td style="white-space: nowrap;">${tanggalWaktu}</td> <td>${'⭐'.repeat(item.rating)}</td>
+                        <td>
+                            <span class="status-badge ${isPublished ? 'status-published' : 'status-inactive'}">
+                                ${isPublished ? 'Ditampilkan' : 'Disembunyikan'}
+                            </span>
+                        </td>
+                        <td>${item.speed || '-'}</td>
+                        <td>${item.courier || '-'}</td>
+                        <td style="white-space: normal; min-width: 250px;">${item.comments || '-'}</td>
+                        <td>
+                            <div class="action-group"> <button class="btn ${isPublished ? 'secondary' : 'success'} mini-btn" onclick="window.app.toggleTestimoniStatus('${item.id}', ${!isPublished})">
+                                    ${isPublished ? 'Sembunyikan' : 'Tampilkan'}
+                                </button>
+                                <button class="btn danger mini-btn" onclick="window.app.deleteTestimoni('${item.id}')">
+                                    Hapus
+                                </button>
+                            </div>
+                        </td>
+                `;
+            }).join('');
+            el('testimoniList').innerHTML = html;
+        } catch (error) {
+            console.error("Error loading testimoni:", error);
+            // Ubah colspan menjadi 8 karena sekarang ada 8 kolom di tabel
+            el('testimoniList').innerHTML = '<tr><td colspan="8" class="small error">Gagal memuat data</td></tr>';
+        }
+    }
+    window.app.deleteTestimoni = async (testimoniId) => {
+        const confirmed = confirm('Apakah Anda yakin ingin menghapus testimoni ini secara permanen?');
+        
+        if (!confirmed) {
+            return; 
+        }
+    
+        try {
+            // Asumsi menggunakan Firebase Realtime Database
+            const testimoniRef = ref(db, `testimoni/${testimoniId}`);
+            await remove(testimoniRef); 
+            
+            alert('Testimoni berhasil dihapus.');
+            
+            // Muat ulang data
+            loadTestimoniData(); 
+            
+        } catch (error) {
+            console.error("Gagal menghapus testimoni:", error);
+            alert('Gagal menghapus testimoni. Silakan coba lagi.');
+        }
+    };
+    // ==========================================================
+    // C. LOGIKA KPI KURIR UTAMA (LENGKAP DAN TERBARU - AI CERDAS V3.0)
+    // ==========================================================
+    
+    /**
+     * Fungsi inisialisasi untuk Tab KPI Kurir.
+     */
+    function initKpiKurirTab() {
+        // Asumsi fungsi el() dan getTodayDate() sudah terdefinisi secara global.
+        const now = new Date();
+        // Pastikan ID elemen ini sesuai di HTML: kpiMonthFilter, kpiDateFilter, btnGenerateKpi
+        if (typeof el === 'function' && el('kpiMonthFilter')) {
+            el('kpiMonthFilter').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            el('kpiDateFilter').value = getTodayDate(); 
+            
+            el('btnGenerateKpi').onclick = generateKpiReport;
+            
+            generateKpiReport();
+        } else {
+            console.error("Kesalahan: Fungsi el() atau elemen filter KPI tidak ditemukan.");
+        }
+    }
+    
+    /**
+     * Menghitung hari sebelum tanggal tertentu.
+     * @param {string} dateString - Format YYYY-MM-DD
+     * @returns {string} Tanggal sehari sebelumnya.
+     */
+    function getPreviousDay(dateString, daysAgo = 1) {
+        const date = new Date(dateString);
+        // Set jam agar tidak terjadi masalah timezone
+        date.setHours(12, 0, 0, 0); 
+        date.setDate(date.getDate() - daysAgo);
+        return date.toISOString().slice(0, 10);
+    }
+    
+    /**
+     * Menghitung skor konsistensi (0-1) berdasarkan sebaran aktivitas harian.
+     */
+    function calculateConsistencyScore(dailyData) {
+        const activityCounts = Object.values(dailyData);
+        if (activityCounts.length < 2) return activityCounts.length > 0 ? 1 : 0; 
+        
+        // 1. Hitung Standar Deviasi (STD DEV)
+        const mean = activityCounts.reduce((sum, count) => sum + count, 0) / activityCounts.length;
+        const variance = activityCounts.reduce((sum, count) => sum + Math.pow(count - mean, 2), 0) / activityCounts.length;
+        const stdDev = Math.sqrt(variance);
+    
+        // 2. Normalisasi STD DEV
+        const maxReasonableDev = 20; 
+        const normalizedInconsistency = Math.min(1, stdDev / maxReasonableDev);
+    
+        return 1 - normalizedInconsistency; 
+    }
+    
+    /**
+     * Menghitung skor Kerajinan/Diligence (0-1), disesuaikan dengan tanggal bergabung kurir.
+     */
+    function calculateDiligenceScore(activeDays, joiningDate, selectedMonth, selectedDate) {
+        const activeDaysCount = activeDays.size;
+    
+        const [year, month] = selectedMonth.split('-').map(Number);
+        const startOfMonth = new Date(year, month - 1, 1);
+        const joinDate = new Date(joiningDate);
+        // Tanggal awal perhitungan: yang terbesar antara tgl bergabung dan tgl 1 bulan ini
+        let startDate = joinDate > startOfMonth ? joinDate : startOfMonth;
+        let endDate = new Date(selectedDate); 
+    
+        // Reset waktu untuk perbandingan tanggal yang akurat
+        endDate.setHours(0, 0, 0, 0);
+        startDate.setHours(0, 0, 0, 0);
+    
+        let totalPotentialDays = 0;
+        let currentDate = new Date(startDate.getTime()); 
+    
+        // Hitung Hari Potensial
+        while (currentDate <= endDate) {
+            // Cek apakah hari ini bukan hari Minggu/libur (jika perlu diabaikan, tambahkan logika di sini)
+            totalPotentialDays++;
+            currentDate.setDate(currentDate.getDate() + 1);
+            currentDate.setHours(0, 0, 0, 0); 
+        }
+    
+        if (totalPotentialDays === 0) return activeDaysCount > 0 ? 1 : 0; 
+    
+        return Math.min(1, activeDaysCount / totalPotentialDays); 
+    }
+    
+    /**
+     * Fungsi utama untuk menghasilkan Laporan KPI Kurir.
+     */
+    async function generateKpiReport() {
+        // Asumsi fungsi el(), get(), ref(), db, formatRp(), dan calculatePendapatanNota() sudah terdefinisi.
+        const selectedMonth = el('kpiMonthFilter').value; 
+        const selectedDate = el('kpiDateFilter').value; 
+        
+        if (!selectedMonth) return alert('Pilih periode bulan terlebih dahulu.');
+    
+        el('kpiKurirDetailList').innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 20px;">Memuat data...</td></tr>';
+        if (el('kpiSuggestionBox')) el('kpiSuggestionBox').innerHTML = 'Memuat saran...'; 
+    
+        try {
+            const [notaSnap, kurirSnap, trxLogSnap] = await Promise.all([
+                get(ref(db, 'nota')),
+                get(ref(db, 'kurir')),
+                get(ref(db, 'mitra_trx_log')) 
+            ]);
+            
+            if (!kurirSnap.exists()) {
+                el('kpiKurirDetailList').innerHTML = '<tr><td colspan="8" class="small" style="text-align: center;">Tidak ada data kurir terdaftar.</td></tr>';
+                if (el('kpiSuggestionBox')) el('kpiSuggestionBox').innerHTML = 'Tidak ada kurir terdaftar di database.';
+                return;
+            }
+    
+            const kurirData = kurirSnap.val();
+            const kurirUsernames = Object.keys(kurirData).filter(u => kurirData[u].enabled); 
+            
+            const results = {};
+            const dailyNotaDataAll = {}; 
+            
+            kurirUsernames.forEach(username => {
+                results[username] = {
+                    name: kurirData[username].username,
+                    joiningDate: kurirData[username].joiningDate || '2024-01-01', 
+                    monthlyNotaCount: 0,
+                    monthlyIncome: 0,
+                    monthlyTrxMitra: 0,
+                    dailyNotaCount: 0,
+                    dailyIncome: 0,
+                    dailyActivityDays: new Set(),
+                    dailyNotaData: {},      
+                    dailyTrxMitraData: {},  
+                    lateNotaCount: 0,       
+                    lateNotaRatio: 0,       
+                    consistencyScore: 0,    
+                    diligenceScore: 0,      
+                    totalScore: 0, 
+                    rank: 0,
+                    rating: 0,
+                    yesterdayNotaCount: 0, 
+                };
+                dailyNotaDataAll[username] = {}; 
+            });
+            
+            // 2. Process Data (Mengumpulkan data harian dan bulanan)
+            if (notaSnap.exists()) {
+                const notaData = notaSnap.val();
+                Object.keys(notaData).forEach(kurirUsername => {
+                    if (kurirUsernames.includes(kurirUsername)) {
+                        Object.values(notaData[kurirUsername]).forEach(nota => {
+                            const createdAt = nota.createdAt; 
+                            if (!createdAt) return;
+                            
+                            const notaDate = createdAt.slice(0, 10);
+                            const notaMonth = createdAt.slice(0, 7);
+                            // Pastikan calculatePendapatanNota ada atau definisikan
+                            const income = typeof calculatePendapatanNota === 'function' ? calculatePendapatanNota(nota) : 0; 
+                            
+                            const timePart = createdAt.split('T')[1];
+                            const hour = timePart ? parseInt(timePart.split(':')[0]) : 0; 
+                            const isLateInput = hour >= 20; 
+                            
+                            // Kumpulkan data bulanan
+                            if (notaMonth === selectedMonth) {
+                                results[kurirUsername].monthlyNotaCount++;
+                                results[kurirUsername].monthlyIncome += income;
+                                results[kurirUsername].dailyActivityDays.add(notaDate); 
+                                results[kurirUsername].dailyNotaData[notaDate] = (results[kurirUsername].dailyNotaData[notaDate] || 0) + 1;
+                                
+                                if (isLateInput) {
+                                    results[kurirUsername].lateNotaCount++;
+                                }
+                            }
+                            
+                            // Kumpulkan data harian global (untuk perbandingan)
+                            dailyNotaDataAll[kurirUsername][notaDate] = (dailyNotaDataAll[kurirUsername][notaDate] || 0) + 1;
+    
+                            // Metrics Harian untuk selectedDate
+                            if (selectedDate && notaDate === selectedDate) {
+                                results[kurirUsername].dailyNotaCount++;
+                                results[kurirUsername].dailyIncome += income;
+                            }
+                        });
+                    }
+                });
+            }
+    
+            // 3. Process TRX Mitra Data
+            if (trxLogSnap.exists()) {
+                Object.values(trxLogSnap.val()).forEach(log => {
+                    if (!log.timestamp || !log.kurirId) return;
+                    
+                    const logDate = new Date(log.timestamp);
+                    if (isNaN(logDate.getTime())) return; 
+                    
+                    const logMonth = logDate.toISOString().slice(0, 7); 
+                    const logFullDate = logDate.toISOString().slice(0, 10); 
+                    const trxCount = log.trxInput || 1; 
+                    
+                    if (logMonth === selectedMonth && kurirUsernames.includes(log.kurirId)) {
+                        results[log.kurirId].monthlyTrxMitra += trxCount;
+                        results[log.kurirId].dailyTrxMitraData[logFullDate] = (results[log.kurirId].dailyTrxMitraData[logFullDate] || 0) + trxCount;
+                    }
+                });
+            }
+            
+            // 4. Calculate Scores, Ranking, and Yesterday's Data
+            const kurirMetrics = Object.values(results);
+            
+            const maxNota = Math.max(1, ...kurirMetrics.map(k => k.monthlyNotaCount));
+            const maxIncome = Math.max(1, ...kurirMetrics.map(k => k.monthlyIncome));
+            const maxTrx = Math.max(1, ...kurirMetrics.map(k => k.monthlyTrxMitra));
+    
+            const yesterdayDateStr = getPreviousDay(selectedDate, 1);
+            
+            kurirMetrics.forEach(k => {
+                const notaConsistency = calculateConsistencyScore(k.dailyNotaData);
+                const trxConsistency = calculateConsistencyScore(k.dailyTrxMitraData);
+                
+                k.consistencyScore = (notaConsistency + trxConsistency) / 2; 
+                k.diligenceScore = calculateDiligenceScore(k.dailyActivityDays, k.joiningDate, selectedMonth, selectedDate); 
+                k.lateNotaRatio = k.monthlyNotaCount > 0 ? k.lateNotaCount / k.monthlyNotaCount : 0; 
+                
+                // Set yesterday's nota count
+                k.yesterdayNotaCount = dailyNotaDataAll[k.name][yesterdayDateStr] || 0;
+                
+                const normalizedNota = k.monthlyNotaCount / maxNota;
+                const normalizedIncome = k.monthlyIncome / maxIncome;
+                const normalizedTrx = k.monthlyTrxMitra / maxTrx;
+                
+                // Bobot: Nota (30%), Income (30%), TRX Mitra (15%), Konsistensi (15%), Kerajinan (10%)
+                k.totalScore = (
+                    (normalizedNota * 30) + 
+                    (normalizedIncome * 30) + 
+                    (normalizedTrx * 15) + 
+                    (k.consistencyScore * 15) + 
+                    (k.diligenceScore * 10)     
+                );
+                
+                k.rating = parseFloat(k.totalScore.toFixed(2));
+            });
+            
+            // Urutkan dan Set Rank
+            kurirMetrics.sort((a, b) => b.totalScore - a.totalScore);
+            kurirMetrics.forEach((k, index) => { k.rank = index + 1; });
+    
+    
+            // 5. IDENTIFIKASI KURIR TERBAIK UNTUK DISPLAY DI ATAS LAPORAN (SAFE CHECK)
+            let topPerformerHtml = '';
+            const availableMetrics = kurirMetrics.filter(k => k.name && k.monthlyIncome > 0); // Filter kurir yang punya data
+    
+            if (availableMetrics.length > 0) {
+                const bestCourier = availableMetrics[0]; // Kurir terbaik berdasarkan total score/rating
+                
+                // Mencari Top Performers dengan default value jika array hanya berisi satu/kosong
+                const defaultKurir = { name: 'Belum Ada', monthlyTrxMitra: 0, diligenceScore: 0 };
+                
+                const mostTrxCourier = availableMetrics.reduce((prev, current) => {
+                    return (prev.monthlyTrxMitra >= current.monthlyTrxMitra) ? prev : current;
+                }, defaultKurir);
+    
+                const mostActiveCourier = availableMetrics.reduce((prev, current) => {
+                    return (prev.diligenceScore >= current.diligenceScore) ? prev : current;
+                }, defaultKurir);
+                
+                // Pastikan data yang ditampilkan valid
+                const activeName = mostActiveCourier.name;
+                const trxName = mostTrxCourier.name;
+                
+                topPerformerHtml = `
+                    <div style="background-color: #e6f7ff; border: 1px solid #b3e0ff; padding: 15px; margin-bottom: 20px; border-radius: 8px;">
+                        <h4 style="color: #0077b6; margin-top: 0; font-weight: 700; border-bottom: 2px solid #b3e0ff; padding-bottom: 8px;">🌟 TOP 3 SUPERSTAR KURIR BULAN INI!</h4>
+                        <ul style="list-style-type: none; padding-left: 0; margin: 0;">
+                            <li style="margin-bottom: 8px;">
+                                <span style="font-weight: 600; color: #c0392b;">🏆 KURIR TERBAIK (Rating Total):</span> 
+                                <span style="font-weight: 700;">${bestCourier.name}</span> (${bestCourier.rating} Poin)
+                            </li>
+                            <li style="margin-bottom: 8px;">
+                                <span style="font-weight: 600; color: #e67e22;">🤝 TRX MITRA TERBANYAK:</span> 
+                                <span style="font-weight: 700;">${trxName}</span> (${mostTrxCourier.monthlyTrxMitra} TRX)
+                            </li>
+                            <li>
+                                <span style="font-weight: 600; color: #27ae60;">⚡ KURIR PALING AKTIF (Diligence):</span> 
+                                <span style="font-weight: 700;">${activeName}</span> (${Math.round(mostActiveCourier.diligenceScore * 100)}% Keaktifan)
+                            </li>
+                        </ul>
+                    </div>
+                `;
+            } else if (kurirUsernames.length > 0) {
+                 topPerformerHtml = `
+                    <div style="background-color: #fff3e6; border: 1px solid #ffd9b3; padding: 15px; margin-bottom: 20px; border-radius: 8px;">
+                        <h4 style="color: #e67e22; margin-top: 0; font-weight: 700;">⚠️ DATA MINIMAL!</h4>
+                        <p style="margin: 0;">Belum ada Kurir yang mencatat nota/trx mitra bulan ini. Top Performer akan muncul setelah data terisi.</p>
+                    </div>
+                `;
+            }
+              // === TOP 5 PERINGKAT — BULANAN ===
+            const top5NotaMonthlyArr = [...kurirMetrics]
+                .sort((a, b) => b.monthlyNotaCount - a.monthlyNotaCount)
+                .slice(0, 5);
+            
+            const top5IncomeMonthlyArr = [...kurirMetrics]
+                .sort((a, b) => b.monthlyIncome - a.monthlyIncome)
+                .slice(0, 5);
+            
+            // === TOP 5 PERINGKAT — HARI INI ===
+            const top5NotaDailyArr = [...kurirMetrics]
+                .sort((a, b) => b.dailyNotaCount - a.dailyNotaCount)
+                .slice(0, 5);
+            
+            const top5IncomeDailyArr = [...kurirMetrics]
+                .sort((a, b) => b.dailyIncome - a.dailyIncome)
+                .slice(0, 5);
+            
+            // === RENDER LIST KE HTML ===
+            function renderList(id, arr, getValue) {
+                const elList = el(id);
+                if (!elList) return;
+                if (arr.length === 0) {
+                    elList.innerHTML = '<li>Tidak Ada Data</li>';
+                    return;
+                }
+                elList.innerHTML = arr.map(k => 
+                    `<li><strong>${k.name}</strong> — ${getValue(k)}</li>`
+                ).join('');
+            }
+            
+            renderList('top5NotaMonthly', top5NotaMonthlyArr, k => `${k.monthlyNotaCount} nota`);
+            renderList('top5IncomeMonthly', top5IncomeMonthlyArr, k => formatRp(k.monthlyIncome));
+            renderList('top5NotaDaily', top5NotaDailyArr, k => `${k.dailyNotaCount} nota`);
+            renderList('top5IncomeDaily', top5IncomeDailyArr, k => formatRp(k.dailyIncome));
+            
+            // === PENGHARGAAN KURIR (BULAN INI) ===
+            const mostActive = [...kurirMetrics].sort((a,b)=>b.diligenceScore - a.diligenceScore)[0];
+            const bestTrx = [...kurirMetrics].sort((a,b)=>b.monthlyTrxMitra - a.monthlyTrxMitra)[0];
+            const bestOverall = [...kurirMetrics].sort((a,b)=>b.rating - a.rating)[0];
+            
+            // === PENGHARGAAN KURIR (BULAN INI) — DENGAN NILAI LENGKAP ===
+            if (mostActive) {
+                el('kpiMostActiveMonthly').innerHTML =
+                    `${mostActive.name}<br><small>${Math.round(mostActive.diligenceScore * 100)}% Keaktifan</small>`;
+            } else {
+                el('kpiMostActiveMonthly').textContent = '-';
+            }
+            
+            if (bestTrx) {
+                el('kpiBestTrxMonthly').innerHTML =
+                    `${bestTrx.name}<br><small>${bestTrx.monthlyTrxMitra} TRX Mitra</small>`;
+            } else {
+                el('kpiBestTrxMonthly').textContent = '-';
+            }
+            
+            if (bestOverall) {
+                el('kpiBestOverallMonthly').innerHTML =
+                    `${bestOverall.name}<br><small>Rating ${bestOverall.rating} Poin</small>`;
+            } else {
+                el('kpiBestOverallMonthly').textContent = '-';
+            }
+
+    
+            // ==========================================================
+            // FITUR ANALISIS AI CERDAS V3.0 (PALING KOMPREHENSIF)
+            // ==========================================================
+            
+            const analysisReport = {}; 
+            
+            const todayDateStr = selectedDate;
+            const yesterdayDateStrFinal = getPreviousDay(selectedDate, 1);
+            
+            // Definisi Gaya untuk HTML Inline
+            const dangerStyle = 'color: #c0392b; font-weight: 700;'; // Merah Tua
+            const successStyle = 'color: #27ae60; font-weight: 700;'; // Hijau Kuat
+            const warningStyle = 'color: #e67e22; font-weight: 700;'; // Oranye
+            const infoStyle = 'color: #3498db; font-weight: 700;'; // Biru
+    
+            // Struktur Model AI
+            const findingModel = (style, title, finding, adminAction, courierAdvice) => ({
+                style, title, finding, adminAction, courierAdvice
+            });
+    
+            // 1. Lakukan Analisis Mendalam untuk Setiap Kurir
+            kurirMetrics.forEach(k => {
+                analysisReport[k.name] = {
+                    critical: [], 
+                    warning: [],  
+                    info: [],     
+                    appreciation: [], 
+                    status: infoStyle 
+                };
+    
+                const A = analysisReport[k.name];
+                const trxConsist = calculateConsistencyScore(k.dailyTrxMitraData);
+                const activityRate = Math.round(k.diligenceScore * 100);
+    
+                // Cek Daily TRX
+                const todayTrx = k.dailyTrxMitraData[todayDateStr] || 0;
+                const yesterdayTrx = k.dailyTrxMitraData[yesterdayDateStrFinal] || 0;
+                const wasActiveToday = k.dailyActivityDays.has(todayDateStr);
+                const wasActiveYesterday = k.dailyActivityDays.has(yesterdayDateStrFinal);
+    
+                // Cek Daily Performance (Nota)
+                const notaChange = k.dailyNotaCount - k.yesterdayNotaCount;
+                const notaChangePercent = k.yesterdayNotaCount > 0 ? (notaChange / k.yesterdayNotaCount) * 100 : 
+                                        (k.dailyNotaCount > 0 ? 100 : 0);
+    
+                // ==============================================
+                // KATEGORI A: KRITIS & DISIPLIN TINGGI (MERAH)
+                // ==============================================
+    
+                // 1. Kritis TRX 2 Hari Berturut-turut
+                if (wasActiveToday && wasActiveYesterday && todayTrx === 0 && yesterdayTrx === 0) {
+                     A.critical.push(findingModel(
+                        dangerStyle, 
+                        '🚨 ERROR KRITIS: Input TRX HILANG 2 HARI!',
+                        `Sistem mendeteksi TIDAK ADA input TRX Mitra pada <span style="${dangerStyle}">${yesterdayDateStrFinal} dan ${todayDateStr}</span>. Ini melanggar Prosedur Disiplin Kategori A.`,
+                        `TINDAKAN ADMIN: PRIORITAS! Hubungi Kurir SEGERA, konfirmasi status, dan minta input data yang terlewat. Ini adalah masalah disiplin fatal.`,
+                        `SARAN KURIR: DISIPLIN HARIAN. Wajibkan diri input TRX Mitra (minimal 1) segera setelah memulai hari kerja. Jangan pernah tunda hingga esok hari.`
+                    ));
+                    A.status = dangerStyle;
+                }
+    
+                // 2. Konsistensi TRX Bulanan Jauh di Bawah Standar
+                if (k.monthlyTrxMitra > 0 && trxConsist < 0.45 && A.status !== dangerStyle) {
+                    A.critical.push(findingModel(
+                        dangerStyle, 
+                        'Konsistensi Input TRX Bulanan SANGAT BURUK.',
+                        `Skor konsistensi input TRX Mitra bulanan hanya ${Math.round(trxConsist * 100)}%. Pola input sangat tidak teratur dan tidak dapat diandalkan.`,
+                        `TINDAKAN ADMIN: Lakukan *coaching* real-time input. Ini adalah masalah kebiasaan harian yang harus segera diubah karena sangat memengaruhi rating total.`,
+                        `SARAN KURIR: FOKUS KONSISTENSI. Jaga konsistensi input TRX setidaknya 80% dari hari aktif Anda.`
+                    ));
+                    A.status = dangerStyle;
+                }
+    
+                // 3. Rating Total Jauh di Bawah Standar (Pelanggaran Kinerja Fatal)
+                if (k.rating < 60 && A.status !== dangerStyle) {
+                    A.critical.push(findingModel(
+                        dangerStyle, 
+                        'Rating Kinerja Total JATUH di bawah 60.',
+                        `Rating komprehensif Anda hanya ${k.rating}. Kurir gagal memenuhi standar minimal pada hampir semua aspek (Volume, Income, Disiplin).`,
+                        `TINDAKAN ADMIN: Memerlukan perhatian serius. Lakukan sesi evaluasi kinerja resmi. Susun Rencana Perbaikan Kinerja (PIP) 30 hari.`,
+                        `SARAN KURIR: MOTIVASI. Fokus tingkatkan jumlah nota per hari minimal 20% dan pastikan semua input disiplin.`
+                    ));
+                    A.status = dangerStyle;
+                }
+    
+                // ==============================================
+                // KATEGORI B: PERINGATAN & POTENSI (ORANYE)
+                // ==============================================
+    
+                // 4. Peringatan TRX 1 Hari (Jika tidak ada masalah 2 hari)
+                // Hanya berlaku jika KURIR AKTIF HARI INI
+                if (wasActiveToday && todayTrx === 0 && A.critical.length === 0) {
+                     A.warning.push(findingModel(
+                        warningStyle, 
+                        '⚠️ PERINGATAN: Belum Input TRX Mitra Hari Ini.',
+                        `Kurir belum mencatat TRX Mitra untuk tanggal ${todayDateStr}. Kemungkinan lupa/menunda input.`,
+                        `TINDAKAN ADMIN: Berikan peringatan ringan agar Kurir segera input TRX sebelum hari berganti. Ini adalah indikator disiplin.`,
+                        `SARAN KURIR: DISIPLIN WAKTU. Setel pengingat di HP Anda untuk input sebelum jam 1 siang. Jangan sampai terlambat.`
+                    ));
+                    if (A.status !== dangerStyle) A.status = warningStyle;
+                }
+                
+                // 5. Input Nota Larut Malam (Penumpukan Data)
+                if (k.lateNotaRatio > 0.20 && A.critical.length === 0) {
+                    A.warning.push(findingModel(
+                        warningStyle, 
+                        'Disiplin Waktu Input Nota Rendah (Penumpukan Data).',
+                        `${Math.round(k.lateNotaRatio * 100)}% nota diinput setelah jam 20:00 (Larut Malam).`,
+                        `TINDAKAN ADMIN: Jelaskan pada Kurir bahwa input ditumpuk akan memengaruhi integritas data. Disiplinkan untuk input saat transaksi selesai.`,
+                        `SARAN KURIR: REAL-TIME. Masukkan data nota SEGERA setelah pengiriman selesai. Input yang ditumpuk meningkatkan risiko *human error*.`
+                    ));
+                    if (A.status !== dangerStyle) A.status = warningStyle;
+                }
+    
+                // ==============================================
+                // KATEGORI C: ANALISIS COMPARATIVE & DILIGENCE (BIRU/HIJAU)
+                // ==============================================
+    
+                // 6. Analisis Produktivitas Harian (Jika hari ini lebih rendah dari kemarin)
+                if (k.dailyNotaCount < k.yesterdayNotaCount && notaChangePercent < -20) { 
+                    A.info.push(findingModel(
+                        infoStyle, 
+                        '💡 PENURUNAN PRODUKTIVITAS HARI INI.',
+                        `Jumlah Nota hari ini (${k.dailyNotaCount}) <span style="${infoStyle}">TURUN DRATIS ${Math.abs(Math.round(notaChangePercent))}%</span> dibandingkan kemarin (${k.yesterdayNotaCount}).`,
+                        `TINDAKAN ADMIN: Cek area kerja Kurir hari ini. Apakah ada kendala operasional? Tawarkan bantuan atau *support*.`,
+                        `SARAN KURIR: ANALISIS DIRI. Analisis: Apa yang berbeda dari pekerjaan Anda kemarin? Fokus pada efisiensi rute hari ini untuk mengembalikan performa.`
+                    ));
+                    if (A.status !== dangerStyle && A.status !== warningStyle) A.status = infoStyle;
+                } else if (k.dailyNotaCount > k.yesterdayNotaCount && notaChangePercent > 20 && k.dailyNotaCount > 0) {
+                     A.info.push(findingModel(
+                        successStyle, // Menggunakan sukses style karena ini kabar baik
+                        '🚀 LONJAKAN PRODUKTIVITAS HARI INI!',
+                        `Jumlah Nota hari ini (${k.dailyNotaCount}) <span style="${successStyle}">MENINGKAT TAJAM ${Math.abs(Math.round(notaChangePercent))}%</span> dibandingkan kemarin (${k.yesterdayNotaCount}). Kinerja Luar Biasa!`,
+                        `TINDAKAN ADMIN: Kirimkan pesan apresiasi atas peningkatan yang signifikan. Motivasi Kurir untuk menjadikan hari ini sebagai standar baru.`,
+                        `SARAN KURIR: BELAJAR DARI DIRI SENDIRI. Catat strategi dan rute yang Anda gunakan hari ini, lalu terapkan secara konsisten.`
+                    ));
+                    // Status tidak diubah menjadi success karena ini hanya harian, bukan bulanan
+                }
+                
+                // 7. Kerajinan/Keaktifan Rendah
+                if (k.diligenceScore < 0.4 && k.monthlyIncome > 0 && A.critical.length === 0) { 
+                    A.info.push(findingModel(
+                        infoStyle, 
+                        'Skor Keaktifan (Diligence) Rendah.',
+                        `Rasio Hari Aktif Anda ${activityRate}%. Ini rendah dibandingkan potensi hari kerja Kurir sejak tanggal bergabung.`,
+                        `TINDAKAN ADMIN: Pastikan Kurir mengerti pentingnya mencatat semua hari kerja. Cek apakah ada mis-data tanggal bergabung.`,
+                        `SARAN KURIR: PRIORITASKAN. Setiap hari kerja harus dicatat. Setiap hari aktif berkontribusi positif pada skor Kerajinan Anda.`
+                    ));
+                    if (A.status !== dangerStyle && A.status !== warningStyle) A.status = infoStyle;
+                }
+    
+                // ==============================================
+                // KATEGORI D: APRESIASI SUPERIOR (HIJAU)
+                // ==============================================
+                
+                // 8. Apresiasi Puncak (Rating >= 90, No Critical Issues)
+                if (k.rating >= 90 && A.critical.length === 0) {
+                     A.appreciation.push(findingModel(
+                        successStyle, 
+                        '⭐ ROLE MODEL: PERFORMA SUPERIOR & DISIPLIN SEMPURNA!',
+                        `Rating Anda mencapai ${k.rating} (Rank #${k.rank}). Kurir ini menunjukkan disiplin, volume, dan pendapatan yang konsisten. Anda adalah ROLE MODEL tim.`,
+                        `TINDAKAN ADMIN: Berikan bonus/reward khusus sebagai bentuk Apresiasi Puncak. Jadikan Kurir ini mentor bagi Kurir baru.`,
+                        `SARAN KURIR: JAGA KUALITAS. Kinerja Anda sangat diandalkan. Pertahankan konsistensi harian Anda.`
+                    ));
+                    // Set status to success only if no warnings exist
+                    if (A.warning.length === 0) A.status = successStyle;
+                } 
+                // 9. Apresiasi Kinerja Tinggi (Rating >= 85, No Critical Issues)
+                else if (k.rating >= 85 && A.critical.length === 0) {
+                     A.appreciation.push(findingModel(
+                        successStyle, 
+                        '🏆 KINERJA TINGGI & DIATAS EKSPEKTASI!',
+                        `Rating Anda ${k.rating} (Rank #${k.rank}). Pencatatan nota rapi, konsistensi tinggi, dan volume kerja sangat memuaskan.`,
+                        `TINDAKAN ADMIN: Berikan pujian terbuka di grup tim. Dorong dia untuk mencapai Rating 90+.`,
+                        `SARAN KURIR: TINGKATKAN NILAI. Coba tingkatkan rata-rata nilai per nota atau cari peluang di area baru untuk memaksimalkan Pendapatan.`
+                    ));
+                    if (A.warning.length === 0 && A.status !== dangerStyle) A.status = successStyle;
+                }
+                // 10. Apresiasi Kerja Keras (Effort Recognition, Rating >= 75)
+                else if (k.rating >= 75 && A.critical.length === 0 && (k.diligenceScore >= 0.85 || k.consistencyScore >= 0.9)) {
+                     A.appreciation.push(findingModel(
+                        successStyle, 
+                        '💯 APRESIASI KERJA KERAS & KONSISTENSI!',
+                        `Rating Anda ${k.rating}. Walaupun volume belum maksimal, Skor Kerajinan (${activityRate}%) dan/atau Konsistensi Input Anda SANGAT TINGGI.`,
+                        `TINDAKAN ADMIN: Akui dedikasinya. Fokuskan coaching pada peningkatan volume nota/pendapatan, bukan lagi disiplin input.`,
+                        `SARAN KURIR: JANGAN KENDUR. Disiplin Anda sudah sempurna. Sekarang fokuskan energi untuk memperluas area atau meningkatkan efisiensi rute.`
+                    ));
+                    if (A.warning.length === 0 && A.status !== dangerStyle) A.status = successStyle;
+                }
+    
+            });
+    
+            // 2. Susun Laporan Akhir (HTML)
+            let suggestionHtml = '';
+            let issueFound = false;
+    
+            
+            // --- ADD: HTML untuk Top Performers (TopPerformerHtml) ---
+            suggestionHtml += topPerformerHtml;
+            // --- END: HTML for Top Performers ---
+    
+    
+            // Fungsi untuk menghasilkan HTML detail yang rapi
+            const generateDetailHtml = (courierName, findings) => {
+                let html = '';
+                findings.forEach(f => {
+                    html += `
+                        <li style="margin-bottom: 15px; border-left: 5px solid ${f.style.split(';')[0].split(':')[1].trim()}; padding-left: 10px; background-color: #f7f9fc; border-radius: 4px; padding: 10px;">
+                            <p style="margin: 0;"><span style="${f.style}">${f.title}</span> <span style="font-weight: 500;">(${courierName})</span></p>
+                            <small style="display: block; margin-left: 5px; margin-top: 5px; color: var(--text-secondary);">
+                                <span style="font-weight: 600; color: #444;">&#10007; Masalahnya Kenapa:</span> ${f.finding}
+                                <br> <span style="font-weight: 600; color: #444;">&#9888; Tindakan Admin:</span> <span style="font-style: italic;">${f.adminAction}</span>
+                                <br> <span style="font-weight: 600; color: #444;">&#10148; Saran Kurir:</span> ${f.courierAdvice}
+                            </small>
+                        </li>
+                    `;
+                });
+                return html;
+            };
+    
+            // Kategori: Kritis (Merah)
+            let criticalHtml = '';
+            Object.keys(analysisReport).forEach(name => {
+                if (analysisReport[name].critical.length > 0) {
+                    issueFound = true;
+                    criticalHtml += generateDetailHtml(name, analysisReport[name].critical);
+                }
+            });
+    
+            // Kategori: Peringatan (Oranye)
+            let warningHtml = '';
+            Object.keys(analysisReport).forEach(name => {
+                // Hanya tampilkan warning jika KURIR TIDAK termasuk dalam kategori apresiasi
+                if (analysisReport[name].warning.length > 0 && analysisReport[name].appreciation.length === 0) {
+                    issueFound = true;
+                    warningHtml += generateDetailHtml(name, analysisReport[name].warning);
+                }
+            });
+            
+            // Kategori: Info/Comparative (Biru)
+            let infoHtml = '';
+            Object.keys(analysisReport).forEach(name => {
+                // Tampilkan info jika tidak ada masalah kritis/warning/apresiasi yang lebih tinggi
+                if (analysisReport[name].info.length > 0 && analysisReport[name].critical.length === 0 && analysisReport[name].warning.length === 0 && analysisReport[name].appreciation.length === 0) {
+                    issueFound = true;
+                    infoHtml += generateDetailHtml(name, analysisReport[name].info);
+                }
+            });
+    
+            // Kategori: Apresiasi (Hijau)
+            let successHtml = '';
+            Object.keys(analysisReport).forEach(name => {
+                if (analysisReport[name].appreciation.length > 0) {
+                    successHtml += generateDetailHtml(name, analysisReport[name].appreciation);
+                }
+            });
+    
+    
+            // Gabungkan Laporan Akhir
+            
+            suggestionHtml += `<p style="font-weight: 600; font-size: 1.1em;">Laporan Analisis AI Cerdas V3.0 (Data per ${todayDateStr}):</p>`;
+            suggestionHtml += `<ul style="list-style-type: none; padding-left: 0;">`;
+    
+            if (criticalHtml) {
+                suggestionHtml += `
+                    <li><h5 style="${dangerStyle} margin-top: 15px;">🛑 KATEGORI A: MASALAH KRITIS & DISIPLIN TINGGI</h5></li>
+                    ${criticalHtml}
+                `;
+            }
+            if (warningHtml) {
+                suggestionHtml += `
+                    <li><h5 style="${warningStyle} margin-top: 15px;">⚠️ KATEGORI B: PERINGATAN DISIPLIN & KUALITAS INPUT</h5></li>
+                    ${warningHtml}
+                `;
+            }
+            if (infoHtml) {
+                suggestionHtml += `
+                    <li><h5 style="${infoStyle} margin-top: 15px;">💡 KATEGORI C: ANALISIS COMPARATIVE & POTENSI</h5></li>
+                    ${infoHtml}
+                `;
+            }
+            if (successHtml) {
+                suggestionHtml += `
+                    <li><h5 style="${successStyle} margin-top: 15px;">⭐ KATEGORI D: APRESIASI KINERJA SUPERIOR</h5></li>
+                    ${successHtml}
+                `;
+            }
+            
+            suggestionHtml += `</ul>`;
+    
+            if (!issueFound && successHtml === '') {
+                suggestionHtml += '<p style="margin-top: 15px;">Sistem AI Cerdas menyimpulkan: Kinerja tim secara keseluruhan STABIL dan di atas batas minimal. Tidak ada masalah kritis atau superior yang menonjol. <span style="font-weight: 600; color: #27ae60;">SELURUH TIM BEROPERASI DENGAN DISIPLIN!</span> 👍</p>';
+            }
+    
+            // Pasang HTML Saran ke elemen dashboard
+            if (el('kpiSuggestionBox')) el('kpiSuggestionBox').innerHTML = suggestionHtml;
+            // ==========================================================
+            // AKHIR Fitur Saran/Pengingat
+            // ==========================================================
+    
+            // Detail Ranking Table
+            const html = kurirMetrics.map(k => `
+                <tr>
+                    <td><span style="font-weight: 700;">${k.rank}</span></td>
+                    <td>${k.name}</td>
+                    <td><span class="status-badge status-${k.rating >= 80 ? 'active' : k.rating >= 60 ? 'published' : 'inactive'}">${k.rating}</span></td>
+                    <td>${k.monthlyTrxMitra} TRX</td>
+                    <td>${k.monthlyNotaCount} Nota</td>
+                    <td>${typeof formatRp === 'function' ? formatRp(k.monthlyIncome) : k.monthlyIncome}</td>
+                    <td>${(k.consistencyScore * 100).toFixed(0)}%</td>  
+                    <td>${(k.diligenceScore * 100).toFixed(0)}%</td>  
+                </tr>
+            `).join('');
+            
+            el('kpiKurirDetailList').innerHTML = html || '<tr><td colspan="8" class="small" style="text-align: center;">Tidak ada data kurir yang aktif bulan ini.</td></tr>';
+            
+        } catch (error) {
+            console.error("Error generating KPI report:", error);
+            el('kpiKurirDetailList').innerHTML = `<tr><td colspan="8" class="small" style="text-align: center; color: #c0392b;">Gagal memuat data KPI. Pesan Error: ${error.message}. Cek koneksi Firebase atau pastikan semua ID HTML dan fungsi dependensi (el, formatRp, dll) tersedia.</td></tr>`;
+            if (el('kpiSuggestionBox')) el('kpiSuggestionBox').innerHTML = 'Gagal melakukan analisis data. Cek koneksi atau konsol error. Pastikan Anda sudah mengupdate SELURUH fungsi `generateKpiReport`.';
+        }
+    }
+    /* --- LOGIKA JAVASCRIPT UNTUK TOGGLE MENU --- */
+    document.addEventListener('DOMContentLoaded', () => {
+        const navMenu = document.getElementById('adminTabNav');
+        const toggleButton = document.getElementById('menuToggleButton');
+        const tabButtons = navMenu.querySelectorAll('button');
+    
+        // 1. Fungsi Toggle Menu (Buka/Tutup)
+        toggleButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            navMenu.classList.toggle('open');
+        });
+    
+        // 2. Fungsi Tutup Menu Saat Klik di Luar (Wajib untuk dropdown!)
+        document.addEventListener('click', (e) => {
+            // Jika yang diklik BUKAN tombol toggle dan BUKAN di dalam menu, maka tutup
+            if (!navMenu.contains(e.target) && e.target !== toggleButton && navMenu.classList.contains('open')) {
+                navMenu.classList.remove('open');
+            }
+        });
+        
+        // 3. Tambahkan fungsi untuk menutup menu setelah memilih tab
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                navMenu.classList.remove('open');
+            });
+        });
+    });
+</script>
+</body>
+</html>
