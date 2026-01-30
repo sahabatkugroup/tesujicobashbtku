@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <title>Jadwal Sahabatku</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --primary: #0ea5e9; --bg: #f8fafc; --card: #ffffff; --text: #0f172a; 
+            --border: rgba(0,0,0,0.04); --inner-card: #f1f5f9; 
+        }
+        .dark-mode { 
+            --bg: #020617; --card: #0f172a; --text: #f1f5f9; 
+            --border: rgba(255,255,255,0.06); --inner-card: #1e293b; 
+        }
+        
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); transition: background 0.5s ease; overflow-x: hidden; }
+        
+        .glass { 
+            background: var(--card); border: 1px solid var(--border); border-radius: 32px; 
+            box-shadow: 0 10px 30px -5px rgba(0,0,0,0.05); transition: 0.3s;
+        }
+
+        /* --- DYNAMIC ISLAND NOTIFICATION --- */
+        #toast { 
+            position: fixed; top: -100px; left: 50%; transform: translateX(-50%); 
+            z-index: 9999; width: auto; min-width: 200px; max-width: 90%;
+            padding: 8px 8px 8px 18px; border-radius: 50px; display: flex; align-items: center; gap: 12px; 
+            background: #0f172a; color: white; opacity: 0;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4);
+            pointer-events: none;
+        }
+        .dark-mode #toast { background: #ffffff; color: #0f172a; }
+
+        /* --- JADWAL CARD STYLING --- */
+        .date-badge {
+            min-width: 55px; height: 75px; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; border-radius: 20px;
+            background: var(--inner-card); transition: 0.3s;
+        }
+        .is-today-badge { background: #0ea5e9 !important; color: white !important; box-shadow: 0 10px 20px rgba(14, 165, 233, 0.3); }
+
+        .names-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; width: 100%; }
+        .name-tag {
+            background: var(--inner-card); padding: 12px 14px; border-radius: 18px;
+            display: flex; align-items: center; justify-content: space-between;
+            border-left: 4px solid #0ea5e9; animation: slideIn 0.4s ease-out forwards;
+        }
+        .name-tag:only-child { grid-column: span 2; }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+        /* --- NAVIGATION --- */
+        .nav-container { 
+            position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%);
+            width: 90%; max-width: 400px; background: var(--card); 
+            border: 1px solid var(--border); border-radius: 40px; padding: 10px;
+            display: flex; justify-content: space-around; align-items: center; z-index: 1000;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1); backdrop-filter: blur(10px);
+        }
+        .nav-item { width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; border-radius: 50%; color: #94a3b8; transition: 0.3s; }
+        .nav-item.active { color: #0ea5e9; background: rgba(14, 165, 233, 0.1); }
+        .fab { width: 60px; height: 60px; background: #0ea5e9; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 30px; box-shadow: 0 10px 20px rgba(14, 165, 233, 0.3); }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        input, textarea { width: 100%; background: var(--inner-card); border: 1px solid var(--border); border-radius: 20px; padding: 16px; color: var(--text); font-weight: 600; outline: none; transition: 0.3s; }
+        .type-card { padding: 22px 10px; border-radius: 26px; border: 2px solid var(--border); text-align: center; cursor: pointer; transition: 0.4s; background: var(--card); }
+        .type-card.selected { background: #0ea5e9; color: white; border-color: #0ea5e9; transform: scale(1.05) translateY(-5px); box-shadow: 0 15px 30px -5px rgba(14, 165, 233, 0.4); }
+    </style>
+</head>
+<body class="max-w-md mx-auto px-6 pb-40 text-sm">
+
+    <div id="toast">
+        <div id="toastContent" class="flex items-center gap-3">
+            <div id="toastIcon" class="w-8 h-8 rounded-full flex items-center justify-center bg-sky-500 text-white shadow-lg text-[10px]">
+                <i class="fa-solid fa-check"></i>
+            </div>
+            <div class="pr-4">
+                <p id="toastTitle" class="text-[8px] font-black uppercase tracking-[2px] opacity-60 leading-none mb-1">System</p>
+                <p id="toastMsg" class="text-[11px] font-bold whitespace-nowrap">Data Terupdate</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="loading" class="fixed inset-0 bg-slate-900 z-[9999] flex flex-col items-center justify-center gap-4">
+        <div class="w-12 h-12 border-4 border-sky-500/20 border-t-sky-500 rounded-full animate-spin"></div>
+        <p class="text-[10px] font-black text-sky-500 uppercase tracking-[5px]">loading</p>
+    </div>
+
+    <header class="pt-12 pb-8 flex justify-between items-center">
+        <div>
+            <p class="text-[10px] font-bold text-sky-500 uppercase tracking-[4px] mb-1">Dashboard</p>
+            <h1 class="text-4xl font-[900] tracking-tighter">Sahabat<span class="text-sky-500">ku.</span></h1>
+        </div>
+        <button onclick="document.body.classList.toggle('dark-mode')" class="w-14 h-14 glass flex items-center justify-center text-sky-500 text-xl active:scale-90">
+            <i class="fa-solid fa-circle-half-stroke"></i>
+        </button>
+    </header>
+
+    <div class="grid grid-cols-2 gap-4 mb-8">
+        <div class="glass p-6">
+            <p class="text-[9px] font-black opacity-30 uppercase tracking-widest mb-1">Squad Team</p>
+            <h2 id="statKurir" class="text-3xl font-[900]">0</h2>
+        </div>
+        <div class="glass p-6 border-l-4 border-sky-500">
+            <p class="text-[9px] font-black text-sky-500 uppercase tracking-widest mb-1">Off Today</p>
+            <h2 id="statOff" class="text-3xl font-[900] text-sky-500">0</h2>
+        </div>
+    </div>
+
+    <main>
+        <div class="mb-6 flex justify-between items-center px-2">
+            <h3 class="text-[10px] font-black uppercase tracking-[3px] opacity-30">Operational Calendar</h3>
+            <div class="glass px-4 py-2 flex items-center gap-2">
+                <i class="fa-solid fa-calendar text-sky-500 text-xs"></i>
+                <input type="month" id="monthPick" onchange="render()" class="bg-transparent text-xs font-bold outline-none p-0 border-none w-24">
+            </div>
+        </div>
+
+        <section id="tab-jadwal" class="tab-content active space-y-4"></section>
+        <section id="tab-rekap" class="tab-content space-y-3"></section>
+
+        <section id="tab-form" class="tab-content">
+            <div class="glass p-8 space-y-6">
+                <div class="text-center mb-4">
+                    <h2 class="text-2xl font-[900] tracking-tight">E-Submission</h2>
+                    <p class="text-[10px] opacity-40 font-bold uppercase tracking-widest">Digital Request</p>
+                </div>
+                
+                <div class="grid grid-cols-3 gap-3">
+                    <div onclick="selectType('Tukar Off', this)" class="type-card selected">
+                        <i class="fa-solid fa-rotate mb-2 block text-xl"></i>
+                        <span class="text-[9px] font-bold uppercase">Tukar</span>
+                    </div>
+                    <div onclick="selectType('Sakit', this)" class="type-card">
+                        <i class="fa-solid fa-stethoscope mb-2 block text-xl"></i>
+                        <span class="text-[9px] font-bold uppercase">Sakit</span>
+                    </div>
+                    <div onclick="selectType('Izin', this)" class="type-card">
+                        <i class="fa-solid fa-file-signature mb-2 block text-xl"></i>
+                        <span class="text-[9px] font-bold uppercase">Izin</span>
+                    </div>
+                </div>
+
+                <div class="space-y-4 pt-4">
+                    <div onclick="openSheet()" class="w-full bg-[var(--inner-card)] p-4 rounded-[20px] flex justify-between items-center cursor-pointer border border-[var(--border)]">
+                        <span id="selectedNamaDisplay" class="font-bold opacity-40">Pilih Personel</span>
+                        <i class="fa-solid fa-chevron-down text-sky-500"></i>
+                    </div>
+                    <input type="date" id="pTgl">
+                    <textarea id="pKet" placeholder="Alasan tambahan..." rows="3"></textarea>
+                </div>
+
+                <button onclick="openConfirm()" class="w-full bg-sky-500 text-white py-5 rounded-[22px] font-[900] shadow-xl shadow-sky-500/20 active:scale-95 transition-all flex items-center justify-center gap-3">
+                    KIRIM DATA <i class="fa-solid fa-paper-plane text-xs"></i>
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <nav class="nav-container">
+        <button onclick="switchTab('jadwal', this)" class="nav-item active"><i class="fa-solid fa-house-chimney"></i></button>
+        <button onclick="switchTab('form', this)" class="fab active:scale-90 transition-all"><i class="fa-solid fa-plus"></i></button>
+        <button onclick="switchTab('rekap', this)" class="nav-item"><i class="fa-solid fa-chart-simple"></i></button>
+    </nav>
+
+    <div id="sheetNama" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[2000] hidden items-end" onclick="closeSheet()">
+        <div class="sheet-content glass w-full rounded-t-[40px] p-8 max-h-[70vh] overflow-y-auto translate-y-full transition-transform duration-500" onclick="event.stopPropagation()">
+            <div class="w-12 h-1 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-6"></div>
+            <div id="listNamaSheet" class="grid grid-cols-1 gap-3"></div>
+        </div>
+    </div>
+
+    <div id="confirmModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[3000] hidden items-center justify-center p-8">
+        <div id="confirmBox" class="glass p-10 w-full max-w-sm text-center opacity-0 scale-90">
+            <h3 class="text-2xl font-[900] mb-2">Kirim Sekarang?</h3>
+            <p class="text-[10px] opacity-50 mb-8 uppercase tracking-widest font-bold">Pastikan data sudah benar.</p>
+            <div class="flex gap-4">
+                <button onclick="closeConfirm()" class="flex-1 py-4 font-bold opacity-50">Batal</button>
+                <button onclick="processSubmit()" class="flex-1 py-4 bg-sky-500 text-white rounded-2xl font-black">Ya, Kirim</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbyn3QGF16fBCxZqPANlRVFKfagLBHOC0Ue0Df9Cfc16fDFhAU2q8uMF2H5GHkU3wUJd/exec";
+        let db = { kurir: [], jadwal: [] };
+        let selectedJenis = "Tukar Off";
+        let selectedNama = "";
+
+        window.onload = () => {
+            const now = new Date();
+            document.getElementById('monthPick').value = now.toLocaleDateString('en-CA').slice(0, 7);
+            fetchData();
+        };
+
+        async function fetchData() {
+            try {
+                const res = await fetch(API_URL);
+                db = await res.json();
+                document.getElementById('loading').style.display = 'none';
+                render();
+                
+                // CEK STATUS HARI INI UNTUK NOTIFIKASI
+                const todayStr = new Date().toLocaleDateString('en-CA');
+                const rowToday = db.jadwal.find(r => r[0] && new Date(r[0]).toLocaleDateString('en-CA') === todayStr);
+                const namesToday = (rowToday && rowToday[2]) ? String(rowToday[2]).split(',').filter(n => n.trim()) : [];
+                
+                setTimeout(() => showDailyIsland(namesToday), 800);
+            } catch (e) { 
+                showIsland("Error", "Gagal menghubungkan ke server", "bg-red-500");
+            }
+        }
+
+        // --- ANIMASI MODERN NOTIFICATION (ISLAND STYLE) ---
+        function showDailyIsland(names) {
+            const toast = document.getElementById('toast');
+            const title = document.getElementById('toastTitle');
+            const msg = document.getElementById('toastMsg');
+            const icon = document.getElementById('toastIcon');
+
+            if(names.length > 0) {
+                title.innerText = "Info Libur Hari Ini";
+                msg.innerText = names.join(', ');
+                icon.innerHTML = '<i class="fa-solid fa-mug-hot"></i>';
+                icon.className = "w-8 h-8 rounded-full flex items-center justify-center bg-amber-500 text-white shadow-lg text-[10px]";
+            } else {
+                title.innerText = "Status Operasional";
+                msg.innerText = "Semua Personel Bertugas";
+                icon.innerHTML = '<i class="fa-solid fa-shield-check"></i>';
+                icon.className = "w-8 h-8 rounded-full flex items-center justify-center bg-emerald-500 text-white shadow-lg text-[10px]";
+            }
+
+            gsap.to(toast, { top: 30, opacity: 1, scale: 1, duration: 0.6, ease: "back.out(1.7)" });
+            setTimeout(() => {
+                gsap.to(toast, { top: -100, opacity: 0, scale: 0.8, duration: 0.5, ease: "power2.in" });
+            }, 5000);
+        }
+
+        function showIsland(title, text, iconColor = "bg-sky-500") {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastTitle').innerText = title;
+            document.getElementById('toastMsg').innerText = text;
+            document.getElementById('toastIcon').className = `w-8 h-8 rounded-full flex items-center justify-center ${iconColor} text-white shadow-lg text-[10px]`;
+            
+            gsap.to(toast, { top: 30, opacity: 1, scale: 1, duration: 0.6, ease: "back.out(1.7)" });
+            setTimeout(() => {
+                gsap.to(toast, { top: -100, opacity: 0, scale: 0.8, duration: 0.5 });
+            }, 3000);
+        }
+
+        function render() {
+            const ym = document.getElementById('monthPick').value;
+            const [year, month] = ym.split('-').map(Number);
+            const daysInMonth = new Date(year, month, 0).getDate();
+            const todayStr = new Date().toLocaleDateString('en-CA');
+            
+            const listJ = document.getElementById('tab-jadwal');
+            const listR = document.getElementById('tab-rekap');
+            const listS = document.getElementById('listNamaSheet');
+            
+            listJ.innerHTML = ''; listR.innerHTML = ''; listS.innerHTML = '';
+            let offCount = 0;
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateIso = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const isToday = dateIso === todayStr;
+                
+                const row = db.jadwal.find(r => r[0] && new Date(r[0]).toLocaleDateString('en-CA') === dateIso);
+                let names = (row && row[2] && String(row[2]) !== "null") ? String(row[2]).split(',').map(n => n.trim()).filter(n => n) : [];
+                if(isToday) offCount = names.length;
+
+                let namesHtml = names.map(n => `
+                    <div class="name-tag">
+                        <span class="font-bold text-[10px] uppercase truncate">${n}</span>
+                        <button onclick="batalOff('${n}', '${dateIso}')" class="text-emerald-500 active:scale-75 transition-all"><i class="fa-solid fa-circle-check"></i></button>
+                    </div>
+                `).join('');
+
+                listJ.innerHTML += `
+                    <div class="glass p-4 flex gap-4 items-center ${isToday ? 'ring-2 ring-sky-500 scale-[1.02] shadow-xl' : ''}">
+                        <div class="date-badge ${isToday ? 'is-today-badge' : ''}">
+                            <span class="text-[9px] font-black uppercase opacity-50">${new Date(dateIso).toLocaleDateString('id-ID',{weekday:'short'})}</span>
+                            <span class="text-xl font-[900]">${d}</span>
+                        </div>
+                        <div class="names-grid">
+                            ${names.length > 0 ? namesHtml : '<p class="text-[10px] font-bold opacity-20 uppercase tracking-[2px] col-span-2 text-center py-2">Tugas Penuh</p>'}
+                        </div>
+                    </div>`;
+            }
+
+            db.kurir.forEach(n => {
+                listS.innerHTML += `<div onclick="selectNama('${n}')" class="p-5 bg-[var(--inner-card)] rounded-2xl font-bold uppercase flex justify-between items-center active:scale-95 transition-all">${n} <i class="fa-solid fa-plus-circle text-sky-500"></i></div>`;
+                
+                const total = db.jadwal.filter(r => {
+                    if (!r[0] || !r[2]) return false;
+                    const rd = new Date(r[0]);
+                    const rdMonth = `${rd.getFullYear()}-${String(rd.getMonth() + 1).padStart(2, '0')}`;
+                    return rdMonth === ym && String(r[2]).toUpperCase().split(',').map(x => x.trim()).includes(n.toUpperCase().trim());
+                }).length;
+
+                listR.innerHTML += `
+                    <div class="glass p-5 flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-xl bg-sky-500 text-white flex items-center justify-center font-black">${n.charAt(0)}</div>
+                            <span class="font-bold uppercase text-sm">${n}</span>
+                        </div>
+                        <div class="px-4 py-2 bg-sky-500/10 rounded-full font-black text-sky-500 text-xs">${total} OFF</div>
+                    </div>`;
+            });
+
+            document.getElementById('statKurir').innerText = db.kurir.length;
+            document.getElementById('statOff').innerText = offCount;
+        }
+
+        async function batalOff(nama, tgl) {
+            if(!confirm(`Konfirmasi masuk kerja untuk ${nama}?`)) return;
+            showIsland("Syncing", "Membatalkan jadwal off...");
+            await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "cancelOff", nama, tgl }) });
+            location.reload();
+        }
+
+        function switchTab(id, el) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('tab-' + id).classList.add('active');
+            if(el.classList.contains('nav-item')) el.classList.add('active');
+        }
+
+        function selectType(val, el) {
+            selectedJenis = val;
+            document.querySelectorAll('.type-card').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+        }
+
+        function openSheet() { 
+            document.getElementById('sheetNama').style.display = 'flex';
+            setTimeout(() => { document.querySelector('.sheet-content').classList.remove('translate-y-full'); }, 10);
+        }
+        function closeSheet() { 
+            document.querySelector('.sheet-content').classList.add('translate-y-full');
+            setTimeout(() => { document.getElementById('sheetNama').style.display = 'none'; }, 500);
+        }
+        function selectNama(n) { 
+            selectedNama = n; 
+            document.getElementById('selectedNamaDisplay').innerText = n; 
+            document.getElementById('selectedNamaDisplay').classList.remove('opacity-40');
+            closeSheet(); 
+        }
+
+        function openConfirm() {
+            if(!selectedNama || !document.getElementById('pTgl').value) return showIsland("Warning", "Data belum lengkap!", "bg-orange-500");
+            document.getElementById('confirmModal').style.display = 'flex';
+            gsap.to("#confirmBox", { scale: 1, opacity: 1, duration: 0.4, ease: "back.out" });
+        }
+        function closeConfirm() {
+            gsap.to("#confirmBox", { scale: 0.9, opacity: 0, duration: 0.2, onComplete: () => { document.getElementById('confirmModal').style.display = 'none'; }});
+        }
+
+        async function processSubmit() {
+            closeConfirm();
+            showIsland("Sending", "Memproses pengajuan...");
+            const data = { action: "submit", nama: selectedNama, jenis: selectedJenis, tgl: document.getElementById('pTgl').value, ket: document.getElementById('pKet').value };
+            await fetch(API_URL, { method: 'POST', body: JSON.stringify(data) });
+            location.reload();
+        }
+    </script>
+</body>
+</html>
