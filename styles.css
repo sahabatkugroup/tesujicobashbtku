@@ -1,0 +1,352 @@
+/* ==========================================================================
+   SAHABATKU DELIVERY — Modern UI Layer 2026
+   Glassmorphism ringan + Neumorphism halus + Micro-interaction
+   Prinsip performa: hanya animasikan transform & opacity (GPU-friendly),
+   tanpa animasi infinite/loop, blur dipakai secukupnya (nav, header, modal).
+   ========================================================================== */
+
+:root {
+  --brand-1: #0066FF;
+  --brand-2: #008CFF;
+  --brand-glow: rgba(0, 102, 255, 0.35);
+
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+
+  --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 20px -8px rgba(15, 23, 42, 0.10);
+  --shadow-float: 0 10px 30px -10px rgba(0, 102, 255, 0.35);
+  --shadow-press: 0 1px 2px rgba(15, 23, 42, 0.08) inset;
+
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-press: cubic-bezier(0.4, 0, 0.2, 1);
+
+  color-scheme: light;
+}
+
+.dark { color-scheme: dark; }
+
+/* ---------- Base ---------- */
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: contain;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* { -webkit-tap-highlight-color: transparent; }
+
+/* Custom slim scrollbar — cheap to render, no layout thrash */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 102, 255, 0.25);
+  border-radius: 999px;
+}
+.dark ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); }
+
+/* Respect users who don't want motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------- Screens ---------- */
+.screen { display: none; min-height: 100vh; }
+.screen.active {
+  display: flex;
+  flex-direction: column;
+  animation: screenIn 0.32s var(--ease-smooth);
+}
+
+@keyframes screenIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.99); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ---------- Premium gradient ---------- */
+.custom-gradient {
+  background: linear-gradient(160deg, var(--brand-1) 0%, var(--brand-2) 55%, #22A8FF 100%);
+  position: relative;
+  isolation: isolate;
+}
+/* Soft sheen highlight — static, no animation loop, cheap radial-gradient */
+.custom-gradient::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 60% at 15% -10%, rgba(255, 255, 255, 0.22), transparent 60%),
+    radial-gradient(80% 50% at 100% 110%, rgba(255, 255, 255, 0.10), transparent 60%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* ---------- Glassmorphism (used on nav, header, modal sheets) ---------- */
+#global-nav,
+#app-bar,
+.glass {
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+}
+
+#global-nav {
+  box-shadow: 0 -8px 24px -12px rgba(15, 23, 42, 0.12);
+}
+
+#global-nav a,
+#global-nav button {
+  transition: transform 0.18s var(--ease-press), color 0.18s ease, opacity 0.18s ease;
+}
+#global-nav a:active,
+#global-nav button:active {
+  transform: scale(0.88);
+}
+
+/* ---------- Cards: soft shadow + light neumorphism + hover lift ---------- */
+.rounded-2xl,
+.rounded-3xl,
+.rounded-xl {
+  transition: box-shadow 0.28s var(--ease-smooth), transform 0.22s var(--ease-smooth), border-color 0.2s ease;
+}
+
+/* White/dark surface cards get a refined soft shadow instead of flat tailwind default */
+.bg-white.rounded-2xl,
+.bg-white.rounded-3xl,
+.dark .dark\:bg-darkCard.rounded-2xl,
+.dark .dark\:bg-darkCard.rounded-3xl {
+  box-shadow: var(--shadow-soft);
+}
+
+/* Hover-lift micro interaction — only on devices that truly support hover (no phantom hover on touch) */
+@media (hover: hover) and (pointer: fine) {
+  .bg-white.rounded-2xl:hover,
+  .dark\:bg-darkCard.rounded-2xl:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 32px -14px rgba(15, 23, 42, 0.18);
+  }
+}
+
+/* ---------- Buttons: ripple + press + scale + floating ---------- */
+.ripple {
+  position: relative;
+  overflow: hidden;
+}
+.ripple::after {
+  content: "";
+  background: rgba(255, 255, 255, 0.35);
+  display: block;
+  position: absolute;
+  border-radius: 50%;
+  padding-top: 240%;
+  padding-left: 240%;
+  margin-top: -120%;
+  margin-left: -120%;
+  top: 50%;
+  left: 50%;
+  opacity: 0;
+  transition: transform 0.6s var(--ease-smooth), opacity 0.6s var(--ease-smooth);
+  transform: scale(0);
+  pointer-events: none;
+}
+.ripple:active::after {
+  transform: scale(1);
+  opacity: 1;
+  transition: 0s;
+}
+
+button, .ripple, [role="button"] {
+  transition: transform 0.16s var(--ease-press), box-shadow 0.2s var(--ease-press), filter 0.2s ease;
+}
+button:active:not(:disabled), .ripple:active {
+  transform: scale(0.96);
+}
+button:disabled { filter: saturate(0.6) opacity(0.7); }
+
+/* Gradient / primary buttons get a soft glow + floating feel */
+button.custom-gradient,
+button.bg-primary {
+  box-shadow: 0 8px 20px -8px var(--brand-glow);
+}
+@media (hover: hover) and (pointer: fine) {
+  button.custom-gradient:hover,
+  button.bg-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 26px -10px var(--brand-glow);
+  }
+}
+
+/* Floating Action Button */
+.fixed.rounded-full.shadow-lg {
+  animation: fabFloat 3.2s ease-in-out infinite;
+}
+@keyframes fabFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.fixed.rounded-full.shadow-lg:active {
+  transform: scale(0.9);
+  animation-play-state: paused;
+}
+
+/* ---------- Inputs: soft neumorphism + focus glow ---------- */
+input, select, textarea {
+  transition: border-color 0.2s var(--ease-press), box-shadow 0.2s var(--ease-press), background-color 0.2s ease;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--brand-1) !important;
+  box-shadow: 0 0 0 4px rgba(0, 102, 255, 0.12);
+}
+.dark input:focus, .dark select:focus, .dark textarea:focus {
+  box-shadow: 0 0 0 4px rgba(0, 140, 255, 0.18);
+}
+
+/* ---------- Modals: glass + smooth entrance (single run, no loop) ---------- */
+[id^="modal-"]:not(.hidden) {
+  animation: modalBackdropIn 0.22s var(--ease-smooth);
+}
+[id^="modal-"]:not(.hidden) > div {
+  animation: modalSheetIn 0.28s var(--ease-smooth);
+}
+@keyframes modalBackdropIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes modalSheetIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ---------- Bottom sheet on login ---------- */
+#screen-login > .bg-white,
+#screen-login > .dark\:bg-darkCard {
+  box-shadow: 0 -12px 40px -16px rgba(15, 23, 42, 0.25);
+}
+
+/* ---------- Badges / pills: gentle scale on tap ---------- */
+.rounded-full {
+  transition: transform 0.16s var(--ease-press);
+}
+
+/* ---------- Icon chips (SVG lucide icons, not raster images — instant, no loading loop) ---------- */
+/* Applies to the small colored square/rounded boxes wrapping <i data-lucide> icons,
+   e.g. <div class="p-2 bg-blue-50 rounded-lg text-primary"><i data-lucide="..."></i></div> */
+button > div:has(> i[data-lucide]),
+a > div:has(> i[data-lucide]) {
+  transition: transform 0.2s var(--ease-smooth), box-shadow 0.2s var(--ease-smooth);
+}
+@media (hover: hover) and (pointer: fine) {
+  button:hover > div:has(> i[data-lucide]),
+  a:hover > div:has(> i[data-lucide]) {
+    transform: scale(1.08) rotate(-2deg);
+  }
+}
+button:active > div:has(> i[data-lucide]),
+a:active > div:has(> i[data-lucide]) {
+  transform: scale(0.9);
+}
+
+/* Lucide SVGs are already vector icons (crisp at any size, no network image, no loop) —
+   just make sure strokes stay crisp and never accidentally spin/pulse forever. */
+i[data-lucide] svg {
+  display: block;
+  animation: none !important;
+}
+
+/* ==========================================================================
+   MOBILE — semua pengaturan HP digabung di sini agar rapi & konsisten
+   ========================================================================== */
+@media (max-width: 640px) {
+  html, body {
+    overflow-x: hidden;
+  }
+
+  /* Ruang aman untuk notch / gesture bar */
+  #global-nav {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  #screen-login {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  /* Sedikit rapatkan padding layar biar konten tidak sempit */
+  .screen[id^="screen-"] {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  h1, h2, h3 { word-break: break-word; }
+
+  /* Target sentuh minimal nyaman untuk jari */
+  button, a[role="button"], .ripple {
+    min-height: 40px;
+  }
+
+  /* Matikan hover-lift di mobile (tidak relevan, hemat repaint) */
+  .bg-white.rounded-2xl:active,
+  .dark\:bg-darkCard.rounded-2xl:active {
+    transform: scale(0.99);
+  }
+
+  #canvas-nota {
+    width: 340px !important;
+    max-width: 340px !important;
+    padding: 16px !important;
+    border-radius: var(--radius-md) !important;
+  }
+
+  #preview-action-buttons {
+    max-width: 100% !important;
+  }
+
+  #preview-action-buttons button {
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+    font-size: 10px !important;
+  }
+
+  #modal-preview-nota {
+    align-items: center !important;
+  }
+
+  #modal-preview-nota > div {
+    max-width: 100% !important;
+    width: calc(100% - 16px) !important;
+  }
+
+  #canvas-nota-admin {
+    padding: 12px !important;
+  }
+
+  #modal-kpi-detail {
+    align-items: center !important;
+  }
+
+  #modal-kpi-detail > div {
+    width: calc(100% - 16px) !important;
+    max-width: 100% !important;
+  }
+
+  /* Modal umum lain: pastikan tidak mepet tepi layar & tidak overflow */
+  [id^="modal-"] > div {
+    width: calc(100% - 16px) !important;
+    max-width: 100% !important;
+    max-height: 92vh !important;
+  }
+
+  /* FAB jangan ketimpa nav bawah / notch */
+  .fixed.bottom-24 {
+    bottom: calc(6rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
