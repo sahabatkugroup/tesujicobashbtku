@@ -8,8 +8,6 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="theme-color" content="#0066FF">
-    <link rel="icon" type="image/png" href="https://uploads.onecompiler.io/43v32m6x5/44rw83fkz/Sahabatku%20(2).png">
-    <link rel="apple-touch-icon" href="https://uploads.onecompiler.io/43v32m6x5/44rw83fkz/Sahabatku%20(2).png">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -55,103 +53,104 @@
 <body class="bg-lightBg text-slate-800 dark:bg-darkBg dark:text-slate-100 font-sans transition-colors duration-300">
     <div id="screen-login" class="screen active custom-gradient justify-end relative overflow-hidden">
         <div class="absolute top-12 left-0 right-0 flex flex-col items-center justify-center text-white px-6">
-            <div class="w-20 h-20 bg-white/95 rounded-[26px] flex items-center justify-center p-0 shadow-xl ring-1 ring-white/40 mb-3 overflow-hidden">
-                <img src="https://uploads.onecompiler.io/43v32m6x5/44rw83fkz/Sahabatku%20(2).png" alt="Logo Sahabatku" class="w-full h-full object-cover" loading="eager" decoding="async">
+            <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center p-0 login-logo-ring mb-3 overflow-hidden">
+                <img src="https://uploads.onecompiler.io/43v32m6x5/44rw83fkz/Sahabatku%20(2).png" alt="Logo Sahabatku" class="w-full h-full object-cover">
             </div>
-            <h1 class="text-2xl font-black tracking-wider text-center drop-shadow-sm">SAHABATKU DELIVERY</h1>
-            <p class="text-xs opacity-90 mt-0.5 uppercase tracking-widest font-semibold">Kurir & Admin Platform</p>
+            <h1 class="text-2xl font-black tracking-wide text-center">SAHABATKU DELIVERY</h1>
+            <p class="text-xs opacity-90 mt-0.5 uppercase tracking-[0.2em] font-semibold">Kurir & Admin Platform</p>
         </div>
         
-        <div class="bg-white dark:bg-darkCard w-full rounded-t-[28px] p-6 shadow-2xl transition-all duration-300">
-            <div class="w-12 h-1 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mb-5"></div>
-            <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-1">Selamat Datang</h2>
+        <div class="bg-white dark:bg-darkCard w-full rounded-t-[32px] p-6 pt-5 shadow-2xl transition-all duration-300">
+            <div class="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mb-5"></div>
+            <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-1 tracking-tight">Selamat Datang 👋</h2>
             <p class="text-xs text-slate-500 dark:text-slate-400 mb-5">Masuk menggunakan akun driver anda.</p>
             
             <form id="form-login" onsubmit="handleLogin(event)" class="space-y-4">
                 <div>
                     <label class="block text-[11px] font-bold uppercase tracking-wider mb-1.5 text-slate-500">Username</label>
-                    <div class="relative">
-                        <i data-lucide="user" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
-                        <input type="text" id="login-username" required class="w-full pl-10 pr-4 py-3 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-xl text-sm focus:outline-none focus:border-primary">
+                    <div class="input-icon-field">
+                        <i data-lucide="user"></i>
+                        <input type="text" id="login-username" required placeholder="Username kamu" class="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-xl text-sm focus:outline-none focus:border-primary">
                     </div>
                 </div>
                 <div>
                     <label class="block text-[11px] font-bold uppercase tracking-wider mb-1.5 text-slate-500">Password</label>
-                    <div class="relative">
-                        <i data-lucide="lock" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
-                        <input type="password" id="login-password" required class="w-full pl-10 pr-4 py-3 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-xl text-sm focus:outline-none focus:border-primary">
+                    <div class="input-icon-field">
+                        <i data-lucide="lock"></i>
+                        <input type="password" id="login-password" required placeholder="••••••••" class="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-xl text-sm focus:outline-none focus:border-primary">
                     </div>
                 </div>
-                <button type="submit" id="btn-login-submit" class="w-full custom-gradient text-white font-bold py-3.5 rounded-xl shadow-lg transition-all ripple pt-2 uppercase tracking-wide text-xs flex items-center justify-center gap-2">
-                    <i data-lucide="log-in" class="w-4 h-4"></i>
-                    Masuk
+                <button type="submit" id="btn-login-submit" class="w-full custom-gradient text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/30 transition-all ripple pt-2 uppercase tracking-wide text-xs flex items-center justify-center gap-2 hover:shadow-xl active:scale-[0.98]">
+                    <span>Masuk</span>
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </button>
             </form>
             <div class="text-center mt-6 text-[11px] text-slate-400">© 2026 Sahabatku Delivery • Jatibarang</div>
         </div>
     </div>
 
-    <div id="main-layout" class="hidden min-h-screen flex flex-col pb-20">
+
+    <div id="main-layout" class="hidden min-h-screen flex flex-col pb-24">
         
-        <header id="app-bar" class="bg-white/90 dark:bg-darkCard/90 border-b border-slate-100 dark:border-slate-800 px-3 py-2.5 sticky top-0 z-40 hidden items-center justify-between glass">
-            <button onclick="navigateBack()" class="w-9 h-9 flex items-center justify-center bg-slate-50 dark:bg-slate-800 active:bg-slate-100 dark:active:bg-slate-700 rounded-full text-slate-600 dark:text-slate-300 ripple">
-                <i data-lucide="arrow-left" class="w-4.5 h-4.5"></i>
+        <header id="app-bar" class="bg-white/90 dark:bg-darkCard/90 backdrop-blur-xl border-b border-slate-100/80 dark:border-slate-800 px-4 py-3.5 sticky top-0 z-40 hidden items-center justify-between shadow-sm">
+            <button onclick="navigateBack()" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-90 rounded-xl text-slate-600 dark:text-slate-300 transition-all duration-200">
+                <i data-lucide="arrow-left" class="w-5 h-5"></i>
             </button>
-            <h2 id="app-bar-title" class="font-bold text-base text-slate-800 dark:text-white truncate px-2">Panel Modul</h2>
+            <h2 id="app-bar-title" class="font-bold text-base text-slate-800 dark:text-white tracking-tight">Panel Modul</h2>
             <div class="w-9"></div>
         </header>
 
         <main class="flex-1 overflow-y-auto">
 
             <div id="screen-dashboard" class="screen p-4 space-y-4">
-                <div class="flex items-center justify-between bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                <div class="flex items-center justify-between bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
                     <div class="flex items-center space-x-3">
-                        <div class="w-11 h-11 rounded-full overflow-hidden bg-blue-50 dark:bg-slate-800 flex items-center justify-center ring-2 ring-primary/20 ring-offset-2 ring-offset-white dark:ring-offset-darkCard">
-                            <img src="https://uploads.onecompiler.io/44rwmsthk/44rwmtf46/Sahabatku%20(3).png" alt="User" class="w-full h-full object-cover" loading="lazy" decoding="async">
+                        <div class="w-11 h-11 rounded-full overflow-hidden bg-blue-50 dark:bg-slate-800 flex items-center justify-center">
+                            <img src="https://uploads.onecompiler.io/44rwmsthk/44rwmtf46/Sahabatku%20(3).png" alt="User" class="w-full h-full object-cover">
                         </div>
                         <div>
                             <h3 class="font-bold text-sm dark:text-white session-fullname">Memuat Nama...</h3>
-                            <div class="flex items-center text-[11px] text-slate-400"><span class="w-1.5 h-1.5 rounded-full bg-success mr-1.5"></span>Aktif</div>
+                            <div class="flex items-center text-[11px] text-slate-400"><span class="w-2 h-2 rounded-full bg-success mr-1.5"></span>Aktif</div>
                         </div>
                     </div>
                     <span class="text-[10px] bg-blue-50 text-primary dark:bg-blue-950 font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">KURIR</span>
                 </div>
                 <div id="kurir-notif-box" class="hidden max-w-md mx-auto bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-amber-900 dark:text-amber-100 p-2 rounded-xl shadow-sm">
-                    <div class="flex items-start justify-between gap-2">
-                        <div class="flex items-start gap-2 min-w-0 flex-1">
-                            <i data-lucide="bell-ring" class="w-4 h-4 mt-0.5 shrink-0"></i>
-                            <div class="text-xs min-w-0 flex-1">
-                                <div class="font-bold">Notifikasi</div>
-                                <div id="kurir-notif-text" class="mt-1 leading-relaxed"></div>
-                            </div>
+                    <div class="flex items-start gap-2">
+                        <i data-lucide="bell-ring" class="w-4 h-4 mt-0.5"></i>
+                        <div class="text-xs">
+                            <div class="font-bold">Notifikasi</div>
+                            <div id="kurir-notif-text" class="mt-1 leading-relaxed"></div>
                         </div>
                     </div>
                 </div>
-                <div class="custom-gradient text-white p-5 rounded-2xl shadow-xl space-y-4">
-                    <div class="flex justify-between items-start border-b border-white/20 pb-3">
+                <div class="custom-gradient text-white p-5 rounded-[28px] shadow-xl shadow-blue-500/25 space-y-4 relative overflow-hidden">
+                    <div class="absolute -right-4 -top-4 w-24 h-24 rounded-full bg-white/10"></div>
+                    <div class="absolute -right-10 -bottom-10 w-28 h-28 rounded-full bg-white/5"></div>
+                    <div class="flex justify-between items-start border-b border-white/20 pb-3 relative">
                         <div>
                             <p class="text-[10px] text-white/80 uppercase tracking-wider font-semibold">No Nota Selanjutnya</p>
-                            <h4 class="text-base font-bold mt-0.5" id="dash-next-nota">Generating...</h4>
+                            <h4 class="text-base font-bold mt-0.5 tracking-tight" id="dash-next-nota">Generating...</h4>
                         </div>
                         <div class="text-right">
                             <p class="text-[10px] text-white/80 uppercase tracking-wider font-semibold">Hari Ini</p>
                             <h4 class="text-xs font-medium mt-0.5" id="dash-date"></h4>
                         </div>
                     </div>
-                    <div class="grid grid-cols-3 gap-2">
+                    <div class="grid grid-cols-3 gap-2 relative">
                         <div class="text-center">
                             <p class="text-[10px] text-white/80 leading-tight">Nota</p>
-                            <p class="text-md font-black mt-0.5" id="dash-k-total-trx">0</p>
+                            <p class="text-lg font-black mt-0.5 tracking-tight" id="dash-k-total-trx">0</p>
                         </div>
 
                         <div class="text-center border-l border-white/20">
                             <p class="text-[10px] text-white/80 leading-tight">Pendapatan</p>
-                            <p class="text-md font-black mt-0.5" id="dash-k-total-income">Rp 0</p>
+                            <p class="text-lg font-black mt-0.5 tracking-tight" id="dash-k-total-income">Rp 0</p>
                         </div>
 
                         <div class="text-center border-l border-white/20">
                             <p class="text-[10px] text-white/80 leading-tight">Mitra</p>
-                            <p class="text-md font-black mt-0.5" id="dash-k-total-mitra-trx">0</p>
+                            <p class="text-lg font-black mt-0.5 tracking-tight" id="dash-k-total-mitra-trx">0</p>
                         </div>
                     </div>
                 </div>
@@ -160,54 +159,55 @@
                     <i data-lucide="calendar-check" class="w-5 h-5"></i>
                 </button>
                 <div class="grid grid-cols-4 gap-2.5">
-                    <button onclick="openModulNota()" class="bg-white dark:bg-darkCard p-3 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center space-y-1.5 shadow-sm">
-                        <div class="p-2 bg-blue-50 dark:bg-blue-950 rounded-lg text-primary"><i data-lucide="file-plus" class="w-4 h-4"></i></div>
+                    <button onclick="openModulNota()" class="group bg-white dark:bg-darkCard p-3 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center space-y-1.5 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.95]">
+                        <div class="p-2 bg-gradient-to-br from-blue-500 to-blue-600 shadow-blue-500/30 rounded-xl text-white shadow-md transition-transform duration-300 group-hover:scale-110"><i data-lucide="file-plus" class="w-4 h-4"></i></div>
                         <span class="text-[11px] font-medium">Nota</span>
                     </button>
-                    <button onclick="navigateTo('screen-riwayat')" class="bg-white dark:bg-darkCard p-3 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center space-y-1.5 shadow-sm">
-                        <div class="p-2 bg-indigo-50 dark:bg-indigo-950 rounded-lg text-indigo-500"><i data-lucide="history" class="w-4 h-4"></i></div>
+                    <button onclick="navigateTo('screen-riwayat')" class="group bg-white dark:bg-darkCard p-3 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center space-y-1.5 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.95]">
+                        <div class="p-2 bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-indigo-500/30 rounded-xl text-white shadow-md transition-transform duration-300 group-hover:scale-110"><i data-lucide="history" class="w-4 h-4"></i></div>
                         <span class="text-[11px] font-medium">Riwayat</span>
                     </button>
-                    <button onclick="navigateTo('screen-rekap')" class="bg-white dark:bg-darkCard p-3 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center space-y-1.5 shadow-sm">
-                        <div class="p-2 bg-emerald-50 dark:bg-emerald-950 rounded-lg text-success"><i data-lucide="trending-up" class="w-4 h-4"></i></div>
+                    <button onclick="navigateTo('screen-rekap')" class="group bg-white dark:bg-darkCard p-3 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center space-y-1.5 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.95]">
+                        <div class="p-2 bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-emerald-500/30 rounded-xl text-white shadow-md transition-transform duration-300 group-hover:scale-110"><i data-lucide="trending-up" class="w-4 h-4"></i></div>
                         <span class="text-[11px] font-medium">Rekap</span>
                     </button>
-                    <button onclick="navigateTo('screen-mitra')" class="bg-white dark:bg-darkCard p-3 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center space-y-1.5 shadow-sm">
-                        <div class="p-2 bg-amber-50 dark:bg-amber-950 rounded-lg text-amber-500"><i data-lucide="store" class="w-4 h-4"></i></div>
+                    <button onclick="navigateTo('screen-mitra')" class="group bg-white dark:bg-darkCard p-3 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center space-y-1.5 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.95]">
+                        <div class="p-2 bg-gradient-to-br from-amber-400 to-orange-500 shadow-amber-500/30 rounded-xl text-white shadow-md transition-transform duration-300 group-hover:scale-110"><i data-lucide="store" class="w-4 h-4"></i></div>
                         <span class="text-[11px] font-medium">Mitra</span>
                     </button>
-                    <button onclick="openOngkirFeature()" class="bg-white dark:bg-darkCard p-3 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center space-y-1.5 shadow-sm">
-                        <div class="p-2 bg-purple-50 dark:bg-purple-950 rounded-lg text-purple-500"><i data-lucide="navigation" class="w-4 h-4"></i></div>
+                    <button onclick="openOngkirFeature()" class="group bg-white dark:bg-darkCard p-3 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center space-y-1.5 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.95]">
+                        <div class="p-2 bg-gradient-to-br from-purple-500 to-purple-600 shadow-purple-500/30 rounded-xl text-white shadow-md transition-transform duration-300 group-hover:scale-110"><i data-lucide="navigation" class="w-4 h-4"></i></div>
                         <span class="text-[11px] font-medium">Ongkir</span>
                     </button>
-                    <button onclick="openJadwal()" class="bg-white dark:bg-darkCard p-3 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center space-y-1.5 shadow-sm">
-                        <div class="p-2 bg-teal-50 dark:bg-teal-950 rounded-lg text-teal-500"><i data-lucide="calendar" class="w-4 h-4"></i></div>
+                    <button onclick="openJadwal()" class="group bg-white dark:bg-darkCard p-3 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center space-y-1.5 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.95]">
+                        <div class="p-2 bg-gradient-to-br from-teal-500 to-teal-600 shadow-teal-500/30 rounded-xl text-white shadow-md transition-transform duration-300 group-hover:scale-110"><i data-lucide="calendar" class="w-4 h-4"></i></div>
                         <span class="text-[11px] font-medium">Jadwal</span>
                     </button>
                     
-                    <button onclick="openSOP()" class="bg-white dark:bg-darkCard p-3 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center space-y-1.5 shadow-sm">
-                        <div class="p-2 bg-orange-50 dark:bg-orange-950 rounded-lg text-orange-500"><i data-lucide="bookmark" class="w-4 h-4"></i></div>
+                    <button onclick="openSOP()" class="group bg-white dark:bg-darkCard p-3 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center space-y-1.5 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.95]">
+                        <div class="p-2 bg-gradient-to-br from-orange-500 to-orange-600 shadow-orange-500/30 rounded-xl text-white shadow-md transition-transform duration-300 group-hover:scale-110"><i data-lucide="bookmark" class="w-4 h-4"></i></div>
                         <span class="text-[11px] font-medium">SOP</span>
                     </button>
-                    <button onclick="navigateTo('screen-pengaturan')" class="bg-white dark:bg-darkCard p-3 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center space-y-1.5 shadow-sm">
-                        <div class="p-2 bg-rose-50 dark:bg-rose-950 rounded-lg text-rose-500"><i data-lucide="sliders" class="w-4 h-4"></i></div>
+                    <button onclick="navigateTo('screen-pengaturan')" class="group bg-white dark:bg-darkCard p-3 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center space-y-1.5 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.95]">
+                        <div class="p-2 bg-gradient-to-br from-rose-500 to-rose-600 shadow-rose-500/30 rounded-xl text-white shadow-md transition-transform duration-300 group-hover:scale-110"><i data-lucide="sliders" class="w-4 h-4"></i></div>
                         <span class="text-[11px] font-medium">Setting</span>
                     </button>
                 </div>
             </div>
 
             <div id="screen-admin-dashboard" class="screen p-4 space-y-4">
-                <div class="flex items-center justify-between bg-slate-900 text-white p-4 rounded-2xl shadow-md">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center font-bold text-amber-400"><i data-lucide="shield-check" class="w-5 h-5"></i></div>
+                <div class="flex items-center justify-between bg-slate-900 text-white p-4 rounded-2xl shadow-md relative overflow-hidden">
+                    <div class="absolute -right-6 -top-6 w-20 h-20 rounded-full bg-white/5"></div>
+                    <div class="flex items-center space-x-3 relative">
+                        <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/30"><i data-lucide="shield-check" class="w-5 h-5 text-white"></i></div>
                         <div>
-                            <h3 class="font-bold text-sm session-fullname">Administrator</h3>
+                            <h3 class="font-bold text-sm session-fullname tracking-tight">Administrator</h3>
                             <p class="text-[10px] text-slate-400">Pusat Kendali Sahabatku Group</p>
                         </div>
                     </div>
-                    <span id="badge-admin-role" class="text-[10px] bg-amber-500/20 text-amber-400 font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">Super Admin</span>
+                    <span id="badge-admin-role" class="text-[10px] bg-amber-500/20 text-amber-400 font-bold px-2.5 py-1 rounded-full uppercase tracking-wider relative">Super Admin</span>
                 </div>
-                <div class="bg-gradient-to-br from-amber-100 via-yellow-100 to-amber-200 text-slate-900 p-4 rounded-2xl shadow-2xl border border-amber-300/60 space-y-4 dark:from-[#2a2118] dark:via-[#1f1811] dark:to-[#15110c] dark:text-amber-50 dark:border-amber-900/40">
+                <div class="bg-gradient-to-br from-amber-100 via-yellow-100 to-amber-200 text-slate-900 p-4 rounded-[28px] shadow-2xl shadow-amber-500/10 border border-amber-300/60 space-y-4 dark:from-[#2a2118] dark:via-[#1f1811] dark:to-[#15110c] dark:text-amber-50 dark:border-amber-900/40">
                     <div class="flex items-start justify-between gap-3">
                         <div class="min-w-0">
                             <h4 class="text-[10px] font-bold uppercase tracking-[0.25em] text-amber-700 dark:text-amber-300">
@@ -219,8 +219,8 @@
                         </div>
                 
                         <div class="flex items-center gap-2 shrink-0">
-                            <div class="w-11 h-11 rounded-2xl bg-white/60 dark:bg-[#2a2118] flex items-center justify-center border border-amber-300/60 dark:border-amber-900/40">
-                                <i data-lucide="bar-chart-3" class="w-5 h-5 text-amber-700 dark:text-amber-300"></i>
+                            <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/30">
+                                <i data-lucide="bar-chart-3" class="w-5 h-5 text-white"></i>
                             </div>
                         </div>
                     </div>
@@ -245,16 +245,16 @@
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
-                    <button onclick="navigateTo('screen-admin-kurir')" class="bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-start space-y-2 shadow-sm text-left">
-                        <div class="p-2.5 bg-blue-50 dark:bg-blue-950/40 rounded-xl text-primary"><i data-lucide="users" class="w-5 h-5"></i></div>
+                    <button onclick="navigateTo('screen-admin-kurir')" class="group bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-start space-y-2 shadow-sm text-left transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/20 active:scale-[0.97]">
+                        <div class="p-2.5 bg-gradient-to-br from-blue-500 to-blue-600 shadow-blue-500/30 rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3"><i data-lucide="users" class="w-5 h-5"></i></div>
                         <div>
                             <span class="text-xs font-bold block">Data Akun Kurir</span>
                             <span class="text-[10px] text-slate-400">Kelola daftar kurir</span>
                         </div>
                     </button>
                     <button onclick="navigateTo('screen-admin-manajemen')"
-                        class="bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-start space-y-2 shadow-sm text-left">
-                        <div class="p-2.5 bg-fuchsia-50 dark:bg-fuchsia-950/40 rounded-xl text-fuchsia-500">
+                        class="group bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-start space-y-2 shadow-sm text-left transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/20 active:scale-[0.97]">
+                        <div class="p-2.5 bg-gradient-to-br from-fuchsia-500 to-fuchsia-600 shadow-fuchsia-500/30 rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
                             <i data-lucide="users-round" class="w-5 h-5"></i>
                         </div>
                         <div>
@@ -263,23 +263,23 @@
                         </div>
                     </button>
                     
-                    <button onclick="navigateTo('screen-admin-nota')" class="bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-start space-y-2 shadow-sm text-left">
-                        <div class="p-2.5 bg-indigo-50 dark:bg-indigo-950/40 rounded-xl text-indigo-500"><i data-lucide="file-spreadsheet" class="w-5 h-5"></i></div>
+                    <button onclick="navigateTo('screen-admin-nota')" class="group bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-start space-y-2 shadow-sm text-left transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/20 active:scale-[0.97]">
+                        <div class="p-2.5 bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-indigo-500/30 rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3"><i data-lucide="file-spreadsheet" class="w-5 h-5"></i></div>
                         <div>
                             <span class="text-xs font-bold block">Semua Nota Kurir</span>
                             <span class="text-[10px] text-slate-400">Pantau nota all kurir</span>
                         </div>
                     </button>
 
-                    <button onclick="navigateTo('screen-admin-mitra')" class="bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-start space-y-2 shadow-sm text-left">
-                        <div class="p-2.5 bg-amber-50 dark:bg-amber-950/40 rounded-xl text-amber-500"><i data-lucide="store" class="w-5 h-5"></i></div>
+                    <button onclick="navigateTo('screen-admin-mitra')" class="group bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-start space-y-2 shadow-sm text-left transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/20 active:scale-[0.97]">
+                        <div class="p-2.5 bg-gradient-to-br from-amber-400 to-orange-500 shadow-amber-500/30 rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3"><i data-lucide="store" class="w-5 h-5"></i></div>
                         <div>
                             <span class="text-xs font-bold block">Kelola Mitra</span>
                             <span class="text-[10px] text-slate-400">Daftar & input mitra</span>
                         </div>
                     </button>
-                    <button onclick="navigateTo('screen-admin-laporan')" class="bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-start space-y-2 shadow-sm text-left">
-                        <div class="p-2.5 bg-cyan-50 dark:bg-cyan-950/40 rounded-xl text-cyan-500">
+                    <button onclick="navigateTo('screen-admin-laporan')" class="group bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-start space-y-2 shadow-sm text-left transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/20 active:scale-[0.97]">
+                        <div class="p-2.5 bg-gradient-to-br from-cyan-500 to-cyan-600 shadow-cyan-500/30 rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
                             <i data-lucide="file-text" class="w-5 h-5"></i>
                         </div>
                         <div>
@@ -287,8 +287,8 @@
                             <span class="text-[10px] text-slate-400">Filter bulan & laporan kurir</span>
                         </div>
                     </button>
-                    <button onclick="navigateTo('screen-admin-tracking')" class="bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-start space-y-2 shadow-sm text-left">
-                        <div class="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl text-emerald-500">
+                    <button onclick="navigateTo('screen-admin-tracking')" class="group bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-start space-y-2 shadow-sm text-left transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/20 active:scale-[0.97]">
+                        <div class="p-2.5 bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-emerald-500/30 rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
                             <i data-lucide="map-pin" class="w-5 h-5"></i>
                         </div>
                         <div>
@@ -297,8 +297,8 @@
                         </div>
                     </button>
                     
-                    <button onclick="navigateTo('screen-admin-ongkir')" class="bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-start space-y-2 shadow-sm text-left">
-                        <div class="p-2.5 bg-purple-50 dark:bg-purple-950/40 rounded-xl text-purple-500">
+                    <button onclick="navigateTo('screen-admin-ongkir')" class="group bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-start space-y-2 shadow-sm text-left transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/20 active:scale-[0.97]">
+                        <div class="p-2.5 bg-gradient-to-br from-purple-500 to-purple-600 shadow-purple-500/30 rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
                             <i data-lucide="truck" class="w-5 h-5"></i>
                         </div>
                         <div>
@@ -306,8 +306,8 @@
                             <span class="text-[10px] text-slate-400">Wilayah & tarif</span>
                         </div>
                     </button>
-                    <button onclick="window.location.href='absensi-admin-sahabatku.html'" class="bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-start space-y-2 shadow-sm text-left">
-                        <div class="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl text-emerald-500">
+                    <button onclick="window.location.href='absensi-admin-sahabatku.html'" class="group bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-start space-y-2 shadow-sm text-left transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/20 active:scale-[0.97]">
+                        <div class="p-2.5 bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-emerald-500/30 rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
                             <i data-lucide="calendar-days" class="w-5 h-5"></i>
                         </div>
                         <div>
@@ -315,8 +315,8 @@
                             <span class="text-[10px] text-slate-400">Rekap jadwal kurir</span>
                         </div>
                     </button>
-                    <button onclick="navigateTo('screen-admin-kpi')" class="bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-start space-y-2 shadow-sm text-left">
-                        <div class="p-2.5 bg-violet-50 dark:bg-violet-950/40 rounded-xl text-violet-500">
+                    <button onclick="navigateTo('screen-admin-kpi')" class="group bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-start space-y-2 shadow-sm text-left transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/20 active:scale-[0.97]">
+                        <div class="p-2.5 bg-gradient-to-br from-violet-500 to-violet-600 shadow-violet-500/30 rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
                             <i data-lucide="trophy" class="w-5 h-5"></i>
                         </div>
                         <div>
@@ -324,8 +324,8 @@
                             <span class="text-[10px] text-slate-400">Ranking & performa</span>
                         </div>
                     </button>
-                    <button onclick="navigateTo('screen-admin-testimonial')" class="bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-start space-y-2 shadow-sm text-left">
-                        <div class="p-2.5 bg-pink-50 dark:bg-pink-950/40 rounded-xl text-pink-500">
+                    <button onclick="navigateTo('screen-admin-testimonial')" class="group bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-start space-y-2 shadow-sm text-left transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/20 active:scale-[0.97]">
+                        <div class="p-2.5 bg-gradient-to-br from-pink-500 to-pink-600 shadow-pink-500/30 rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
                             <i data-lucide="message-circle-more" class="w-5 h-5"></i>
                         </div>
                         <div>
@@ -333,8 +333,8 @@
                             <span class="text-[10px] text-slate-400">Lihat Testimoni costumer</span>
                         </div>
                     </button>
-                    <button onclick="navigateTo('screen-admin-order-deposit')" class="bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-start space-y-2 shadow-sm text-left">
-                        <div class="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl text-emerald-500">
+                    <button onclick="navigateTo('screen-admin-order-deposit')" class="group bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-start space-y-2 shadow-sm text-left transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/20 active:scale-[0.97]">
+                        <div class="p-2.5 bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-emerald-500/30 rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
                             <i data-lucide="clipboard-list" class="w-5 h-5"></i>
                         </div>
                         <div>
@@ -342,8 +342,8 @@
                             <span class="text-[10px] text-slate-400">Kirim ke Spreadsheet</span>
                         </div>
                     </button>
-                    <button onclick="navigateTo('screen-admin-notifikasi')" class="bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-start space-y-2 shadow-sm text-left">
-                        <div class="p-2.5 bg-rose-50 dark:bg-rose-950/40 rounded-xl text-rose-500">
+                    <button onclick="navigateTo('screen-admin-notifikasi')" class="group bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-start space-y-2 shadow-sm text-left transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/20 active:scale-[0.97]">
+                        <div class="p-2.5 bg-gradient-to-br from-rose-500 to-rose-600 shadow-rose-500/30 rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
                             <i data-lucide="bell-ring" class="w-5 h-5"></i>
                         </div>
                         <div>
@@ -351,8 +351,8 @@
                             <span class="text-[10px] text-slate-400">Ke semua / kurir tertentu</span>
                         </div>
                     </button>
-                    <button onclick="navigateTo('screen-pengaturan')" class="bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-start space-y-2 shadow-sm text-left">
-                        <div class="p-2.5 bg-rose-50 dark:bg-rose-950/40 rounded-xl text-rose-500"><i data-lucide="settings" class="w-5 h-5"></i></div>
+                    <button onclick="navigateTo('screen-pengaturan')" class="group bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-start space-y-2 shadow-sm text-left transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/20 active:scale-[0.97]">
+                        <div class="p-2.5 bg-gradient-to-br from-rose-500 to-rose-600 shadow-rose-500/30 rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3"><i data-lucide="settings" class="w-5 h-5"></i></div>
                         <div>
                             <span class="text-xs font-bold block">Sistem Global</span>
                             <span class="text-[10px] text-slate-400">Setting & logout</span>
@@ -494,7 +494,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-2 bg-white dark:bg-darkCard p-3 rounded-xl border border-slate-100 dark:border-slate-800">
                     <div>
                         <label class="block text-[10px] text-slate-400 mb-1">Filter Kurir</label>
-                        <select id="an-filter-kurir" onchange="renderAdminNota()" class="w-full px-2 py-1.5 border rounded-lg text-xs dark:bg-darkBg dark:border-slate-700">
+                        <select id="an-filter-kurir" onchange="renderAdminNota()" class="w-full px-2 py-1.5 border rounded-xl text-xs dark:bg-darkBg dark:border-slate-700">
                             <option value="semua">Semua Kurir</option>
                         </select>
                     </div>
@@ -502,12 +502,12 @@
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="block text-[10px] text-slate-400 mb-1">Pilih Tanggal</label>
-                            <input type="date" id="an-filter-tgl" onchange="renderAdminNota()" class="w-full px-2 py-1.5 border rounded-lg text-xs dark:bg-darkBg dark:border-slate-700">
+                            <input type="date" id="an-filter-tgl" onchange="renderAdminNota()" class="w-full px-2 py-1.5 border rounded-xl text-xs dark:bg-darkBg dark:border-slate-700">
                         </div>
 
                         <div>
                             <label class="block text-[10px] text-slate-400 mb-1">Pilih Bulan</label>
-                            <input type="month" id="an-filter-bulan" onchange="renderAdminNota()" class="w-full px-2 py-1.5 border rounded-lg text-xs dark:bg-darkBg dark:border-slate-700">
+                            <input type="month" id="an-filter-bulan" onchange="renderAdminNota()" class="w-full px-2 py-1.5 border rounded-xl text-xs dark:bg-darkBg dark:border-slate-700">
                         </div>
                     </div>
                 </div>
@@ -518,7 +518,7 @@
                     <button onclick="toggleAdminNotaList(false)" class="flex-1 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-xs font-bold uppercase">
                         Tutup
                     </button>                
-                    <button onclick="hapusSemuaNotaTersaring()" class="px-3 py-1.5 rounded-lg text-[10px] font-semibold text-rose-600 bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900 opacity-70 hover:opacity-100 transition">
+                    <button onclick="hapusSemuaNotaTersaring()" class="px-3 py-1.5 rounded-xl text-[10px] font-semibold text-rose-600 bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900 opacity-70 hover:opacity-100 transition">
                         Hapus Nota Tersaring
                     </button>
                 </div>
@@ -554,7 +554,7 @@
                 <div class="bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm space-y-3">
                     <div class="flex items-center justify-between">
                         <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Trx Inputan</h3>
-                        <button onclick="toggleRiwayatTrxInputan()" class="px-2 py-1 rounded-lg bg-slate-800 text-white text-[8px] font-bold uppercase tracking-wide leading-none">
+                        <button onclick="toggleRiwayatTrxInputan()" class="px-2 py-1 rounded-xl bg-slate-800 text-white text-[8px] font-bold uppercase tracking-wide leading-none">
                             Riwayat Trx Inputan
                         </button>
                     </div>
@@ -562,20 +562,20 @@
                     <div id="box-riwayat-trx-inputan" class="hidden space-y-2">
                         <div class="space-y-2">
                             <div class="grid grid-cols-2 gap-2">
-                                <input type="date" id="am-log-tgl" class="w-full px-2 py-1.5 border rounded-lg text-xs dark:bg-darkBg dark:border-slate-700">
-                                <input type="month" id="am-log-bulan" class="w-full px-2 py-1.5 border rounded-lg text-xs dark:bg-darkBg dark:border-slate-700">
+                                <input type="date" id="am-log-tgl" class="w-full px-2 py-1.5 border rounded-xl text-xs dark:bg-darkBg dark:border-slate-700">
+                                <input type="month" id="am-log-bulan" class="w-full px-2 py-1.5 border rounded-xl text-xs dark:bg-darkBg dark:border-slate-700">
                             </div>
                             <div class="grid grid-cols-1 gap-2">
-                                <input type="text" id="am-log-search" placeholder="Cari nama mitra..." class="w-full px-2 py-1.5 border rounded-lg text-xs dark:bg-darkBg dark:border-slate-700">
+                                <input type="text" id="am-log-search" placeholder="Cari nama mitra..." class="w-full px-2 py-1.5 border rounded-xl text-xs dark:bg-darkBg dark:border-slate-700">
                             </div>
                             <div>
-                                <select id="am-log-filter-kurir" class="w-full px-2 py-1.5 border rounded-lg text-xs dark:bg-darkBg dark:border-slate-700">
+                                <select id="am-log-filter-kurir" class="w-full px-2 py-1.5 border rounded-xl text-xs dark:bg-darkBg dark:border-slate-700">
                                     <option value="semua">-- Semua Kurir --</option>
                                 </select>
                             </div>
                             <div class="flex gap-2">
-                                <button onclick="renderAdminLogMitra()" class="flex-1 py-2 bg-primary text-white text-xs font-bold rounded-lg">Cari</button>
-                                <button onclick="sembunyikanRiwayatMitraAdmin()" class="px-3 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-lg">Sembunyikan</button>
+                                <button onclick="renderAdminLogMitra()" class="flex-1 py-2 bg-primary text-white text-xs font-bold rounded-xl">Cari</button>
+                                <button onclick="sembunyikanRiwayatMitraAdmin()" class="px-3 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-xl">Sembunyikan</button>
                             </div>
                             <div id="container-admin-log-mitra" class="max-h-40 overflow-y-auto space-y-1.5 pt-1"></div>
                         </div>
@@ -589,8 +589,8 @@
                         </button>                          
                     </div>
                     <div class="grid grid-cols-2 gap-2">
-                        <input type="month" id="am-filter-bulan" onchange="renderAdminDaftarMitra()" class="w-full px-2 py-2 border rounded-lg text-xs dark:bg-darkCard dark:border-slate-700">
-                        <input type="text" id="am-search-mitra" placeholder="Cari nama mitra..." oninput="renderAdminDaftarMitra()" class="w-full px-2 py-2 border rounded-lg text-xs dark:bg-darkCard dark:border-slate-700">
+                        <input type="month" id="am-filter-bulan" onchange="renderAdminDaftarMitra()" class="w-full px-2 py-2 border rounded-xl text-xs dark:bg-darkCard dark:border-slate-700">
+                        <input type="text" id="am-search-mitra" placeholder="Cari nama mitra..." oninput="renderAdminDaftarMitra()" class="w-full px-2 py-2 border rounded-xl text-xs dark:bg-darkCard dark:border-slate-700">
                     </div>                  
                     <div id="container-admin-daftar-mitra" class="space-y-2"></div>
                 </div>
@@ -641,12 +641,33 @@
             <div id="screen-admin-tracking" class="screen p-4 space-y-4">
                 <div class="bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm space-y-3">
                     <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Tracking Kurir</h3>
-            
+
                     <div id="container-tracking-kurir" class="space-y-2"></div>
-            
-                    <div id="tracking-map" style="height: 360px; border-radius: 16px; overflow: hidden;"></div>
+
                 </div>
             </div>
+
+            <div id="modal-tracking-kurir" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                <div class="bg-white dark:bg-darkCard w-full max-w-sm rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 p-3 space-y-3">
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0">
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400" id="modal-tracking-title">Live Tracking</h3>
+                            <div class="text-[10px] text-slate-500 mt-1" id="modal-tracking-subtitle">-</div>
+                        </div>
+                        <button onclick="window.closeTrackingModal()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 font-bold">
+                            ✕
+                        </button>
+                    </div>
+
+                    <div id="tracking-map-modal" style="height:200px; border-radius:16px; overflow:hidden;"></div>
+
+                    <div class="text-[10px] text-slate-600 dark:text-slate-300 space-y-1">
+                        <div><b id="modal-tracking-latlng">-</b></div>
+                        <div><span class="text-slate-400">Waktu:</span> <span id="modal-tracking-jam">-</span> WIB</div>
+                        <div><span class="text-slate-400">Alamat:</span> <span id="modal-tracking-alamat" class="break-words">-</span></div>
+                    </div>
+                </div>
+            </div>           
             <div id="screen-admin-kpi" class="screen p-4 space-y-4">
                 <div class="bg-gradient-to-br from-violet-600 via-indigo-600 to-blue-600 text-white p-5 rounded-3xl shadow-xl space-y-2">
                     <h3 class="text-lg font-black">KPI Kurir Sahabatku</h3>
@@ -908,25 +929,25 @@
 
                     <!-- TOMBOL SAAT LIST TERBUKA: Tutup/Batal | Pilih | Hapus Semua -->
                     <div id="btn-group-open" class="hidden flex gap-1.5">
-                        <button onclick="toggleTestimonialOpen()" class="flex-1 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white text-[9px] font-bold uppercase leading-none">
+                        <button onclick="toggleTestimonialOpen()" class="flex-1 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white text-[9px] font-bold uppercase leading-none">
                             Tutup
                         </button>
-                        <button onclick="toggleTestimonialSelectMode()" id="btn-pilih-mode" class="flex-1 py-2 rounded-lg bg-slate-800 text-white text-[9px] font-bold uppercase leading-none">
+                        <button onclick="toggleTestimonialSelectMode()" id="btn-pilih-mode" class="flex-1 py-2 rounded-xl bg-slate-800 text-white text-[9px] font-bold uppercase leading-none">
                             Pilih
                         </button>
-                        <button onclick="hapusSemuaTestimonialBulan()" id="btn-hapus-semua-bulan" class="flex-1 py-2 rounded-lg bg-rose-600 text-white text-[9px] font-bold uppercase leading-none">
+                        <button onclick="hapusSemuaTestimonialBulan()" id="btn-hapus-semua-bulan" class="flex-1 py-2 rounded-xl bg-rose-600 text-white text-[9px] font-bold uppercase leading-none">
                             Hapus Semua
                         </button>
                     </div>
 
                     <div id="btn-group-select" class="hidden flex gap-1.5">
-                        <button onclick="toggleTestimonialOpen()" class="flex-1 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white text-[9px] font-bold uppercase leading-none">
+                        <button onclick="toggleTestimonialOpen()" class="flex-1 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white text-[9px] font-bold uppercase leading-none">
                             Tutup
                         </button>
-                        <button onclick="hapusTestimonialPilihan()" class="flex-1 py-2 rounded-lg bg-orange-600 text-white text-[9px] font-bold uppercase leading-none">
+                        <button onclick="hapusTestimonialPilihan()" class="flex-1 py-2 rounded-xl bg-orange-600 text-white text-[9px] font-bold uppercase leading-none">
                             Hapus Pilihan
                         </button>
-                        <button onclick="hapusSemuaTestimonialBulan()" class="flex-1 py-2 rounded-lg bg-rose-600 text-white text-[9px] font-bold uppercase leading-none">
+                        <button onclick="hapusSemuaTestimonialBulan()" class="flex-1 py-2 rounded-xl bg-rose-600 text-white text-[9px] font-bold uppercase leading-none">
                             Hapus Semua Bulan
                         </button>
                     </div>
@@ -1025,7 +1046,17 @@
                     </div>
                     <div>
                         <label class="block text-xs mb-1 font-medium opacity-70">Ongkir (Rp)</label>
-                        <input type="text" id="nota-ongkir" oninput="autoformatRupiah(this); calculateNotaTotal();" value="6.000" inputmode="numeric" class="w-full px-3 py-2 border rounded-xl bg-slate-50 dark:bg-slate-800 dark:border-slate-700 text-sm font-semibold text-primary">
+                        <div class="flex items-center gap-2">
+                            <input type="text" id="nota-ongkir"
+                                oninput="autoformatRupiah(this); calculateNotaTotal();"
+                                value="6.000" inputmode="numeric"
+                                class="flex-1 px-3 py-2 border rounded-xl bg-slate-50 dark:bg-slate-800 dark:border-slate-700 text-sm font-semibold text-primary">
+                            <button type="button"
+                                    onclick="openCekOngkirPopupFromNota()"
+                                    class="px-3 py-2 bg-primary text-white rounded-xl text-[11px] font-bold uppercase shadow-sm">
+                                Cek
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -1035,12 +1066,12 @@
                         <button onclick="toggleSection('form-tambah-item')" class="text-primary text-xs flex items-center gap-1"><i data-lucide="plus-circle" class="w-4 h-4"></i> Kelola Item</button>
                     </h3>
                     <div id="form-tambah-item" class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl space-y-3 hidden">
-                    <input type="text" id="item-nama" oninput="autocapitalText(this)" placeholder="Nama barang..." class="w-full px-3 py-2 border rounded-lg text-xs dark:bg-darkBg dark:border-slate-700">
+                    <input type="text" id="item-nama" oninput="autocapitalText(this)" placeholder="Nama barang..." class="w-full px-3 py-2 border rounded-xl text-xs dark:bg-darkBg dark:border-slate-700">
                         <div class="grid grid-cols-3 gap-2">
-                            <input type="number" id="item-qty" placeholder="Qty" value="1" class="w-full px-3 py-2 border rounded-lg text-xs dark:bg-darkBg dark:border-slate-700">
-                            <input type="text" id="item-harga" oninput="autoformatRupiah(this)" placeholder="Contoh: 10.000" inputmode="numeric" class="col-span-2 w-full px-3 py-2 border rounded-lg text-xs dark:bg-darkBg dark:border-slate-700">
+                            <input type="number" id="item-qty" placeholder="Qty" value="1" class="w-full px-3 py-2 border rounded-xl text-xs dark:bg-darkBg dark:border-slate-700">
+                            <input type="text" id="item-harga" oninput="autoformatRupiah(this)" placeholder="Contoh: 10.000" inputmode="numeric" class="col-span-2 w-full px-3 py-2 border rounded-xl text-xs dark:bg-darkBg dark:border-slate-700">
                         </div>
-                        <button type="button" onclick="addNotaItem()" class="w-full py-2 bg-primary text-white font-medium rounded-lg text-[11px] uppercase">Simpan Item</button>
+                        <button type="button" onclick="addNotaItem()" class="w-full py-2 bg-primary text-white font-medium rounded-xl text-[11px] uppercase">Simpan Item</button>
                     </div>
                     <div id="container-items" class="space-y-2"></div>
                 </div>
@@ -1051,7 +1082,7 @@
                         <button onclick="toggleSection('form-tambah-biaya')" class="text-primary text-xs flex items-center gap-1"><i data-lucide="plus-circle" class="w-4 h-4"></i> Kelola Biaya</button>
                     </h3>
                     <div id="form-tambah-biaya" class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl space-y-3 hidden">
-                        <select id="biaya-dropdown" onchange="handleBiayaDropdownChange()" class="w-full px-3 py-2 border rounded-lg text-xs dark:bg-darkBg dark:border-slate-700">
+                        <select id="biaya-dropdown" onchange="handleBiayaDropdownChange()" class="w-full px-3 py-2 border rounded-xl text-xs dark:bg-darkBg dark:border-slate-700">
                             <option value="">-- Pilih Jenis Biaya --</option>
                             <option value="Tambahan Ojek" data-harga="2.000">Tambahan Ojek (2.000)</option>
                             <option value="Tambahan Malam" data-harga="2.000">Tambahan Malam (2.000)</option>
@@ -1065,10 +1096,10 @@
                             <option value="Tambahan Lainnya" data-harga="manual">Tambahan Lainnya</option>
                         </select>
                         <div class="grid grid-cols-1 gap-2">
-                            <input type="text" id="biaya-nama-manual" oninput="autocapitalText(this)" placeholder="Misal: Parkir Pasar" class="w-full px-3 py-2 border rounded-lg text-xs dark:bg-darkBg dark:border-slate-700 hidden">
-                            <input type="text" id="biaya-nominal" oninput="autoformatRupiah(this)" placeholder="Contoh: 10.000" inputmode="numeric" class="w-full px-3 py-2 border rounded-lg text-xs dark:bg-darkBg dark:border-slate-700">
+                            <input type="text" id="biaya-nama-manual" oninput="autocapitalText(this)" placeholder="Misal: Parkir Pasar" class="w-full px-3 py-2 border rounded-xl text-xs dark:bg-darkBg dark:border-slate-700 hidden">
+                            <input type="text" id="biaya-nominal" oninput="autoformatRupiah(this)" placeholder="Contoh: 10.000" inputmode="numeric" class="w-full px-3 py-2 border rounded-xl text-xs dark:bg-darkBg dark:border-slate-700">
                         </div>
-                        <button type="button" onclick="addBiayaItem()" class="w-full py-2 bg-primary text-white font-medium rounded-lg text-[11px] uppercase">Simpan Biaya</button>
+                        <button type="button" onclick="addBiayaItem()" class="w-full py-2 bg-primary text-white font-medium rounded-xl text-[11px] uppercase">Simpan Biaya</button>
                     </div>
                     <div id="container-biaya" class="space-y-2"></div>
                 </div>
@@ -1244,9 +1275,9 @@
                 
                     <div id="box-riwayat-mitra-kurir" class="hidden space-y-2">
                         <div class="flex gap-2">
-                            <input type="date" id="m-filter-tgl-kurir" class="w-full px-2 py-1 border rounded-lg text-xs dark:bg-darkBg">
-                            <button onclick="renderKurirLogMitra()" class="px-3 bg-slate-800 text-white text-xs rounded-lg">Cari</button>
-                            <button onclick="sembunyikanRiwayatMitraKurir()" class="px-3 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-lg">Sembunyikan</button>
+                            <input type="date" id="m-filter-tgl-kurir" class="w-full px-2 py-1 border rounded-xl text-xs dark:bg-darkBg">
+                            <button onclick="renderKurirLogMitra()" class="px-3 bg-slate-800 text-white text-xs rounded-xl">Cari</button>
+                            <button onclick="sembunyikanRiwayatMitraKurir()" class="px-3 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-xl">Sembunyikan</button>
                         </div>
                         <div id="container-kurir-log-mitra" class="space-y-1 max-h-32 overflow-y-auto text-xs"></div>
                     </div>
@@ -1286,6 +1317,40 @@
                     <p class="text-xs text-emerald-600 font-bold uppercase">Hasil Estimasi Tarif</p>
                     <h3 class="text-2xl font-black text-success mt-1" id="ongkir-tarif-display">Rp 0</h3>
                 </div>
+            </div>
+            
+            <div id="modal-cek-ongkir" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-white dark:bg-darkCard w-full max-w-md rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 p-4 space-y-3 relative">
+                <button onclick="closeCekOngkirPopup()" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 flex items-center justify-center">✕</button>
+
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Cek Ongkir (Estimasi)</h3>
+
+                <div class="relative">
+                <label class="block text-[10px] text-slate-400 mb-1 uppercase font-bold tracking-wider">Asal</label>
+                <input type="text" id="cek-ongkir-asal" oninput="updateOngkirPopupSuggestions('asal')" placeholder="Ketik nama wilayah..." class="w-full px-3 py-2 border rounded-xl text-xs dark:bg-darkBg dark:border-slate-700">
+                <div id="suggest-cek-ongkir-asal" class="hidden absolute left-0 right-0 top-full mt-1 bg-white dark:bg-darkCard border rounded-xl shadow-lg max-h-40 overflow-y-auto z-20"></div>
+                </div>
+
+                <div class="relative">
+                <label class="block text-[10px] text-slate-400 mb-1 uppercase font-bold tracking-wider">Tujuan</label>
+                <input type="text" id="cek-ongkir-tujuan" oninput="updateOngkirPopupSuggestions('tujuan')" placeholder="Ketik nama wilayah..." class="w-full px-3 py-2 border rounded-xl text-xs dark:bg-darkBg dark:border-slate-700">
+                <div id="suggest-cek-ongkir-tujuan" class="hidden absolute left-0 right-0 top-full mt-1 bg-white dark:bg-darkCard border rounded-xl shadow-lg max-h-40 overflow-y-auto z-20"></div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                <button type="button" onclick="hitungOngkirPopup()" class="py-2.5 bg-primary text-white font-bold text-xs rounded-xl uppercase">Cek</button>
+                <button type="button" onclick="clearOngkirPopupForm()" class="py-2.5 bg-slate-100 text-slate-500 dark:bg-slate-800 text-xs rounded-xl">Clear</button>
+                </div>
+
+                <div id="cek-ongkir-result" class="hidden bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 p-4 rounded-2xl text-center">
+                <p class="text-xs text-emerald-600 font-bold uppercase">Estimasi Tarif</p>
+                <h3 class="text-2xl font-black text-success mt-1" id="cek-ongkir-display">Rp 0</h3>
+                </div>
+
+                <div class="grid grid-cols-1 gap-2">
+                <button type="button" onclick="setOngkirToNotaPopup()" class="w-full py-2 bg-success text-white text-xs font-bold rounded-xl uppercase hidden" id="btn-pakai-ongkir">Pakai ke Nota</button>
+                </div>
+            </div>
             </div>
 
             <div id="screen-pengaturan" class="screen p-4 space-y-3">
@@ -1339,18 +1404,18 @@
 
         </main>
 
-        <nav id="global-nav" class="bg-white/90 dark:bg-darkCard/90 border-t border-slate-100 dark:border-slate-800 fixed bottom-0 left-0 right-0 z-50 px-2 glass">
-            <div class="flex justify-around items-center h-16 relative max-w-md mx-auto">
-                <button id="nav-dashboard-btn" onclick="backToDashboardRole()" class="flex flex-col items-center justify-center w-16 h-12 text-primary hidden opacity-0 pointer-events-none rounded-2xl active:bg-blue-50 dark:active:bg-blue-950/40">
+        <nav id="global-nav" class="glass border border-slate-100/70 dark:border-slate-800 dark:bg-darkCard/90 fixed bottom-3 left-3 right-3 z-50 px-2 rounded-[28px] safe-bottom">
+            <div class="flex justify-around items-center h-16 relative">
+                <button id="nav-dashboard-btn" onclick="backToDashboardRole()" class="flex flex-col items-center justify-center w-12 h-12 text-primary hidden opacity-0 pointer-events-none transition-transform duration-200 active:scale-90">
                     <i data-lucide="home" class="w-5 h-5"></i>
                     <span class="text-[10px] font-bold mt-1">Dashboard</span>
                 </button>
                 
-                <button id="nav-nota-btn" onclick="navigateTo('screen-nota')" class="relative -top-6 flex items-center justify-center w-14 h-14 custom-gradient text-white rounded-2xl shadow-[0_10px_30px_-10px_rgba(0,102,255,0.5)] border-4 border-white dark:border-darkCard hidden opacity-0 pointer-events-none">
+                <button id="nav-nota-btn" onclick="navigateTo('screen-nota')" class="relative -top-7 flex items-center justify-center w-14 h-14 custom-gradient text-white rounded-full shadow-lg shadow-blue-500/40 border-4 border-white dark:border-darkCard transition-transform active:scale-90 hover:scale-105 duration-200 hidden opacity-0 pointer-events-none">
                     <i data-lucide="plus" class="w-7 h-7"></i>
                 </button>
                 
-                <button id="nav-sistem-btn" onclick="navigateTo('screen-pengaturan')" class="flex flex-col items-center justify-center w-16 h-12 text-slate-400 hidden opacity-0 pointer-events-none rounded-2xl active:bg-slate-50 dark:active:bg-slate-800">
+                <button id="nav-sistem-btn" onclick="navigateTo('screen-pengaturan')" class="flex flex-col items-center justify-center w-12 h-12 text-slate-400 hidden opacity-0 pointer-events-none transition-transform duration-200 active:scale-90">
                     <i data-lucide="settings" class="w-5 h-5"></i>
                     <span class="text-[10px] font-medium mt-1">Sistem</span>
                 </button>
@@ -1613,7 +1678,22 @@
             </div>
         </div>
     </div>
-    
+        <script>
+        (function () {
+            var header = document.getElementById('app-bar');
+            var main = document.querySelector('#main-layout main');
+            if (!header || !main) return;
+            var ticking = false;
+            main.addEventListener('scroll', function () {
+                if (ticking) return;
+                ticking = true;
+                requestAnimationFrame(function () {
+                    header.classList.toggle('scrolled', main.scrollTop > 4);
+                    ticking = false;
+                });
+            }, { passive: true });
+        })();
+    </script>
     <script type="module" src="script.js"></script>
 </body>
 </html>
