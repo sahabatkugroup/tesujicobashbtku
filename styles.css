@@ -1,352 +1,255 @@
-/* ==========================================================================
-   SAHABATKU DELIVERY — Modern UI Layer 2026
-   Glassmorphism ringan + Neumorphism halus + Micro-interaction
-   Prinsip performa: hanya animasikan transform & opacity (GPU-friendly),
-   tanpa animasi infinite/loop, blur dipakai secukupnya (nav, header, modal).
-   ========================================================================== */
+/* ============================================================
+   SAHABATKU DELIVERY — Premium Design System
+   Only visual/UX layer. No business logic here.
+   ============================================================ */
 
 :root {
-  --brand-1: #0066FF;
-  --brand-2: #008CFF;
-  --brand-glow: rgba(0, 102, 255, 0.35);
+  --c-primary: #0066FF;
+  --c-primary-600: #0052CC;
+  --c-secondary: #00B8D9;
+  --c-success: #16A34A;
+  --c-success-bg: #ECFDF3;
+  --c-warning: #F59E0B;
+  --c-warning-bg: #FFFBEB;
+  --c-danger: #EF4444;
+  --c-danger-bg: #FEF2F2;
+  --c-ink: #0F172A;
+  --c-ink-soft: #475569;
+  --c-muted: #94A3B8;
+  --c-line: #EDF1F7;
+  --c-surface: #FFFFFF;
+  --c-canvas: #F6F8FC;
 
-  --radius-sm: 12px;
-  --radius-md: 16px;
-  --radius-lg: 20px;
-  --radius-xl: 28px;
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-soft: 0 2px 10px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-float: 0 12px 28px -8px rgba(15, 23, 42, 0.16), 0 4px 10px -4px rgba(15, 23, 42, 0.08);
+  --shadow-glow-primary: 0 8px 24px -6px rgba(0, 102, 255, 0.35);
 
-  --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 20px -8px rgba(15, 23, 42, 0.10);
-  --shadow-float: 0 10px 30px -10px rgba(0, 102, 255, 0.35);
-  --shadow-press: 0 1px 2px rgba(15, 23, 42, 0.08) inset;
+  --r-sm: 12px;
+  --r-md: 16px;
+  --r-lg: 20px;
+  --r-xl: 24px;
 
-  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-press: cubic-bezier(0.4, 0, 0.2, 1);
-
-  color-scheme: light;
-}
-
-.dark { color-scheme: dark; }
-
-/* ---------- Base ---------- */
-html {
-  scroll-behavior: smooth;
-  -webkit-text-size-adjust: 100%;
-}
-
-body {
-  -webkit-tap-highlight-color: transparent;
-  overscroll-behavior-y: contain;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 160ms;
+  --dur-base: 240ms;
 }
 
 * { -webkit-tap-highlight-color: transparent; }
 
-/* Custom slim scrollbar — cheap to render, no layout thrash */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb {
-  background: rgba(0, 102, 255, 0.25);
-  border-radius: 999px;
-}
-.dark ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); }
-
-/* Respect users who don't want motion */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-    scroll-behavior: auto !important;
-  }
+body {
+  background: var(--c-canvas);
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
 }
 
-/* ---------- Screens ---------- */
 .screen { display: none; min-height: 100vh; }
-.screen.active {
-  display: flex;
-  flex-direction: column;
-  animation: screenIn 0.32s var(--ease-smooth);
-}
+.screen.active { display: flex; flex-direction: column; animation: screenIn var(--dur-base) var(--ease-out); }
 
 @keyframes screenIn {
-  from { opacity: 0; transform: translateY(10px) scale(0.99); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* ---------- Premium gradient ---------- */
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.safe-top { padding-top: env(safe-area-inset-top, 0px); }
+
 .custom-gradient {
-  background: linear-gradient(160deg, var(--brand-1) 0%, var(--brand-2) 55%, #22A8FF 100%);
-  position: relative;
-  isolation: isolate;
+  background: linear-gradient(160deg, var(--c-primary) 0%, var(--c-secondary) 100%);
 }
-/* Soft sheen highlight — static, no animation loop, cheap radial-gradient */
-.custom-gradient::before {
+
+#screen-login { isolation: isolate; }
+#screen-login::before,
+#screen-login::after {
   content: "";
   position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(120% 60% at 15% -10%, rgba(255, 255, 255, 0.22), transparent 60%),
-    radial-gradient(80% 50% at 100% 110%, rgba(255, 255, 255, 0.10), transparent 60%);
+  border-radius: 999px;
+  filter: blur(50px);
+  opacity: 0.55;
+  z-index: 0;
   pointer-events: none;
-  z-index: -1;
+}
+#screen-login::before {
+  width: 240px; height: 240px;
+  top: -60px; right: -60px;
+  background: radial-gradient(circle, #ffffff 0%, transparent 70%);
+  animation: aurora1 9s ease-in-out infinite alternate;
+}
+#screen-login::after {
+  width: 200px; height: 200px;
+  top: 40%; left: -70px;
+  background: radial-gradient(circle, #00E5FF 0%, transparent 70%);
+  animation: aurora2 11s ease-in-out infinite alternate;
+}
+@keyframes aurora1 { from { transform: translate(0, 0) scale(1); } to { transform: translate(-20px, 30px) scale(1.15); } }
+@keyframes aurora2 { from { transform: translate(0, 0) scale(1); } to { transform: translate(25px, -20px) scale(1.1); } }
+#screen-login > * { position: relative; z-index: 1; }
+
+.login-logo-ring {
+  box-shadow: 0 0 0 6px rgba(255,255,255,0.18), 0 12px 30px rgba(0,0,0,0.25);
 }
 
-/* ---------- Glassmorphism (used on nav, header, modal sheets) ---------- */
-#global-nav,
-#app-bar,
+.input-icon-field {
+  position: relative;
+}
+.input-icon-field i {
+  position: absolute;
+  left: 14px; top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--c-muted);
+  width: 18px; height: 18px;
+}
+.input-icon-field input { padding-left: 44px !important; }
+
 .glass {
+  background: rgba(255, 255, 255, 0.78);
   backdrop-filter: blur(16px) saturate(160%);
   -webkit-backdrop-filter: blur(16px) saturate(160%);
 }
 
-#global-nav {
-  box-shadow: 0 -8px 24px -12px rgba(15, 23, 42, 0.12);
-}
-
-#global-nav a,
-#global-nav button {
-  transition: transform 0.18s var(--ease-press), color 0.18s ease, opacity 0.18s ease;
-}
-#global-nav a:active,
-#global-nav button:active {
-  transform: scale(0.88);
-}
-
-/* ---------- Cards: soft shadow + light neumorphism + hover lift ---------- */
-.rounded-2xl,
-.rounded-3xl,
-.rounded-xl {
-  transition: box-shadow 0.28s var(--ease-smooth), transform 0.22s var(--ease-smooth), border-color 0.2s ease;
-}
-
-/* White/dark surface cards get a refined soft shadow instead of flat tailwind default */
+.card,
+.bg-white.rounded-xl,
 .bg-white.rounded-2xl,
-.bg-white.rounded-3xl,
-.dark .dark\:bg-darkCard.rounded-2xl,
-.dark .dark\:bg-darkCard.rounded-3xl {
+.bg-white.rounded-lg {
   box-shadow: var(--shadow-soft);
+  transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+}
+button.bg-white.rounded-xl:hover,
+button.bg-white.rounded-2xl:hover {
+  box-shadow: var(--shadow-float);
+  transform: translateY(-2px);
 }
 
-/* Hover-lift micro interaction — only on devices that truly support hover (no phantom hover on touch) */
-@media (hover: hover) and (pointer: fine) {
-  .bg-white.rounded-2xl:hover,
-  .dark\:bg-darkCard.rounded-2xl:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 14px 32px -14px rgba(15, 23, 42, 0.18);
-  }
+.card-premium {
+  background: var(--c-surface);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-soft);
+  border: 1px solid var(--c-line);
+  transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+  will-change: transform;
 }
+.card-premium:active { transform: scale(0.98); }
 
-/* ---------- Buttons: ripple + press + scale + floating ---------- */
-.ripple {
+.card-float { box-shadow: var(--shadow-float); }
+
+.stat-card {
+  border-radius: var(--r-xl);
+  padding: 18px;
+  color: #fff;
   position: relative;
   overflow: hidden;
+  box-shadow: var(--shadow-glow-primary);
 }
-.ripple::after {
+.stat-card::after {
   content: "";
-  background: rgba(255, 255, 255, 0.35);
-  display: block;
   position: absolute;
-  border-radius: 50%;
-  padding-top: 240%;
-  padding-left: 240%;
-  margin-top: -120%;
-  margin-left: -120%;
-  top: 50%;
-  left: 50%;
-  opacity: 0;
-  transition: transform 0.6s var(--ease-smooth), opacity 0.6s var(--ease-smooth);
-  transform: scale(0);
+  inset: 0;
+  background: radial-gradient(120px 80px at 90% -10%, rgba(255,255,255,0.35), transparent 70%);
   pointer-events: none;
 }
-.ripple:active::after {
-  transform: scale(1);
-  opacity: 1;
-  transition: 0s;
-}
 
-button, .ripple, [role="button"] {
-  transition: transform 0.16s var(--ease-press), box-shadow 0.2s var(--ease-press), filter 0.2s ease;
+.btn,
+button {
+  transition: transform var(--dur-fast) var(--ease-out), filter var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out);
 }
-button:active:not(:disabled), .ripple:active {
-  transform: scale(0.96);
-}
-button:disabled { filter: saturate(0.6) opacity(0.7); }
+button:not(:disabled):active { transform: scale(0.96); }
+button:focus-visible { outline: 2px solid var(--c-primary); outline-offset: 2px; }
+button:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
 
-/* Gradient / primary buttons get a soft glow + floating feel */
-button.custom-gradient,
-button.bg-primary {
-  box-shadow: 0 8px 20px -8px var(--brand-glow);
+.btn-primary {
+  background: linear-gradient(135deg, var(--c-primary), var(--c-secondary));
+  color: #fff;
+  box-shadow: var(--shadow-glow-primary);
 }
-@media (hover: hover) and (pointer: fine) {
-  button.custom-gradient:hover,
-  button.bg-primary:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 12px 26px -10px var(--brand-glow);
-  }
-}
+.btn-primary:hover { filter: brightness(1.05); }
 
-/* Floating Action Button */
-.fixed.rounded-full.shadow-lg {
-  animation: fabFloat 3.2s ease-in-out infinite;
-}
-@keyframes fabFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
-}
-.fixed.rounded-full.shadow-lg:active {
-  transform: scale(0.9);
-  animation-play-state: paused;
-}
+.btn-ghost { background: transparent; color: var(--c-ink-soft); }
+.btn-ghost:hover { background: rgba(15, 23, 42, 0.04); }
 
-/* ---------- Inputs: soft neumorphism + focus glow ---------- */
-input, select, textarea {
-  transition: border-color 0.2s var(--ease-press), box-shadow 0.2s var(--ease-press), background-color 0.2s ease;
+.btn-fab { position: fixed; border-radius: 999px; box-shadow: var(--shadow-float); }
+
+.ripple { position: relative; overflow: hidden; }
+.ripple:after {
+  content: ""; background: rgba(255, 255, 255, 0.35); display: block; position: absolute;
+  border-radius: 50%; padding-top: 240%; padding-left: 240%; margin-top: -120%; margin-left: -120%;
+  top: 50%; left: 50%; opacity: 0; transition: transform 0.6s var(--ease-out), opacity 0.6s;
+  transform: scale(0);
+}
+.ripple:active:after { opacity: 1; transform: scale(1); transition: 0s; }
+
+.input-premium,
+input[type="text"], input[type="password"], input[type="number"],
+input[type="date"], input[type="tel"], input[type="email"],
+select, textarea {
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
 }
 input:focus, select:focus, textarea:focus {
-  outline: none;
-  border-color: var(--brand-1) !important;
   box-shadow: 0 0 0 4px rgba(0, 102, 255, 0.12);
+  outline: none;
 }
-.dark input:focus, .dark select:focus, .dark textarea:focus {
-  box-shadow: 0 0 0 4px rgba(0, 140, 255, 0.18);
+.input-error { border-color: var(--c-danger) !important; box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1) !important; }
+.input-success { border-color: var(--c-success) !important; box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.1) !important; }
+
+#global-nav {
+  box-shadow: var(--shadow-float);
+}
+#global-nav button[data-nav-item] { transition: color var(--dur-fast) var(--ease-out); }
+.nav-item-active { color: var(--c-primary) !important; }
+.nav-item-active i { transform: translateY(-1px) scale(1.08); }
+#global-nav i { transition: transform var(--dur-base) var(--ease-out); }
+
+#app-bar { transition: box-shadow var(--dur-base) var(--ease-out); }
+#app-bar.scrolled { box-shadow: var(--shadow-soft); }
+
+.modal-backdrop {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: fadeIn var(--dur-base) var(--ease-out);
+}
+.modal-sheet { animation: sheetIn var(--dur-base) var(--ease-out); border-radius: var(--r-xl) var(--r-xl) 0 0; }
+.modal-panel { animation: scaleIn var(--dur-base) var(--ease-out); border-radius: var(--r-xl); }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sheetIn { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes scaleIn { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: scale(1); } }
+
+.toast-premium { border-radius: var(--r-md); box-shadow: var(--shadow-float); animation: toastIn var(--dur-base) var(--ease-out); }
+@keyframes toastIn { from { opacity: 0; transform: translateY(-12px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+.skeleton { position: relative; overflow: hidden; background: #E7ECF3; border-radius: var(--r-sm); }
+.skeleton::after {
+  content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.7), transparent);
+  animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+
+.counter-pop { animation: pop var(--dur-base) var(--ease-out); }
+@keyframes pop { 0% { transform: scale(0.85); opacity: 0.4; } 100% { transform: scale(1); opacity: 1; } }
+
+.progress-track { background: var(--c-line); border-radius: 999px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--c-primary), var(--c-secondary)); transition: width var(--dur-base) var(--ease-out); }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 999px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+a:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--c-primary); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
 }
 
-/* ---------- Modals: glass + smooth entrance (single run, no loop) ---------- */
-[id^="modal-"]:not(.hidden) {
-  animation: modalBackdropIn 0.22s var(--ease-smooth);
-}
-[id^="modal-"]:not(.hidden) > div {
-  animation: modalSheetIn 0.28s var(--ease-smooth);
-}
-@keyframes modalBackdropIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-@keyframes modalSheetIn {
-  from { opacity: 0; transform: translateY(14px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-/* ---------- Bottom sheet on login ---------- */
-#screen-login > .bg-white,
-#screen-login > .dark\:bg-darkCard {
-  box-shadow: 0 -12px 40px -16px rgba(15, 23, 42, 0.25);
-}
-
-/* ---------- Badges / pills: gentle scale on tap ---------- */
-.rounded-full {
-  transition: transform 0.16s var(--ease-press);
-}
-
-/* ---------- Icon chips (SVG lucide icons, not raster images — instant, no loading loop) ---------- */
-/* Applies to the small colored square/rounded boxes wrapping <i data-lucide> icons,
-   e.g. <div class="p-2 bg-blue-50 rounded-lg text-primary"><i data-lucide="..."></i></div> */
-button > div:has(> i[data-lucide]),
-a > div:has(> i[data-lucide]) {
-  transition: transform 0.2s var(--ease-smooth), box-shadow 0.2s var(--ease-smooth);
-}
-@media (hover: hover) and (pointer: fine) {
-  button:hover > div:has(> i[data-lucide]),
-  a:hover > div:has(> i[data-lucide]) {
-    transform: scale(1.08) rotate(-2deg);
-  }
-}
-button:active > div:has(> i[data-lucide]),
-a:active > div:has(> i[data-lucide]) {
-  transform: scale(0.9);
-}
-
-/* Lucide SVGs are already vector icons (crisp at any size, no network image, no loop) —
-   just make sure strokes stay crisp and never accidentally spin/pulse forever. */
-i[data-lucide] svg {
-  display: block;
-  animation: none !important;
-}
-
-/* ==========================================================================
-   MOBILE — semua pengaturan HP digabung di sini agar rapi & konsisten
-   ========================================================================== */
+/* ============================================================
+   MOBILE — semua pengaturan HP digabung di sini
+   ============================================================ */
 @media (max-width: 640px) {
-  html, body {
-    overflow-x: hidden;
-  }
-
-  /* Ruang aman untuk notch / gesture bar */
-  #global-nav {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
-  #screen-login {
-    padding-top: env(safe-area-inset-top, 0px);
-  }
-
-  /* Sedikit rapatkan padding layar biar konten tidak sempit */
-  .screen[id^="screen-"] {
-    padding-left: 12px !important;
-    padding-right: 12px !important;
-  }
-
-  h1, h2, h3 { word-break: break-word; }
-
-  /* Target sentuh minimal nyaman untuk jari */
-  button, a[role="button"], .ripple {
-    min-height: 40px;
-  }
-
-  /* Matikan hover-lift di mobile (tidak relevan, hemat repaint) */
-  .bg-white.rounded-2xl:active,
-  .dark\:bg-darkCard.rounded-2xl:active {
-    transform: scale(0.99);
-  }
-
-  #canvas-nota {
-    width: 340px !important;
-    max-width: 340px !important;
-    padding: 16px !important;
-    border-radius: var(--radius-md) !important;
-  }
-
-  #preview-action-buttons {
-    max-width: 100% !important;
-  }
-
-  #preview-action-buttons button {
-    padding-top: 8px !important;
-    padding-bottom: 8px !important;
-    font-size: 10px !important;
-  }
-
-  #modal-preview-nota {
-    align-items: center !important;
-  }
-
-  #modal-preview-nota > div {
-    max-width: 100% !important;
-    width: calc(100% - 16px) !important;
-  }
-
-  #canvas-nota-admin {
-    padding: 12px !important;
-  }
-
-  #modal-kpi-detail {
-    align-items: center !important;
-  }
-
-  #modal-kpi-detail > div {
-    width: calc(100% - 16px) !important;
-    max-width: 100% !important;
-  }
-
-  /* Modal umum lain: pastikan tidak mepet tepi layar & tidak overflow */
-  [id^="modal-"] > div {
-    width: calc(100% - 16px) !important;
-    max-width: 100% !important;
-    max-height: 92vh !important;
-  }
-
-  /* FAB jangan ketimpa nav bawah / notch */
-  .fixed.bottom-24 {
-    bottom: calc(6rem + env(safe-area-inset-bottom, 0px)) !important;
-  }
+  #canvas-nota { width: 340px !important; max-width: 340px !important; padding: 16px !important; border-radius: 16px !important; }
+  #preview-action-buttons { max-width: 100% !important; }
+  #preview-action-buttons button { padding-top: 8px !important; padding-bottom: 8px !important; font-size: 10px !important; }
+  #modal-preview-nota { align-items: center !important; }
+  #modal-preview-nota > div { max-width: 100% !important; width: calc(100% - 16px) !important; }
+  #canvas-nota-admin { padding: 12px !important; }
+  #modal-kpi-detail { align-items: center !important; }
+  #modal-kpi-detail > div { width: calc(100% - 16px) !important; max-width: 100% !important; }
 }
