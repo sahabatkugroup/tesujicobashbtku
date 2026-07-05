@@ -1,4 +1,4 @@
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, set, push, onValue, remove, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         const firebaseConfig = {
         apiKey: "AIzaSyDweL8xXcOu6ZODYzCa1KpqZVPLH5Ocijk",
@@ -29,7 +29,7 @@
         let adminOngkirMode = 'normal';
         let cloudTestimonialList = {};
         let cloudManajemenList = {}
-        let cloudLeaderList = {};;
+        let cloudLeaderList = {};
         let liveLocations = {};
         let liveMap = null;
         let liveMarkers = {};
@@ -42,8 +42,6 @@
         let cloudAbsensiList = {};
         let cloudJadwalOff = {};
         let selectedTrackingUser = null;
-        let pendingAutoLoginCheck = false;
-        let cloudNotificationList = {};
         let isDashboardStatsRunning = false;
         let isRenderLaporanRunning = false;
         let isRenderKpiRunning = false;
@@ -62,7 +60,6 @@
 
         function buildCloudSignature() {
             return [
-                Object.keys(cloudNotificationList || {}).length,
                 Object.keys(cloudKurirList || {}).length,
                 Object.keys(cloudNotaList || {}).length,
                 Object.keys(cloudMitraList || {}).length,
@@ -71,9 +68,9 @@
                 Object.keys(cloudLeaderList || {}).length,
                 Object.keys(cloudTestimonialList || {}).length,
                 Object.keys(cloudManajemenList || {}).length,
+                Object.keys(cloudNotificationList || {}).length
             ].join('|');
         }
-
         function queueUiRefresh(force = false) {
             const now = Date.now();
             const sig = buildCloudSignature();
@@ -89,6 +86,13 @@
                 refreshQueueScheduled = false;
                 uiRefreshInProgress = true;
                 try {
+                    // ===== LOCK RIWAYAT (biar ga kebalik ke dashboard) =====
+                    const lockRiwayat = window.__lockRiwayatScreen === true;
+
+                    if (!lockRiwayat && currentScreen === 'screen-dashboard' && typeof updateKurirDashboard === 'function') {
+                        updateKurirDashboard();
+                    }
+
                     if (currentScreen === 'screen-admin-kurir' && typeof renderAdminKurirList === 'function') renderAdminKurirList();
                     if (currentScreen === 'screen-admin-manajemen' && typeof renderAdminManajemen === 'function') renderAdminManajemen();
                     if (currentScreen === 'screen-admin-nota' && typeof renderAdminNota === 'function') renderAdminNota();
@@ -102,18 +106,16 @@
                     }
                     if (currentScreen === 'screen-admin-ongkir' && typeof renderAdminOngkirList === 'function') renderAdminOngkirList();
                     if (currentScreen === 'screen-admin-kpi' && typeof renderKPISection === 'function') renderKPISection(currentKPISection);
-                    if (currentScreen === 'screen-dashboard' && typeof updateKurirDashboard === 'function') updateKurirDashboard();
                     if (currentScreen === 'screen-rekap' && typeof loadRekapKurir === 'function') loadRekapKurir();
                     if (currentScreen === 'screen-mitra' && typeof renderKurirMitraView === 'function') renderKurirMitraView(true);
 
-                    if (typeof calculateDashboardStats === 'function') calculateDashboardStats();
+                    if (typeof calculateDashboardStats === 'function' && !lockRiwayat) calculateDashboardStats();
                     if (typeof calculateMitraStats === 'function') calculateMitraStats();
                 } finally {
                     uiRefreshInProgress = false;
                 }
             }, 250);
         }
-
         function getWibDate() {
             return new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Jakarta" }));
         }
@@ -158,11 +160,138 @@
             return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         }
         window.startLiveLocationTracking = function() {
-            if (!userSession || userSession.role !== 'kurir') return;
-            if (!navigator.geolocation || !window.isSecureContext) return;
-            if (watchId) navigator.geolocation.clearWatch(watchId);
-            // tetap seperti semula
+        if (!userSession || userSession.role !== 'kurir') return;
+        if (!navigator.geolocation || !window.isSecureContext) return;
+
+        if (watchId) {
+            try { navigator.geolocation.clearWatch(watchId); } catch (e) {}
+            watchId = null;
+        }
+
+        console.log('[Tracking] start:', userSession);
+
+        const TRACKING = {
+            minTimeMs: 15000,
+            minDistanceM: 30,
+            geoOptions: {
+            enableHighAccuracy: true,
+            maximumAge: 5000,
+            timeout: 20000
+            }
         };
+
+        // cache alamat biar ga spam request tiap update kecil
+        const addressCache = new Map();
+        let lastAddressFetchAt = 0;
+
+        const reverseGeocodeAlamat = async (lat, lng) => {
+            // quantize 4 desimal ~ beberapa meter
+            const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+            if (addressCache.has(key)) return addressCache.get(key);
+
+            // throttling
+            const now = Date.now();
+            if (now - lastAddressFetchAt < 8000) return null; 
+            lastAddressFetchAt = now;
+
+            const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}&accept-language=id&zoom=16&addressdetails=0`;
+
+            try {
+            const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+            if (!res.ok) return null;
+            const data = await res.json();
+
+            const alamat =
+                data?.display_name ||
+                (data?.address ? [
+                data.address.road,
+                data.address.suburb,
+                data.address.city || data.address.town || data.address.village,
+                data.address.state,
+                data.address.postcode
+                ].filter(Boolean).join(', ') : null);
+
+            if (alamat) addressCache.set(key, alamat);
+            return alamat || null;
+            } catch (e) {
+            console.warn('[Tracking] reverse geocode fail:', { message: e?.message });
+            return null;
+            }
+        };
+
+        let lastSent = null;
+        let lastSentTime = 0;
+        let hasSentFirst = false;
+
+        const sendLiveLocationToFirebase = async (lat, lng, accuracy) => {
+            const now = Date.now();
+            const userId = userSession?.id;
+            if (!userId) return;
+
+            // kirim pertama kali SELALU
+            if (!hasSentFirst) {
+            hasSentFirst = true;
+            } else {
+            const timeOk = (now - lastSentTime) >= TRACKING.minTimeMs;
+
+            let distOk = true;
+            if (lastSent && typeof lastSent.lat === 'number' && typeof lastSent.lng === 'number') {
+                const dist = getDistanceMeters(lastSent.lat, lastSent.lng, lat, lng);
+                distOk = dist >= TRACKING.minDistanceM;
+            }
+
+            if (!timeOk && !distOk) return;
+            }
+
+            lastSent = { lat, lng };
+            lastSentTime = now;
+
+            // reverse geocode untuk alamat popup
+            let alamatLengkap = null;
+            try {
+            alamatLengkap = await reverseGeocodeAlamat(lat, lng);
+            } catch (_) {}
+
+            const payload = {
+            lat,
+            lng,
+            accuracy: accuracy ?? null,
+            alamatLengkap: alamatLengkap || '',
+            jamTracking: getWibDateTimeString().jam,
+            tanggalTrackingRaw: getWibRawDate(),
+            createdAt: new Date().toISOString(),
+            status: 'aktif'
+            };
+
+            console.log('[Tracking] send payload:', payload);
+
+            try {
+            await set(ref(db, `live_locations/${userId}`), payload);
+            console.log('[Tracking] sent OK for userId:', userId);
+            } catch (e) {
+            console.warn('[Tracking] sent FAIL:', {
+                userId,
+                message: e?.message,
+                name: e?.name
+            });
+            }
+        };
+
+        watchId = navigator.geolocation.watchPosition(
+            (pos) => {
+            const { latitude, longitude, accuracy } = pos.coords || {};
+            if (typeof latitude !== 'number' || typeof longitude !== 'number') return;
+
+            console.log('[Tracking] position update:', { latitude, longitude, accuracy, ts: pos.timestamp });
+            sendLiveLocationToFirebase(latitude, longitude, accuracy);
+            },
+            (err) => {
+            console.warn('[Tracking] geolocation error:', { code: err?.code, message: err?.message });
+            },
+            TRACKING.geoOptions
+        );
+        };
+
 
         window.renderTrackingKurirList = function() {
             const container = document.getElementById('container-tracking-kurir');
@@ -171,7 +300,7 @@
             const kurirEntries = Object.entries(cloudKurirList || {}).filter(([id, user]) => user && user.role === 'kurir');
 
             if (kurirEntries.length === 0) {
-                container.innerHTML = '<div class="text-center text-xs text-slate-400 py-4">Belum ada data kurir.</div>';
+                container.innerHTML = '<div class=\"flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-400 py-8\"><div class=\"w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center\"><svg class=\"w-5 h-5 text-slate-300 dark:text-slate-600\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8\"/><path d=\"M3 8l2.45-4.9A2 2 0 0 1 7.24 2h9.52a2 2 0 0 1 1.79 1.1L21 8\"/><path d=\"M3 8h18\"/><path d=\"M9 12a3 3 0 0 0 6 0\"/></svg></div><span>Belum ada data kurir.</span></div>';
                 return;
             }
 
@@ -180,7 +309,7 @@
                 const hasLocation = loc && typeof loc.lat === 'number' && typeof loc.lng === 'number';
 
                 container.innerHTML += `
-                    <button onclick="selectTrackingKurir('${id}')" class="w-full flex items-center justify-between px-3 py-2 rounded-xl border bg-slate-50 dark:bg-slate-800 dark:border-slate-700 hover:border-primary text-left transition-all active:scale-95">
+                    <button onclick="selectTrackingKurir('${id}')" class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 dark:border-slate-700 hover:border-primary hover:shadow-md hover:-translate-y-0.5 text-left transition-all duration-300 active:scale-95">
                         <div>
                             <div class="font-bold text-sm">${user.nama || user.username}</div>
                             <div class="text-[10px] text-slate-400">${hasLocation ? 'Lokasi terdeteksi' : 'Belum ada lokasi'}</div>
@@ -194,7 +323,8 @@
         window.selectTrackingKurir = function(id) {
             selectedKurirTracking = id;
             selectedTrackingUser = cloudKurirList[id] || null;
-            renderTrackingMap(id);
+            window.openTrackingModal(id);
+
         };
 
         window.renderTrackingMap = function(id) {
@@ -241,7 +371,110 @@
             trackingMap.setView([loc.lat, loc.lng], 16);
             trackingMap.invalidateSize();
         };
+        window.openTrackingModal = function(id) {
+            const modal = document.getElementById('modal-tracking-kurir');
+            if (!modal) return;
 
+            const loc = liveLocations[id];
+            const user = cloudKurirList[id] || null;
+
+            const mapModalEl = document.getElementById('tracking-map-modal');
+            const titleEl = document.getElementById('modal-tracking-title');
+            const subtitleEl = document.getElementById('modal-tracking-subtitle');
+            const latlngEl = document.getElementById('modal-tracking-latlng');
+            const jamEl = document.getElementById('modal-tracking-jam');
+            const alamatEl = document.getElementById('modal-tracking-alamat');
+
+            const hasLoc = loc && typeof loc.lat === 'number' && typeof loc.lng === 'number';
+            const latlngText = hasLoc ? `${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)}` : '-';
+
+            if (titleEl) titleEl.innerText = `Live Tracking - ${user?.nama || user?.username || 'Kurir'}`;
+            if (subtitleEl) subtitleEl.innerText = (hasLoc && loc?.jamTracking) ? `Update terakhir: ${loc.jamTracking} WIB` : 'Menunggu lokasi...';
+
+            // LAT,LNG clickable -> Google Maps
+            if (latlngEl) {
+                if (!hasLoc) {
+                    latlngEl.innerText = '-';
+                } else {
+                    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${loc.lat},${loc.lng}`)}`;
+                    latlngEl.innerHTML = `<a href="${mapsUrl}" target="_blank" rel="noopener" class="text-primary font-bold underline">${latlngText}</a>`;
+                }
+            }
+
+            if (jamEl) jamEl.innerText = (loc && loc.jamTracking) ? loc.jamTracking : '-';
+            if (alamatEl) alamatEl.innerText = (loc && loc.alamatLengkap) ? loc.alamatLengkap : (hasLoc ? latlngText : '-');
+
+            modal.classList.remove('hidden');
+
+            if (!mapModalEl) return;
+
+            // CLEAN map modal: hapus map lama + reset container
+            if (window.__trackingModalMap) {
+                try { window.__trackingModalMap.remove(); } catch (e) {}
+                window.__trackingModalMap = null;
+            }
+            mapModalEl.innerHTML = '';
+
+            // Kalau belum ada lokasi: tetap tampil area peta (tapi tanpa tile/marker)
+            if (!hasLoc) {
+                mapModalEl.innerHTML = `<div class="w-full h-full flex items-center justify-center text-[11px] text-slate-400">Belum ada lokasi</div>`;
+                return;
+            }
+
+            // Bikin map baru yang rapi
+            const map = L.map(mapModalEl, { zoomControl: false }).setView([loc.lat, loc.lng], 16);
+            window.__trackingModalMap = map;
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(map);
+
+            const markerHtml = `
+                <div style="
+                    width:28px;height:28px;border-radius:50%;
+                    background:linear-gradient(135deg,#0066FF 0%,#008CFF 100%);
+                    border:2px solid #fff;
+                    box-shadow:0 6px 16px rgba(0,102,255,.35);
+                    display:flex;align-items:center;justify-content:center;
+                    color:#fff;font-size:14px;line-height:1;">
+                    📍
+                </div>
+            `;
+
+            const customIcon = L.divIcon({
+                html: markerHtml,
+                iconSize: [28, 28],
+                iconAnchor: [14, 28]
+            });
+
+            const marker = L.marker([loc.lat, loc.lng], { icon: customIcon }).addTo(map);
+
+            const namaKurir = (user?.nama || user?.username || 'Kurir')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;');
+
+            const popupHtml = `
+                <div style="text-align:center; font-family: Inter, sans-serif; padding:4px 6px;">
+                    <div style="font-weight:800; font-size:12px; color:#0f172a; margin-bottom:2px;">${namaKurir}</div>
+                    <div style="font-size:10px; color:#2563eb; font-weight:800; margin-bottom:2px;">📍 ${latlngText}</div>
+                    <div style="font-size:10px; color:#6b7280; font-weight:700;">${loc?.jamTracking || '-'} WIB</div>
+                </div>
+            `;
+
+            marker.bindPopup(popupHtml, { closeButton: true, autoPan: false }).openPopup();
+
+            setTimeout(() => map.invalidateSize(), 50);
+        };
+        window.closeTrackingModal = function() {
+            const modal = document.getElementById('modal-tracking-kurir');
+            if (modal) modal.classList.add('hidden');
+
+            if (window.__trackingModalMap) {
+                window.__trackingModalMap.remove();
+                window.__trackingModalMap = null;
+            }
+        };
         function getWibDateTimeString() {
             const wib = getWibDate();
             return {
@@ -263,12 +496,12 @@
             if (typeof sembunyikanRiwayatMitraAdmin === 'function') {
                 sembunyikanRiwayatMitraAdmin();
             }
-        
+
             ['nav-dashboard-btn', 'nav-nota-btn', 'nav-sistem-btn'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.classList.add('hidden', 'opacity-0', 'pointer-events-none');
             });
-        
+
             const tglSkrgWib = getWibRawDate();
             const daftarInputTgl = [
                 'an-filter-tgl',
@@ -276,23 +509,36 @@
                 'filter-date-riwayat',
                 'riwayat-filter-tgl',
                 'm-filter-tgl-kurir',
-                'rekap-tanggal'
+                'rekap-tanggal',
+                'absensi-filter-tgl'
             ];
-        
+
             daftarInputTgl.forEach(id => {
                 const el = document.getElementById(id);
                 if (el && !el.value) el.value = tglSkrgWib;
             });
-        
+
             const amFilterBulanEl = document.getElementById('am-filter-bulan');
             if (amFilterBulanEl && !amFilterBulanEl.value) {
                 amFilterBulanEl.value = tglSkrgWib.substring(0, 7);
             }
-            
+
             const amLogBulanEl = document.getElementById('am-log-bulan');
             if (amLogBulanEl && !amLogBulanEl.value) {
                 amLogBulanEl.value = tglSkrgWib.substring(0, 7);
             }
+
+            const anBulanEl = document.getElementById('an-filter-bulan');
+            if (anBulanEl && !anBulanEl.value) anBulanEl.value = tglSkrgWib.substring(0, 7);
+
+            const filterBulanRiwayatEl = document.getElementById('filter-bulan-riwayat');
+            if (filterBulanRiwayatEl && !filterBulanRiwayatEl.value) filterBulanRiwayatEl.value = tglSkrgWib.substring(0, 7);
+
+            const rekapBulanEl = document.getElementById('rekap-bulan');
+            if (rekapBulanEl && !rekapBulanEl.value) rekapBulanEl.value = tglSkrgWib.substring(0, 7);
+
+            const kpiBulanEl = document.getElementById('kpi-filter-bulan');
+            if (kpiBulanEl && !kpiBulanEl.value) kpiBulanEl.value = tglSkrgWib.substring(0, 7);
             onValue(ref(db, 'users'), (snapshot) => {
                 cloudKurirList = snapshot.val() || {};
 
@@ -316,7 +562,7 @@
                 populateKurirDropdownFilter();
                 queueUiRefresh();
 
-                if (pendingAutoLoginCheck && userSession && userSession.role === 'kurir') {
+                if (userSession && userSession.role === 'kurir') {
                     const currentKurir = cloudKurirList[userSession.id];
                     if (currentKurir && currentKurir.status === 'aktif') {
                         launchApplicationSession("screen-dashboard");
@@ -325,7 +571,6 @@
                         alert("Sesi berakhir. Akun Anda telah dinonaktifkan oleh Admin.");
                         handleLogout();
                     }
-                    pendingAutoLoginCheck = false;
                 }
             });
             onValue(ref(db, 'nota'), (snapshot) => {
@@ -362,13 +607,13 @@
             onValue(ref(db, 'jadwal_off'), (snapshot) => {
                 cloudJadwalOff = snapshot.val() || {};
             });
+
             window.calcRekapJadwalKurir = function() {
                 const bulan = getKpiMonth();
                 const rekapMap = {};
             
                 const norm = (v) => (v || '').toString().trim().toLowerCase();
             
-                // Siapkan data dasar kurir dari users
                 Object.entries(cloudKurirList || {}).forEach(([id, u]) => {
                     if (!u || u.role !== 'kurir') return;
             
@@ -392,93 +637,91 @@
                         _tanggalMap: {}
                     };
                 });
-            
-                // Hitung absensi
+
                 Object.values(cloudAbsensiList || {}).forEach(a => {
                     if (!a) return;
-            
+
                     const tgl = (a.tanggal || '').trim();
                     if (!tgl || tgl.slice(0, 7) !== bulan) return;
-            
+
                     const namaKurir = norm(a.nama || a.namaKurir);
                     if (!namaKurir || !rekapMap[namaKurir]) return;
-            
+
                     const row = rekapMap[namaKurir];
-            
+
                     if (a.jamMasuk) row.totalAbsenMasuk++;
                     if (a.jamPulang) row.totalAbsenPulang++;
-            
+
                     if (!row._tanggalMap[tgl]) {
                         row._tanggalMap[tgl] = { masuk: false, pulang: false };
                     }
-            
+
                     if (a.jamMasuk) row._tanggalMap[tgl].masuk = true;
                     if (a.jamPulang) row._tanggalMap[tgl].pulang = true;
-            
+
                     const status = norm(a.status);
                     if (status === 'izin') row.totalIzin++;
                     if (status === 'sakit') row.totalSakit++;
                 });
-            
-                // Hitung jadwal off dari field nama
+
                 Object.values(cloudJadwalOff || {}).forEach(j => {
                     if (!j) return;
-            
+
                     const namaKurir = norm(j.nama);
                     const jenisOff = norm(j.jenisOff);
                     const statusOff = norm(j.status);
                     const tglMulai = (j.tanggalMulai || '').trim();
                     const tglSelesai = (j.tanggalSelesai || tglMulai || '').trim();
-            
+
                     if (!tglMulai || tglMulai.slice(0, 7) !== bulan) return;
                     if (!namaKurir || !rekapMap[namaKurir]) return;
-            
+
                     const row = rekapMap[namaKurir];
-            
+
                     const start = new Date(tglMulai);
                     const end = new Date(tglSelesai);
                     const daysCount = Math.max(1, Math.round((end - start) / 86400000) + 1);
-            
+
                     for (let i = 0; i < daysCount; i++) {
                         const d = new Date(start);
                         d.setDate(start.getDate() + i);
-            
+
                         const y = d.getFullYear();
                         const m = String(d.getMonth() + 1).padStart(2, '0');
                         const dd = String(d.getDate()).padStart(2, '0');
                         const tglLoop = `${y}-${m}-${dd}`;
-            
+
                         if (tglLoop.slice(0, 7) !== bulan) continue;
-            
+
                         if (jenisOff === 'off reguler') row.totalOff++;
                         if (jenisOff === 'izin') row.totalIzin++;
                         if (jenisOff === 'tidak ambil off') row.totalTidakAmbilOff++;
                         if (jenisOff === 'sakit') row.totalSakit++;
-            
+
                         if (!row._tanggalMap[tglLoop]) {
                             row._tanggalMap[tglLoop] = { masuk: false, pulang: false, off: true };
                         } else {
                             row._tanggalMap[tglLoop].off = true;
                         }
-            
+
                         if (statusOff !== 'aktif') {
                             row.totalTidakAmbilOff++;
                         }
                     }
                 });
-            
+
                 Object.values(rekapMap).forEach(row => {
                     let score = 0;
-            
+
                     Object.values(row._tanggalMap).forEach(v => {
                         if (v.masuk && v.pulang) score += 1;
                         else if (v.masuk || v.pulang) score += 0.5;
                     });
-            
+
                     row.hadirScore = score;
                     delete row._tanggalMap;
                 });
-            
+
                 return Object.values(rekapMap)
                     .sort((a, b) => a.namaKurir.localeCompare(b.namaKurir))
                     .map(item => ({
@@ -497,24 +740,24 @@
             const savedSession = localStorage.getItem('sahabatku_session');
             if (savedSession) {
                 userSession = JSON.parse(savedSession);
-        
-                document.querySelectorAll('.session-fullname').forEach(el => el.innerText = userSession.nama);
+
+                document.querySelectorAll('.session-fullname').forEach(el => el.innerText = userSession.nama || '-');
                 if (document.getElementById('nota-kurir') && userSession.nama) {
                     document.getElementById('nota-kurir').value = userSession.nama;
                 }
-        
+
                 if (userSession.role === 'owner') {
                     launchApplicationSession("screen-admin-dashboard");
+                    applyManajemenAccess("Owner");
                 } else if (userSession.role === 'manajemen') {
                     launchApplicationSession("screen-admin-dashboard");
                     setTimeout(() => {
                         applyManajemenAccess(userSession.kategori || '-');
-                    }, 100);
-                } else {
-                    pendingAutoLoginCheck = true;
+                    }, 50);
+                } else if (userSession.role === 'kurir') {
+                    launchApplicationSession("screen-dashboard");
                 }
             }
-        
             document.addEventListener('click', function(e) {
                 const box = document.getElementById('suggest-absensi-kurir');
                 const input = document.getElementById('absensi-filter-nama');
@@ -524,8 +767,14 @@
                     box.classList.add('hidden');
                 }
             });
+
+            if (typeof sembunyikanRiwayatMitra === 'function') sembunyikanRiwayatMitra();
+            if (typeof loadNotaDraft === 'function') loadNotaDraft();
+            if (typeof populateLeaderDropdown === 'function') populateLeaderDropdown();
+            if (typeof populateMitraSelectionDropdown === 'function') populateMitraSelectionDropdown();
+            if (typeof initOrderDepositModule === 'function') initOrderDepositModule();
+            if (typeof renderKurirNotifications === 'function') renderKurirNotifications();
         });
-        
         window.handleLogin = function(e) {
             if (e) e.preventDefault();
         
@@ -561,7 +810,7 @@
                         
                             if (btnSubmit) {
                                 btnSubmit.disabled = false;
-                                btnSubmit.innerText = "Masuk";
+                                btnSubmit.innerText = "Masuk Sistem";
                             }
                             return true;
                         }
@@ -1361,9 +1610,19 @@
         }
         window.hapusNotaGlobal = function(key) {
             if(confirm("Hapus nota ini secara permanen dari server cloud?")) {
-                remove(ref(db, `nota/${key}`));
+                const n = cloudNotaList?.[key];
+                const notaId = n?.id;
+
+                // hapus nota dulu
+                remove(ref(db, `nota/${key}`)).then(() => {
+                    // ikut hapus ongkir history per nota
+                    if (notaId) remove(ref(db, `ongkir_history/${notaId}`)).catch(() => {});
+                    alert('Nota dan history ongkir ikut terhapus!');
+                }).catch(err => {
+                    alert('Gagal hapus nota: ' + err.message);
+                });
             }
-        }
+        };
         window.hapusSemuaNotaTersaring = function() {
             const filterKurir = document.getElementById('an-filter-kurir')?.value || 'semua';
             const filterTgl = document.getElementById('an-filter-tgl')?.value || '';
@@ -1390,12 +1649,11 @@
         
             alert('Nota sesuai filter sedang dihapus.');
         };
-        
         window.viewAdminNota = function(key) {
             const n = cloudNotaList[key];
             const modalCanvas = document.getElementById('canvas-nota-admin');
             if (!n || !modalCanvas) return;
-        
+
             let itemRows = '';
             if (n.items && Array.isArray(n.items)) {
                 n.items.forEach(it => {
@@ -1409,6 +1667,7 @@
                     `;
                 });
             }
+
             let rincianBiaya = '';
             const totalBiaya = (n.biayaTambahan || []).reduce((acc, b) => acc + (b.nominal || 0), 0);
             if (n.biayaTambahan && n.biayaTambahan.length > 0) {
@@ -1421,20 +1680,20 @@
                     `;
                 });
             }
-        
+
             modalCanvas.innerHTML = `
                 <div class="text-center border-b border-dashed border-slate-300 pb-3">
                     <h3 class="font-extrabold text-lg text-primary tracking-wide">SAHABATKU DELIVERY</h3>
                     <p class="text-[10px] text-slate-400">Jatibarang, Indramayu</p>
                 </div>
-        
-                <div class="text-[11px] space-y-1">
+
+                <div class="text-[11px] space-y-1.5">
                     <div class="flex justify-between"><span class="text-slate-400">Nomor Nota:</span><span class="font-bold text-slate-700">${n.id || '-'}</span></div>
                     <div class="flex justify-between"><span class="text-slate-400">Tanggal:</span><span>${n.tanggal || '-'}</span></div>
                     <div class="flex justify-between"><span class="text-slate-400">Kurir:</span><span class="font-medium">${n.kurirNama || '-'}</span></div>
                     <div class="flex justify-between"><span class="text-slate-400">Status:</span><span class="uppercase font-semibold">${n.status || '-'}</span></div>
                 </div>
-        
+
                 <table class="w-full text-[11px] text-left mt-2">
                     <thead>
                         <tr class="border-b border-dashed border-slate-300 text-slate-400 font-semibold">
@@ -1448,7 +1707,7 @@
                         ${itemRows || `<tr><td colspan="4" class="text-center italic text-slate-400 py-2">- Tidak ada rincian -</td></tr>`}
                     </tbody>
                 </table>
-        
+
                 <div class="border-t border-dashed border-slate-300 pt-2.5 text-[11px] space-y-1">
                     <div class="flex justify-between"><span class="text-slate-400">Subtotal Item</span><span>${(n.subtotal || 0).toLocaleString('id-ID')}</span></div>
                     <div class="flex justify-between"><span class="text-slate-400">Ongkir</span><span>${(n.ongkir || 0).toLocaleString('id-ID')}</span></div>
@@ -1458,17 +1717,67 @@
                         <span>TOTAL</span><span class="text-primary">${(n.total || 0).toLocaleString('id-ID')}</span>
                     </div>
                 </div>
-        
+
+                <!-- Ongkir History -->
+                <div class="border-t border-dashed border-slate-300 pt-3 mt-2 text-[10px] space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-400 font-bold uppercase">Ongkir History</span>
+                        <span id="p-ongkir-history-count" class="text-slate-400">-</span>
+                    </div>
+                    <div id="p-ongkir-history-container" class="space-y-1"></div>
+                </div>
+
                 <div class="border-t border-dashed border-slate-300 pt-3 text-center space-y-1">
                     <p class="text-[10px] text-slate-500 italic">Terima kasih telah menggunakan jasa Sahabatku Delivery.</p>
-                    <p class="text-[10px] font-medium text-slate-700">Pastikan Selalu Order Melalui WhatsApp Resmi Kami:<br>
-                       <span class="text-primary font-bold text-xs">0821-1845-415</span>
+                    <p class="text-[10px] font-medium text-slate-700">
+                        Pastikan Selalu Order Melalui WhatsApp Resmi Kami:<br>
+                        <span class="text-primary font-bold text-xs">0821-1845-415</span>
                     </p>
                 </div>
             `;
-            document.getElementById('modal-preview-nota').classList.remove('hidden');
-        }
 
+            // RESET isi history (biar nggak nyangkut dari nota sebelumnya)
+            const box = document.getElementById('p-ongkir-history-container');
+            const countEl = document.getElementById('p-ongkir-history-count');
+            if (!box || !countEl) return;
+
+            box.innerHTML = '';
+            countEl.innerText = '-';
+
+            const histories = Array.isArray(n.ongkir_history) ? n.ongkir_history : [];
+            const sorted = histories
+                .slice()
+                .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+
+            if (!sorted.length) {
+                box.innerHTML = `<div class="text-center text-slate-400 italic py-1">Belum ada history ongkir.</div>`;
+                countEl.innerText = '0';
+                document.getElementById('modal-preview-nota').classList.remove('hidden');
+                return;
+            }
+
+            countEl.innerText = `${sorted.length} item`;
+            box.innerHTML = sorted.map(e => {
+                const asal = e.asal || '-';
+                const tujuan = e.tujuan || '-';
+                const val = parseInt(e.estimasiOngkir || e.ongkir || 0) || 0;
+                const tgl = e.createdAt ? new Date(e.createdAt).toLocaleString('id-ID') : (e.tglRaw || '-');
+
+                return `
+                    <div class="bg-slate-50 dark:bg-darkBg p-2 rounded-xl border border-slate-200/70">
+                        <div class="flex justify-between gap-2">
+                            <div class="min-w-0">
+                                <div class="font-bold text-[10px] text-slate-700 truncate">${asal} → ${tujuan}</div>
+                                <div class="text-[9px] text-slate-400">${tgl}</div>
+                            </div>
+                            <div class="font-extrabold text-[10px] text-primary shrink-0">Rp ${val.toLocaleString('id-ID')}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('modal-preview-nota').classList.remove('hidden');
+        };
         window.closeAdminModal = function() {
             document.getElementById('modal-preview-nota').classList.add('hidden');
         }
@@ -1600,14 +1909,14 @@
                 adaData = true;
 
                 container.innerHTML += `
-                    <div class="flex justify-between items-center bg-slate-50 dark:bg-slate-800 p-2 rounded-lg text-[11px] border border-slate-100 dark:border-slate-700/50 mb-1" data-log-key="${k}">
+                    <div class="flex justify-between items-center bg-slate-50 dark:bg-slate-800 p-2 rounded-xl text-[11px] border border-slate-100 dark:border-slate-700/50 mb-1" data-log-key="${k}">
                         <div>
                             <span class="font-bold text-slate-800 dark:text-white">${log.mitraNama}</span> (${log.trxInput} Trx)
                             <p class="text-[9px] text-slate-400">
                                 Input: ${log.kurirNama} - ${log.tglRaw} ${log.waktu}
                             </p>
                         </div>
-                        <button onclick="hapusLogMitra('${k}')" class="text-danger font-bold px-2 py-1 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/30 transition">
+                        <button onclick="hapusLogMitra('${k}')" class="text-danger font-bold px-2 py-1 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-950/30 transition">
                             ✕
                         </button>
                     </div>
@@ -1615,7 +1924,7 @@
             }
 
             if (!adaData) {
-                container.innerHTML = '<div class="text-center text-xs text-slate-400 py-4">Tidak ada data ditemukan.</div>';
+                container.innerHTML = '<div class=\"flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-400 py-8\"><div class=\"w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center\"><svg class=\"w-5 h-5 text-slate-300 dark:text-slate-600\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8\"/><path d=\"M3 8l2.45-4.9A2 2 0 0 1 7.24 2h9.52a2 2 0 0 1 1.79 1.1L21 8\"/><path d=\"M3 8h18\"/><path d=\"M9 12a3 3 0 0 0 6 0\"/></svg></div><span>Tidak ada data ditemukan.</span></div>';
             }
         };
 
@@ -1722,25 +2031,25 @@
                                 </div>
                                 <a href="${waLink}" target="_blank" class="px-2.5 py-1 bg-emerald-50 text-success rounded font-bold text-[10px] border border-emerald-100 shrink-0">WhatsApp</a>
                             </div>
-                            <div class="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg text-[11px] border border-slate-100 dark:border-slate-800">
+                            <div class="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl text-[11px] border border-slate-100 dark:border-slate-800">
                                 <div><span class="text-slate-400 block text-[9px] uppercase">Total Transaksi</span><span class="font-extrabold text-slate-700 dark:text-slate-200">${filterBulan ? totalTrxFilterBulan : totalTrxMenyeluruh} Trx</span></div>
                                 <div><span class="text-slate-400 block text-[9px] uppercase">Target Bulanan</span><span class="font-extrabold text-amber-500">${targetMitra} Trx</span></div>
                             </div>
                             <div class="grid grid-cols-3 gap-2 pt-0.5">
-                                <button onclick="bukaInputTransaksiMitra('${m.nama}')" class="py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-[10px] uppercase">Input Trx</button>
-                                <button onclick="lihatRiwayatMitraOtomatis('${m.nama}')" class="py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-lg text-[10px] uppercase border border-slate-200/50">Lihat</button>
-                                <button onclick="hapusMitra('${key}')" class="py-2 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 font-bold rounded-lg text-[10px] uppercase">Hapus</button>
+                                <button onclick="bukaInputTransaksiMitra('${m.nama}')" class="py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-[10px] uppercase">Input Trx</button>
+                                <button onclick="lihatRiwayatMitraOtomatis('${m.nama}')" class="py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-xl text-[10px] uppercase border border-slate-200/50">Lihat</button>
+                                <button onclick="hapusMitra('${key}')" class="py-2 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 font-bold rounded-xl text-[10px] uppercase">Hapus</button>
                             </div>
                             ${isOwner ? `
                             <div class="flex justify-end gap-2 pt-1 border-t border-slate-100 dark:border-slate-700">
-                                <button onclick="editDataMitra('${key}')" class="px-2.5 py-1 bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-white rounded-md font-semibold text-xs">Edit</button>
+                                <button onclick="editDataMitra('${key}')" class="px-2.5 py-1 bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-white rounded-xl font-semibold text-xs">Edit</button>
                             </div>` : ''}
                         </div>
                     `);
                     nomorUrut++;
                 }
 
-                inner.innerHTML = list.join('') || '<div class="text-center text-xs text-slate-400 py-4">Belum ada data mitra.</div>';
+                inner.innerHTML = list.join('') || '<div class=\"flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-400 py-8\"><div class=\"w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center\"><svg class=\"w-5 h-5 text-slate-300 dark:text-slate-600\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8\"/><path d=\"M3 8l2.45-4.9A2 2 0 0 1 7.24 2h9.52a2 2 0 0 1 1.79 1.1L21 8\"/><path d=\"M3 8h18\"/><path d=\"M9 12a3 3 0 0 0 6 0\"/></svg></div><span>Belum ada data mitra.</span></div>';
             } finally {
                 isRenderMitraRunning = false;
             }
@@ -1887,7 +2196,7 @@
                 });
 
             if (!filteredKeys.length) {
-                container.innerHTML = '<div class="text-center text-xs text-slate-400 py-4">Tidak ada testimoni pada bulan ini.</div>';
+                container.innerHTML = '<div class=\"flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-400 py-8\"><div class=\"w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center\"><svg class=\"w-5 h-5 text-slate-300 dark:text-slate-600\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8\"/><path d=\"M3 8l2.45-4.9A2 2 0 0 1 7.24 2h9.52a2 2 0 0 1 1.79 1.1L21 8\"/><path d=\"M3 8h18\"/><path d=\"M9 12a3 3 0 0 0 6 0\"/></svg></div><span>Tidak ada testimoni pada bulan ini.</span></div>';
                 return;
             }
 
@@ -1925,28 +2234,28 @@
                         </div>
 
                         <div class="grid grid-cols-3 gap-2 text-[10px]">
-                            <div class="bg-white dark:bg-darkCard p-2 rounded-lg">
+                            <div class="bg-white dark:bg-darkCard p-2 rounded-xl">
                                 <div class="text-slate-400">Rating</div>
                                 <div class="font-bold">${t.rating || 0}</div>
                             </div>
-                            <div class="bg-white dark:bg-darkCard p-2 rounded-lg">
+                            <div class="bg-white dark:bg-darkCard p-2 rounded-xl">
                                 <div class="text-slate-400">Attitude</div>
                                 <div class="font-bold">${t.attitude || '-'}</div>
                             </div>
-                            <div class="bg-white dark:bg-darkCard p-2 rounded-lg">
+                            <div class="bg-white dark:bg-darkCard p-2 rounded-xl">
                                 <div class="text-slate-400">Speed</div>
                                 <div class="font-bold">${t.speed || '-'}</div>
                             </div>
                         </div>
 
-                        <div class="bg-white dark:bg-darkCard p-2 rounded-lg text-[11px] text-slate-600 dark:text-slate-300">${t.comments || '-'}</div>
+                        <div class="bg-white dark:bg-darkCard p-2 rounded-xl text-[11px] text-slate-600 dark:text-slate-300">${t.comments || '-'}</div>
 
                         ${!selectMode ? `
                             <div class="flex gap-2">
-                                <button onclick="toggleTestimonialPublish('${key}')" class="flex-1 py-2 rounded-lg text-[10px] font-bold uppercase ${t.isPublished ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40' : 'bg-blue-50 text-blue-600 dark:bg-blue-950/40'}">
+                                <button onclick="toggleTestimonialPublish('${key}')" class="flex-1 py-2 rounded-xl text-[10px] font-bold uppercase ${t.isPublished ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40' : 'bg-blue-50 text-blue-600 dark:bg-blue-950/40'}">
                                     ${t.isPublished ? 'Sembunyikan' : 'Tampilkan'}
                                 </button>
-                                <button onclick="hapusTestimonial('${key}')" class="px-3 py-2 rounded-lg text-[10px] font-bold uppercase bg-rose-50 text-rose-600 dark:bg-rose-950/40">
+                                <button onclick="hapusTestimonial('${key}')" class="px-3 py-2 rounded-xl text-[10px] font-bold uppercase bg-rose-50 text-rose-600 dark:bg-rose-950/40">
                                     Hapus
                                 </button>
                             </div>
@@ -2288,30 +2597,72 @@
                 total: notaState.total
             };
 
-            push(ref(db, 'nota'), payload).then(() => {
+            const notaRef = ref(db, 'nota');
+            const pushRef = push(notaRef);
+
+            // simpan nota dengan key yang fix (pushRef.key)
+            set(pushRef, payload).then(async () => {
                 alert("Nota kiriman berhasil disimpan!");
                 localStorage.removeItem('sahabatku_nota_draft');
 
                 const userId = userSession.id;
                 const username = userSession.username;
+
                 const potongSlot = getPotonganKurirKoin(payload);
                 const usageSekarang = parseInt(cloudNotaHabisCounter?.[userId] || 0) || 0;
                 const usageBaru = usageSekarang + potongSlot;
-
                 cloudNotaHabisCounter[userId] = usageBaru;
 
                 const saldoSekarang = getSaldoKurirRaw(userId, username);
                 const saldoBaru = Math.max(0, saldoSekarang - (potongSlot * 1000));
 
-                update(ref(db, `users/${userId}`), {
+                await update(ref(db, `users/${userId}`), {
                     depositSaldo: saldoBaru,
                     depositUpdatedAt: new Date().toISOString()
-                }).then(() => {
-                    cloudKurirList[userId].depositSaldo = saldoBaru;
-                    renderSaldoKurir();
-                    updateKurirDashboard();
                 });
 
+                cloudKurirList[userId].depositSaldo = saldoBaru;
+                renderSaldoKurir();
+                updateKurirDashboard();
+
+                // simpan history ongkir ke JSON nota (nota/<pushKey>.ongkir_history)
+                const draftKey = localStorage.getItem('last_ongkir_draft_key');
+                if (draftKey && userSession?.id) {
+                    try {
+                        const fromRef = ref(db, `ongkir_history_draft/${userSession.id}`);
+                        const snap = await get(fromRef);
+                        const data = snap.val() || {};
+                        const entries = Object.entries(data);
+
+                        const ongkirHistoryJson = [];
+
+                        for (const [k, v] of entries) {
+                            if (!v || v.draftKey !== draftKey) continue;
+
+                            ongkirHistoryJson.push({
+                                draftKey: v.draftKey,
+                                kurirId: v.kurirId || userSession.id,
+                                kurirUsername: v.kurirUsername || userSession.username,
+                                kurirNama: v.kurirNama || userSession.nama,
+                                asal: v.asal || '',
+                                tujuan: v.tujuan || '',
+                                estimasiOngkir: v.estimasiOngkir || 0,
+                                tglRaw: v.tglRaw || getWibRawDate(),
+                                createdAt: v.createdAt || new Date().toISOString()
+                            });
+
+                            await remove(ref(db, `ongkir_history_draft/${userSession.id}/${k}`)).catch(() => {});
+                        }
+
+                        localStorage.removeItem('last_ongkir_draft_key');
+
+                        await update(pushRef, {
+                            ongkir_history: ongkirHistoryJson
+                        }).catch(() => {});
+                    } catch (e) {}
+                }
+
+                // reset nota form state
                 notaState = { items: [], biaya: [], subtotal: 0, ongkir: 6000, total: 6000 };
                 document.getElementById('container-items').innerHTML = '';
                 document.getElementById('container-biaya').innerHTML = '';
@@ -2325,9 +2676,11 @@
                 if (inputOngkir) inputOngkir.value = '6.000';
 
                 updateKurirDashboard();
-                navigateTo('screen-dashboard');
+                navigateTo('screen-preview');
+            }).catch(() => {
+                alert('Gagal simpan nota.');
             });
-        }
+        };
         window.shareWhatsApp = function() {
             const num = document.getElementById('p-nota-num').innerText;
             const kurir = document.getElementById('p-nota-kurir').innerText;
@@ -2413,16 +2766,31 @@
             container.innerHTML = '';
             let hasData = false;
 
-            const keys = Object.keys(cloudNotaList || {}).sort((a, b) => b.localeCompare(a));
+            const notaList = Object.entries(cloudNotaList || {})
+                .filter(([_, n]) => !!n)
+                .map(([k, n]) => ({ key: k, n }));
 
-            for (let k of keys) {
-                const n = cloudNotaList[k];
-                if (!n) continue;
-                if (userSession && userSession.role === 'kurir' && n.kurirUsername !== userSession.username) continue;
-                if (filterBulan && (!n.tanggalRaw || n.tanggalRaw.substring(0, 7) !== filterBulan)) continue;
-                if (filterTgl && n.tanggalRaw !== filterTgl) continue;
-                if (searchKeyword && n.id && !n.id.toLowerCase().includes(searchKeyword)) continue;
+            // filter dulu
+            const filtered = notaList.filter(({ n }) => {
+                if (userSession && userSession.role === 'kurir' && n.kurirUsername !== userSession.username) return false;
+                if (filterBulan && (!n.tanggalRaw || n.tanggalRaw.substring(0, 7) !== filterBulan)) return false;
+                if (filterTgl && n.tanggalRaw !== filterTgl) return false;
+                if (searchKeyword && n.id && !n.id.toLowerCase().includes(searchKeyword)) return false;
+                return true;
+            });
 
+            // urut: terbaru (tanggalRaw desc), lalu id (desc)
+            filtered.sort((a, b) => {
+                const tA = a.n?.tanggalRaw || '';
+                const tB = b.n?.tanggalRaw || '';
+                if (tA !== tB) return tB.localeCompare(tA);
+
+                const idA = a.n?.id || '';
+                const idB = b.n?.id || '';
+                return idB.localeCompare(idA);
+            });
+
+            for (let { key: k, n } of filtered) {
                 hasData = true;
                 container.innerHTML += `
                     <div class="bg-white dark:bg-darkCard p-3 rounded-xl border text-xs space-y-2 shadow-sm">
@@ -2436,8 +2804,8 @@
                                 <p class="mt-0.5">Status: <span class="font-semibold text-slate-600 dark:text-slate-300">${n.status || 'Lunas'}</span></p>
                             </div>
                             <div class="flex items-center gap-3">
-                                <button onclick="previewRiwayatNota('${k}')" class="text-blue-500 font-bold bg-blue-50 dark:bg-blue-950/40 px-2 py-1 rounded-md">Preview</button>
-                                <button onclick="hapusRiwayatNota('${k}')" class="text-danger font-bold bg-red-50 dark:bg-red-950/40 px-2 py-1 rounded-md">Hapus</button>
+                                <button onclick="previewRiwayatNota('${k}')" class="text-blue-500 font-bold bg-blue-50 dark:bg-blue-950/40 px-2 py-1 rounded-xl">Preview</button>
+                                <button onclick="hapusRiwayatNota('${k}')" class="text-danger font-bold bg-red-50 dark:bg-red-950/40 px-2 py-1 rounded-xl">Hapus</button>
                             </div>
                         </div>
                     </div>
@@ -2445,7 +2813,7 @@
             }
 
             if (!hasData) {
-                container.innerHTML = '<div class="text-center text-xs text-slate-400 py-4">Tidak ada riwayat nota untuk filter ini.</div>';
+                container.innerHTML = '<div class=\"flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-400 py-8\"><div class=\"w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center\"><svg class=\"w-5 h-5 text-slate-300 dark:text-slate-600\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8\"/><path d=\"M3 8l2.45-4.9A2 2 0 0 1 7.24 2h9.52a2 2 0 0 1 1.79 1.1L21 8\"/><path d=\"M3 8h18\"/><path d=\"M9 12a3 3 0 0 0 6 0\"/></svg></div><span>Tidak ada riwayat nota untuk filter ini.</span></div>';
             }
         };
         window.resetRiwayatFilter = function() {
@@ -2582,7 +2950,10 @@
             const n = cloudNotaList[key];
             const idNota = n ? n.id : "Nota ini";
 
-            if (confirm(`Apakah Anda yakin ingin menghapus ${idNota} secara permanen dari database cloud?`)) {
+            if (confirm(`Apakah Anda yakin ingin menghapus ${idNota} secara permanen dari riwayat?`)) {
+                // LOCK supaya queueUiRefresh gak bikin balik dashboard
+                window.__lockRiwayatScreen = true;
+
                 const userId = Object.keys(cloudKurirList || {}).find(k =>
                     (cloudKurirList[k]?.username || '').trim() === (n?.kurirUsername || '').trim()
                 );
@@ -2607,22 +2978,31 @@
                             }).then(() => {
                                 cloudKurirList[userId].depositSaldo = saldoBaru;
                                 renderSaldoKurir();
-                                updateKurirDashboard();
                             });
+
+                            const notaId = n?.id;
+                            if (notaId) remove(ref(db, `ongkir_history/${notaId}`)).catch(() => {});
                         }
 
+                        // paksa tetap di riwayat, dan render ulang
                         if (userSession && userSession.role === 'kurir') {
-                            renderKurirRiwayatList(true);
-                            updateKurirDashboard();
-                        }
+                            currentScreen = 'screen-riwayat';
+                            const elNow = document.getElementById('screen-riwayat');
+                            const elDash = document.getElementById('screen-dashboard');
+                            if (elDash) elDash.classList.remove('active');
+                            if (elNow) elNow.classList.add('active');
 
-                        if (currentScreen === 'screen-admin-nota') renderAdminNota();
-                        if (currentScreen === 'screen-dashboard') updateKurirDashboard();
+                            renderKurirRiwayatList(true);
+                        }
 
                         alert("Nota sukses dihapus!");
                     })
                     .catch((error) => {
                         alert("Gagal menghapus nota: " + error.message);
+                    })
+                    .finally(() => {
+                        // lepaskan lock setelah beberapa detik supaya refresh yang datang belakangan gak skip terus
+                        setTimeout(() => { window.__lockRiwayatScreen = false; }, 900);
                     });
             }
         }
@@ -2795,14 +3175,14 @@
             const selectMitra = document.getElementById('m-input-pilih');
             if (selectMitra && selectMitra.options.length <= 1) {
                 selectMitra.innerHTML = '<option value="\">-- Pilih Mitra --</option>';
-                Object.entries(cloudMitraList || {}).forEach(([k, m]) => {
-                    if (m && m.nama) {
+                Object.entries(cloudMitraList || {})
+                    .filter(([_, m]) => m && m.nama)
+                    .sort((a, b) => (a[1].nama || '').localeCompare(b[1].nama || ''))
+                    .forEach(([k, m]) => {
                         selectMitra.innerHTML += `<option value="${m.nama}">${m.nama}</option>`;
-                    }
-                });
+                    });
             }
 
-            // Hitung stat global untuk semua mitra
             const mitraStats = {};
             Object.entries(cloudMitraList || {}).forEach(([k, m]) => {
                 if (!m || !m.nama) return;
@@ -2817,10 +3197,10 @@
                 }
             });
 
-            // Render semua mitra sekaligus
             const allMitraHtml = Object.entries(cloudMitraList || {})
                 .filter(([_, m]) => m && m.nama)
-                .map(([k, m], idx) => {
+                .sort((a, b) => (a[1].nama || '').localeCompare(b[1].nama || ''))
+                .map(([k, m]) => {
                     const stats = mitraStats[m.nama] || { totalTrx: 0, target: 0, hp: '', alamat: '' };
                     const target = stats.target || 0;
                     const totalTrx = stats.totalTrx || 0;
@@ -2831,11 +3211,12 @@
 
                     const waLink = cleanPhone ? `https://wa.me/${cleanPhone}` : '#';
                     const mapsLink = getMapsLink(m.alamat);
+
                     return `
                         <div class="bg-white dark:bg-darkCard p-3 rounded-xl border text-xs space-y-2.5 shadow-sm">
                             <div class="flex justify-between items-start">
                                 <div>
-                                    <h5 class="font-bold text-slate-800 dark:text-white">${idx + 1}. ${m.nama}</h5>
+                                    <h5 class="font-bold text-slate-800 dark:text-white">${m.nama}</h5>
                                     <a href="${mapsLink}" target="_blank" class="text-[10px] text-blue-600 dark:text-blue-400 hover:underline block mt-0.5">
                                         Alamat: ${m.alamat || 'Belum Diisi'}
                                     </a>
@@ -2844,22 +3225,21 @@
                                     WhatsApp
                                 </a>
                             </div>
-                            <div class="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg text-[11px] border border-slate-100 dark:border-slate-800">
+                            <div class="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl text-[11px] border border-slate-100 dark:border-slate-800">
                                 <div><span class="text-slate-400 block text-[9px] uppercase">Total Trx</span><span class="font-extrabold text-slate-700 dark:text-slate-200">${totalTrx} Trx</span></div>
                                 <div><span class="text-slate-400 block text-[9px] uppercase">Target</span><span class="font-extrabold text-amber-500">${target} Trx</span></div>
                             </div>
                             <div class="flex gap-1.5 pt-0.5">
-                                <button onclick="bukaInputTransaksiMitra('${m.nama}')" class="flex-1 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-[10px] uppercase">Input Trx</button>
-                                <button onclick="lihatRiwayatMitraOtomatis('${m.nama}')" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-lg text-[10px] uppercase border border-slate-200/50">Lihat</button>
+                                <button onclick="bukaInputTransaksiMitra('${m.nama}')" class="flex-1 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-[10px] uppercase">Input Trx</button>
+                                <button onclick="lihatRiwayatMitraOtomatis('${m.nama}')" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-xl text-[10px] uppercase border border-slate-200/50">Lihat</button>
                             </div>
                         </div>
                     `;
                 })
                 .join('');
 
-            container.innerHTML = allMitraHtml || '<div class="text-center text-xs text-slate-400 py-4">Belum ada data mitra.</div>';
+            container.innerHTML = allMitraHtml || '<div class=\"flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-400 py-8\"><div class=\"w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center\"><svg class=\"w-5 h-5 text-slate-300 dark:text-slate-600\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8\"/><path d=\"M3 8l2.45-4.9A2 2 0 0 1 7.24 2h9.52a2 2 0 0 1 1.79 1.1L21 8\"/><path d=\"M3 8h18\"/><path d=\"M9 12a3 3 0 0 0 6 0\"/></svg></div><span>Belum ada data mitra.</span></div>';
         };
-
         window.toggleMitraList = function() {
             const box = document.getElementById('container-mitra-list');
             if (!box) return;
@@ -2930,31 +3310,31 @@
                             </div>
                             <span class="text-[10px] text-slate-400 shrink-0">Gabung: ${item.tglGabung || '-'}</span>
                         </div>
-                        <div class="bg-slate-50 dark:bg-slate-800 p-2 rounded-lg grid grid-cols-2 gap-2 font-mono text-[11px]">
+                        <div class="bg-slate-50 dark:bg-slate-800 p-2 rounded-xl grid grid-cols-2 gap-2 font-mono text-[11px]">
                             <div class="dark:text-slate-300">Leader: <span class="text-emerald-600 font-bold block truncate">${item.leader || '-'}</span></div>
                             <div class="dark:text-slate-300">User: <span class="text-primary font-bold block truncate">@${item.username}</span></div>
                             <div class="dark:text-slate-300">Pass: <span class="text-amber-500 font-bold block truncate">${item.password}</span></div>
                             <div class="dark:text-slate-300">Ongkir Pass: <span class="text-fuchsia-500 font-bold block truncate">${item.ongkirPassword || '-'}</span></div>
                         </div>
-                        <div class="bg-slate-50 dark:bg-slate-800 p-2 rounded-lg space-y-2">
+                        <div class="bg-slate-50 dark:bg-slate-800 p-2 rounded-xl space-y-2">
                             <div class="flex items-center justify-between">
                                 <span class="text-[10px] text-slate-500">Akses Cek Ongkir</span>
                                 <span class="text-[10px] font-bold ${item.ongkirLocked ? 'text-rose-500' : 'text-emerald-500'}">${item.ongkirLocked ? 'TERKUNCI' : 'TERBUKA'}</span>
                             </div>
-                            <input type="text" id="ongkir-pass-${key}" value="${item.ongkirPassword || ''}" placeholder="Password khusus ongkir" class="w-full px-2 py-1 border rounded-md text-[11px] dark:bg-darkBg dark:border-slate-700">
+                            <input type="text" id="ongkir-pass-${key}" value="${item.ongkirPassword || ''}" placeholder="Password khusus ongkir" class="w-full px-2 py-1 border rounded-xl text-[11px] dark:bg-darkBg dark:border-slate-700">
                             <div class="grid grid-cols-2 gap-2">
-                                <button onclick="toggleOngkirAkses('${key}')" class="py-1.5 rounded-md text-[10px] font-bold uppercase ${item.ongkirLocked ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}">
+                                <button onclick="toggleOngkirAkses('${key}')" class="py-1.5 rounded-xl text-[10px] font-bold uppercase ${item.ongkirLocked ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}">
                                     ${item.ongkirLocked ? 'Buka Akses Ongkir' : 'Kunci Akses Ongkir'}
                                 </button>
-                                <button onclick="simpanPasswordOngkir('${key}')" class="py-1.5 rounded-md bg-blue-50 text-blue-600 font-bold text-[10px] uppercase">
+                                <button onclick="simpanPasswordOngkir('${key}')" class="py-1.5 rounded-xl bg-blue-50 text-blue-600 font-bold text-[10px] uppercase">
                                     Simpan Password Ongkir
                                 </button>
                             </div>
                         </div>
                         ${isHeadOperasional ? '' : `
                         <div class="flex justify-end gap-2 pt-1">
-                            <button onclick="editAkunKurir('${key}')" class="px-2.5 py-1 bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-white rounded-md font-semibold">Edit</button>
-                            <button onclick="hapusAkunKurir('${key}')" class="px-2.5 py-1 bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400 rounded-md font-semibold">Hapus</button>
+                            <button onclick="editAkunKurir('${key}')" class="px-2.5 py-1 bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-white rounded-xl font-semibold">Edit</button>
+                            <button onclick="hapusAkunKurir('${key}')" class="px-2.5 py-1 bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400 rounded-xl font-semibold">Hapus</button>
                         </div>`}
                     </div>
                 `;
@@ -3016,19 +3396,6 @@
             });
         };
         
-        document.addEventListener('DOMContentLoaded', () => {
-            const anBulanEl = document.getElementById('an-filter-bulan');
-            if (anBulanEl && !anBulanEl.value) anBulanEl.value = getWibRawDate().substring(0, 7);
-
-            const tglSkrgWib = getWibRawDate();
-            ['an-filter-tgl', 'riwayat-filter-tgl', 'am-log-tgl', 'm-filter-tgl-kurir'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el && !el.value) el.value = tglSkrgWib;
-            });
-
-            if (typeof sembunyikanRiwayatMitra === 'function') sembunyikanRiwayatMitra();
-            if (typeof loadNotaDraft === 'function') loadNotaDraft();
-        });
 
         window.toggleRiwayatMitraKurir = function() {
             const box = document.getElementById('box-riwayat-mitra-kurir');
@@ -3084,11 +3451,12 @@
             if (modal) modal.classList.remove('hidden');
         };
         window.renderAdminNotificationHistory = function() {
-            const items = Object.entries(cloudNotificationList || {}).sort((a, b) => (b[1]?.createdAt || '').localeCompare(a[1]?.createdAt || ''));
             const container = document.getElementById('container-admin-notification-history');
             if (!container) return;
 
             const isOpen = ensureSectionToggleState('container-admin-notification-history', false);
+            const items = Object.entries(cloudNotificationList || {}).sort((a, b) => (b[1]?.createdAt || '').localeCompare(a[1]?.createdAt || ''));
+
             container.innerHTML = `
                 <div class="flex items-center gap-2 mb-2">
                     <button type="button" onclick="toggleSectionList('container-admin-notification-history')" class="flex-1 py-2 rounded-xl bg-slate-800 text-white text-[10px] font-bold uppercase">
@@ -3111,11 +3479,11 @@
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-2">
-                        <button onclick="resendNotification('${key}')" class="w-full py-2 rounded-lg bg-blue-50 text-blue-600 text-[10px] font-bold uppercase">Kirim Lagi</button>
-                        <button onclick="deleteNotification('${key}')" class="w-full py-2 rounded-lg bg-rose-50 text-rose-600 text-[10px] font-bold uppercase">Hapus</button>
+                        <button onclick="resendNotification('${key}')" class="w-full py-2 rounded-xl bg-blue-50 text-blue-600 text-[10px] font-bold uppercase">Kirim Lagi</button>
+                        <button onclick="deleteNotification('${key}')" class="w-full py-2 rounded-xl bg-rose-50 text-rose-600 text-[10px] font-bold uppercase">Hapus</button>
                     </div>
                 </div>
-            `).join('') : '<div class="text-center text-xs text-slate-400 py-4">Belum ada notifikasi.</div>';
+            `).join('') : '<div class=\"flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-400 py-8\"><div class=\"w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center\"><svg class=\"w-5 h-5 text-slate-300 dark:text-slate-600\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8\"/><path d=\"M3 8l2.45-4.9A2 2 0 0 1 7.24 2h9.52a2 2 0 0 1 1.79 1.1L21 8\"/><path d=\"M3 8h18\"/><path d=\"M9 12a3 3 0 0 0 6 0\"/></svg></div><span>Belum ada notifikasi.</span></div>';
         };        
         window.closeModal = function(id) {
             const modal = document.getElementById(id);
@@ -3568,7 +3936,7 @@
                         : 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-300';
             
                     container.innerHTML += `
-                        <div class="bg-white dark:bg-darkCard p-2.5 rounded-lg border shadow-sm text-[11px] space-y-1.5">
+                        <div class="bg-white dark:bg-darkCard p-2.5 rounded-xl border shadow-sm text-[11px] space-y-1.5">
                             <div class="flex justify-between items-start gap-2">
                                 <div class="min-w-0">
                                     <div class="font-bold text-[12px] leading-tight truncate">${n.id || '-'}</div>
@@ -3584,7 +3952,7 @@
                                 </div>
                             </div>
             
-                            <div class="grid grid-cols-2 gap-1.5 bg-slate-50 dark:bg-slate-800 p-2 rounded-md">
+                            <div class="grid grid-cols-2 gap-1.5 bg-slate-50 dark:bg-slate-800 p-2 rounded-xl">
                                 <div>
                                     <div class="text-[9px] text-slate-400">Ongkir</div>
                                     <div class="font-bold text-[11px]">Rp ${(n.ongkir || 0).toLocaleString('id-ID')}</div>
@@ -3604,15 +3972,15 @@
                             </div>
             
                             <div class="flex justify-end gap-2 pt-0.5">
-                                <button onclick="viewAdminNota('${key}')" class="px-2.5 py-1 rounded-md bg-blue-50 text-blue-600 font-bold text-[10px]">Preview</button>
-                                <button onclick="hapusNotaGlobal('${key}')" class="px-2.5 py-1 rounded-md bg-red-50 text-red-600 font-bold text-[10px]">Hapus</button>
+                                <button onclick="viewAdminNota('${key}')" class="px-2.5 py-1 rounded-xl bg-blue-50 text-blue-600 font-bold text-[10px]">Preview</button>
+                                <button onclick="hapusNotaGlobal('${key}')" class="px-2.5 py-1 rounded-xl bg-red-50 text-red-600 font-bold text-[10px]">Hapus</button>
                             </div>
                         </div>
                     `;
                 });
             
                 if (!adaData) {
-                    container.innerHTML = `<div class="text-center text-xs text-slate-400 py-4">Tidak ada nota sesuai filter.</div>`;
+                    container.innerHTML = `<div class=\"flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-400 py-8\"><div class=\"w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center\"><svg class=\"w-5 h-5 text-slate-300 dark:text-slate-600\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8\"/><path d=\"M3 8l2.45-4.9A2 2 0 0 1 7.24 2h9.52a2 2 0 0 1 1.79 1.1L21 8\"/><path d=\"M3 8h18\"/><path d=\"M9 12a3 3 0 0 0 6 0\"/></svg></div><span>Tidak ada nota sesuai filter.</span></div>`;
                 }
             } finally {
                 isRenderAdminNotaRunning = false;
@@ -3791,7 +4159,7 @@
             });
 
             if (!html) {
-                html = '<div class="text-center text-xs text-slate-400 py-4">Belum ada data laporan.</div>';
+                html = '<div class=\"flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-400 py-8\"><div class=\"w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center\"><svg class=\"w-5 h-5 text-slate-300 dark:text-slate-600\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8\"/><path d=\"M3 8l2.45-4.9A2 2 0 0 1 7.24 2h9.52a2 2 0 0 1 1.79 1.1L21 8\"/><path d=\"M3 8h18\"/><path d=\"M9 12a3 3 0 0 0 6 0\"/></svg></div><span>Belum ada data laporan.</span></div>';
             }
 
             container.innerHTML = html;
@@ -4045,7 +4413,7 @@
             const keys = Object.keys(cloudOngkirList || {});
 
             if (!keys.length) {
-                container.innerHTML = '<div class="text-center text-xs text-slate-400 py-4">Belum ada data ongkir.</div>';
+                container.innerHTML = '<div class=\"flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-400 py-8\"><div class=\"w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center\"><svg class=\"w-5 h-5 text-slate-300 dark:text-slate-600\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8\"/><path d=\"M3 8l2.45-4.9A2 2 0 0 1 7.24 2h9.52a2 2 0 0 1 1.79 1.1L21 8\"/><path d=\"M3 8h18\"/><path d=\"M9 12a3 3 0 0 0 6 0\"/></svg></div><span>Belum ada data ongkir.</span></div>';
                 return;
             }
 
@@ -4148,7 +4516,7 @@
                         </div>
                     </div>
                 `;
-            }).join('') : '<div class="text-center text-xs text-slate-400 py-4">Belum ada data ongkir.</div>';
+            }).join('') : '<div class=\"flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-400 py-8\"><div class=\"w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center\"><svg class=\"w-5 h-5 text-slate-300 dark:text-slate-600\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8\"/><path d=\"M3 8l2.45-4.9A2 2 0 0 1 7.24 2h9.52a2 2 0 0 1 1.79 1.1L21 8\"/><path d=\"M3 8h18\"/><path d=\"M9 12a3 3 0 0 0 6 0\"/></svg></div><span>Belum ada data ongkir.</span></div>';
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
         };
@@ -4401,27 +4769,189 @@
             document.getElementById('admin-ongkir-tujuan').value = '';
             document.getElementById('admin-ongkir-result-normal').classList.add('hidden');
         };
-
         window.openOngkirFeature = function() {
             if (!userSession || userSession.role !== 'kurir') return;
             const currentKurir = cloudKurirList[userSession.id];
-            if (!currentKurir) {
-                alert('Data akun tidak ditemukan.');
-                return;
-            }
-        
+            if (!currentKurir) { alert('Data akun tidak ditemukan.'); return; }
+
+            // izin cek: kalau locked, minta password dulu
             if (currentKurir.ongkirLocked) {
                 const inputPass = prompt('Masukkan password khusus untuk membuka fitur ongkir:');
-                if (!inputPass) return;        
+                if (!inputPass) return;
                 if (inputPass !== currentKurir.ongkirPassword) {
                     alert('Password ongkir salah!');
                     return;
                 }
-                update(ref(db, `users/${userSession.id}`), {
-                    ongkirLocked: false
-                });
+                update(ref(db, `users/${userSession.id}`), { ongkirLocked: false });
             }
+
             navigateTo('screen-ongkir');
+        };
+        window.openCekOngkirPopupFromNota = function() {
+            if (!userSession || userSession.role !== 'kurir') return;
+            const currentKurir = cloudKurirList[userSession.id];
+            if (!currentKurir) { alert('Data akun tidak ditemukan.'); return; }
+
+            if (currentKurir.ongkirLocked) {
+                const inputPass = prompt('Masukkan password khusus untuk membuka fitur ongkir:');
+                if (!inputPass) return;
+                if (inputPass !== currentKurir.ongkirPassword) {
+                    alert('Password ongkir salah!');
+                    return;
+                }
+                update(ref(db, `users/${userSession.id}`), { ongkirLocked: false });
+            }
+
+            const modal = document.getElementById('modal-cek-ongkir');
+            if (!modal) return;
+
+            // reset form & state popup setiap buka
+            const a = document.getElementById('cek-ongkir-asal');
+            const t = document.getElementById('cek-ongkir-tujuan');
+            const resBox = document.getElementById('cek-ongkir-result');
+            const btnPakai = document.getElementById('btn-pakai-ongkir');
+            const display = document.getElementById('cek-ongkir-display');
+
+            if (a) a.value = '';
+            if (t) t.value = '';
+
+            const sA = document.getElementById('suggest-cek-ongkir-asal');
+            const sT = document.getElementById('suggest-cek-ongkir-tujuan');
+            if (sA) { sA.classList.add('hidden'); sA.innerHTML = ''; }
+            if (sT) { sT.classList.add('hidden'); sT.innerHTML = ''; }
+
+            window.__lastOngkirPopupValue = 0;
+            if (display) display.innerText = 'Rp 0';
+            if (resBox) resBox.classList.add('hidden');
+            if (btnPakai) btnPakai.classList.add('hidden');
+
+            modal.classList.remove('hidden');
+        };
+     
+        window.closeCekOngkirPopup = function() {
+        const modal = document.getElementById('modal-cek-ongkir');
+        if (modal) modal.classList.add('hidden');
+        };
+
+        window.clearOngkirPopupForm = function() {
+            const a = document.getElementById('cek-ongkir-asal');
+            const t = document.getElementById('cek-ongkir-tujuan');
+            if (a) a.value = '';
+            if (t) t.value = '';
+
+            const sA = document.getElementById('suggest-cek-ongkir-asal');
+            const sT = document.getElementById('suggest-cek-ongkir-tujuan');
+            if (sA) { sA.classList.add('hidden'); sA.innerHTML = ''; }
+            if (sT) { sT.classList.add('hidden'); sT.innerHTML = ''; }
+
+            const res = document.getElementById('cek-ongkir-result');
+            if (res) res.classList.add('hidden');
+
+            const btnPakai = document.getElementById('btn-pakai-ongkir');
+            if (btnPakai) btnPakai.classList.add('hidden');
+
+            const display = document.getElementById('cek-ongkir-display');
+            if (display) display.innerText = 'Rp 0';
+
+            window.__lastOngkirPopupValue = 0;
+        };
+
+
+        function popupCariTarif(nama) {
+        for (let k in cloudOngkirList) {
+            const item = cloudOngkirList[k];
+            if (item && normalizeNama(item.wilayah) === normalizeNama(nama)) {
+            return parseInt(item.tarif) || 0;
+            }
+        }
+        return 0;
+        }
+
+        window.hitungOngkirPopup = function() {
+        const asal = document.getElementById('cek-ongkir-asal')?.value.trim() || '';
+        const tujuan = document.getElementById('cek-ongkir-tujuan')?.value.trim() || '';
+
+        if (!asal && !tujuan) return alert('Isi minimal salah satu: asal atau tujuan.');
+
+        const tarifAsal = asal ? popupCariTarif(asal) : 0;
+        const tarifTujuan = tujuan ? popupCariTarif(tujuan) : 0;
+
+        let hasil = 0;
+        if (asal && tujuan) hasil = tarifAsal + tarifTujuan - 6000;
+        else hasil = asal ? tarifAsal : tarifTujuan;
+
+        hasil = Math.max(0, hasil);
+
+        const resBox = document.getElementById('cek-ongkir-result');
+        const display = document.getElementById('cek-ongkir-display');
+        if (display) display.innerText = 'Rp ' + hasil.toLocaleString('id-ID');
+        if (resBox) resBox.classList.remove('hidden');
+
+        const btnPakai = document.getElementById('btn-pakai-ongkir');
+        if (btnPakai) btnPakai.classList.remove('hidden');
+
+        window.__lastOngkirPopupValue = hasil;
+        };
+        window.setOngkirToNotaPopup = function() {
+        const val = window.__lastOngkirPopupValue || 0;
+        if (val <= 0) return alert('Belum ada hasil estimasi ongkir.');
+
+        const asal = document.getElementById('cek-ongkir-asal')?.value?.trim() || '';
+        const tujuan = document.getElementById('cek-ongkir-tujuan')?.value?.trim() || '';
+
+        const draftKey = `d_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+        localStorage.setItem('last_ongkir_draft_key', draftKey);
+
+        const payload = {
+            draftKey,
+            kurirId: userSession?.id || '',
+            kurirUsername: userSession?.username || '',
+            kurirNama: userSession?.nama || '',
+            asal,
+            tujuan,
+            estimasiOngkir: val,
+            tglRaw: getWibRawDate(),
+            createdAt: new Date().toISOString()
+        };
+
+        push(ref(db, `ongkir_history_draft/${userSession?.id || 'unknown'}`), payload).catch(() => {});
+
+        const notaOngkir = document.getElementById('nota-ongkir');
+        if (notaOngkir) {
+            notaOngkir.value = val.toLocaleString('id-ID');
+            calculateNotaTotal();
+        }
+
+        closeCekOngkirPopup();
+        };
+        window.updateOngkirPopupSuggestions = function(type) {
+        const input = document.getElementById(`cek-ongkir-${type}`);
+        const box = document.getElementById(`suggest-cek-ongkir-${type}`);
+        if (!input || !box) return;
+
+        const q = normalizeNama(input.value);
+        if (!q) { box.classList.add('hidden'); box.innerHTML=''; return; }
+
+        const matches = [];
+        for (let k in cloudOngkirList) {
+            const item = cloudOngkirList[k];
+            if (item && normalizeNama(item.wilayah).includes(q)) matches.push(item.wilayah);
+        }
+
+        box.innerHTML = matches.slice(0, 6).map(nama => `
+            <div onclick="pilihSuggestionOngkirPopup('${type}','${nama.replace(/'/g,"\\'")}')" class="px-3 py-2 text-xs cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800">
+            ${nama}
+            </div>
+        `).join('');
+
+        box.classList.remove('hidden');
+        };
+
+        window.pilihSuggestionOngkirPopup = function(type, nama) {
+        const input = document.getElementById(`cek-ongkir-${type}`);
+        const box = document.getElementById(`suggest-cek-ongkir-${type}`);
+        if (input) input.value = nama;
+        if (box) { box.classList.add('hidden'); box.innerHTML=''; }
         };
 
         let currentKPISection = 'penghargaan';
@@ -5390,7 +5920,7 @@
             if (!inner || !isOpen) return;
 
             if (!keys.length) {
-                inner.innerHTML = '<div class="text-center text-xs text-slate-400 py-4">Belum ada data.</div>';
+                inner.innerHTML = '<div class=\"flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-400 py-8\"><div class=\"w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center\"><svg class=\"w-5 h-5 text-slate-300 dark:text-slate-600\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8\"/><path d=\"M3 8l2.45-4.9A2 2 0 0 1 7.24 2h9.52a2 2 0 0 1 1.79 1.1L21 8\"/><path d=\"M3 8h18\"/><path d=\"M9 12a3 3 0 0 0 6 0\"/></svg></div><span>Belum ada data.</span></div>';
                 return;
             }
 
@@ -5406,14 +5936,14 @@
                             </div>
                             <span class="text-[10px] text-slate-400 shrink-0">${d.kategori || '-'}</span>
                         </div>
-                        <div class="bg-slate-50 dark:bg-slate-800 p-2 rounded-lg grid grid-cols-1 gap-1 font-mono text-[11px]">
+                        <div class="bg-slate-50 dark:bg-slate-800 p-2 rounded-xl grid grid-cols-1 gap-1 font-mono text-[11px]">
                             <div class="dark:text-slate-300">User: <span class="text-primary font-bold">${d.username || '-'}</span></div>
                             <div class="dark:text-slate-300">Pass: <span class="text-amber-500 font-bold">${d.password || '-'}</span></div>
                             <div class="dark:text-slate-300">Status: <span class="font-bold ${d.status === 'aktif' ? 'text-emerald-500' : 'text-rose-500'}">${d.status || '-'}</span></div>
                         </div>
                         <div class="flex justify-end gap-2 pt-1">
-                            <button onclick="editDataManajemen('${key}')" class="px-2.5 py-1 bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-white rounded-md font-semibold">Edit</button>
-                            <button onclick="hapusDataManajemen('${key}')" class="px-2.5 py-1 bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400 rounded-md font-semibold">Hapus</button>
+                            <button onclick="editDataManajemen('${key}')" class="px-2.5 py-1 bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-white rounded-xl font-semibold">Edit</button>
+                            <button onclick="hapusDataManajemen('${key}')" class="px-2.5 py-1 bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400 rounded-xl font-semibold">Hapus</button>
                         </div>
                     </div>
                 `;
@@ -5691,7 +6221,7 @@
                 .sort((a, b) => b.skorAkhir - a.skorAkhir);
         
             if (!data.length) {
-                container.innerHTML = '<div class="text-center text-xs text-slate-400 py-4">Belum ada data leader.</div>';
+                container.innerHTML = '<div class=\"flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-400 py-8\"><div class=\"w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center\"><svg class=\"w-5 h-5 text-slate-300 dark:text-slate-600\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8\"/><path d=\"M3 8l2.45-4.9A2 2 0 0 1 7.24 2h9.52a2 2 0 0 1 1.79 1.1L21 8\"/><path d=\"M3 8h18\"/><path d=\"M9 12a3 3 0 0 0 6 0\"/></svg></div><span>Belum ada data leader.</span></div>';
                 return;
             }
         
@@ -5819,7 +6349,7 @@
         
             const keys = Object.keys(cloudLeaderList || {});
             if (!keys.length) {
-                container.innerHTML = '<div class="text-center text-xs text-slate-400 py-3">Belum ada leader tersimpan.</div>';
+                container.innerHTML = '<div class=\"flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-400 py-8\"><div class=\"w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center\"><svg class=\"w-5 h-5 text-slate-300 dark:text-slate-600\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8\"/><path d=\"M3 8l2.45-4.9A2 2 0 0 1 7.24 2h9.52a2 2 0 0 1 1.79 1.1L21 8\"/><path d=\"M3 8h18\"/><path d=\"M9 12a3 3 0 0 0 6 0\"/></svg></div><span>Belum ada leader tersimpan.</span></div>';
                 return;
             }
         
@@ -5846,8 +6376,8 @@
                                 <div class="text-[10px] text-slate-400">Anggota: ${anggota.length}</div>
                             </div>
                             <div class="flex gap-2">
-                                <button onclick="editLeaderData('${key}')" class="px-2 py-1 rounded-md bg-blue-50 text-blue-600 text-[10px] font-bold">Edit</button>
-                                <button onclick="hapusLeaderData('${key}')" class="px-2 py-1 rounded-md bg-rose-50 text-rose-600 text-[10px] font-bold">Hapus</button>
+                                <button onclick="editLeaderData('${key}')" class="px-2 py-1 rounded-xl bg-blue-50 text-blue-600 text-[10px] font-bold">Edit</button>
+                                <button onclick="hapusLeaderData('${key}')" class="px-2 py-1 rounded-xl bg-rose-50 text-rose-600 text-[10px] font-bold">Hapus</button>
                             </div>
                         </div>
         
@@ -5859,17 +6389,17 @@
                         </div>
         
                         <div class="grid grid-cols-3 gap-2 text-[10px]">
-                            <div class="p-2 rounded-lg bg-emerald-50 text-emerald-700">
+                            <div class="p-2 rounded-xl bg-emerald-50 text-emerald-700">
                                 <div class="font-bold">Terbaik</div>
                                 <div>${terbaik ? terbaik.nama : '-'}</div>
                                 <div>Rating: ${terbaik ? terbaik.rating : 0}%</div>
                             </div>
-                            <div class="p-2 rounded-lg bg-amber-50 text-amber-700">
+                            <div class="p-2 rounded-xl bg-amber-50 text-amber-700">
                                 <div class="font-bold">Sedang</div>
                                 <div>${sedang ? sedang.nama : '-'}</div>
                                 <div>Rating: ${sedang ? sedang.rating : 0}%</div>
                             </div>
-                            <div class="p-2 rounded-lg bg-rose-50 text-rose-700">
+                            <div class="p-2 rounded-xl bg-rose-50 text-rose-700">
                                 <div class="font-bold">Beban</div>
                                 <div>${beban ? beban.nama : '-'}</div>
                                 <div>Rating: ${beban ? beban.rating : 0}%</div>
@@ -6011,6 +6541,7 @@
                 }
             });
         }
+        let cloudNotificationList = {};
         
         window.toggleNotifTarget = function() {
             const target = document.getElementById('notif-target').value;
@@ -6052,15 +6583,17 @@
             const select = document.getElementById('notif-target-list');
             if (select) Array.from(select.options).forEach(o => o.selected = false);
         };
+
         function renderKurirNotifications() {
             if (!userSession || userSession.role !== 'kurir') return;
-
+        
             const box = document.getElementById('kurir-notif-box');
-            if (!box) return;
-
+            const text = document.getElementById('kurir-notif-text');
+            if (!box || !text) return;
+        
             const username = userSession.username;
             const hiddenIds = getHiddenNotifIds();
-
+        
             const found = Object.entries(cloudNotificationList || {})
                 .sort((a, b) => (b[1]?.createdAt || '').localeCompare(a[1]?.createdAt || ''))
                 .find(([id, n]) => {
@@ -6072,33 +6605,26 @@
                     }
                     return false;
                 });
-
+        
             if (!found) {
                 box.classList.add('hidden');
-                box.innerHTML = '';
+                text.innerHTML = '';
                 return;
             }
-
+        
             const [notifId, notif] = found;
-            box.innerHTML = `
-                <div class="relative">
+            text.innerHTML = `
+                <div class="relative pr-7 leading-snug text-[10px]">
+                    ${notif.message || ''}
                     <button onclick="dismissKurirNotification('${notifId}')"
-                        class="absolute -top-4 -right-0 text-rose-500 text-[12px] font-black leading-none p-0 m-0 bg-transparent">
-                        X
+                        class="absolute top-0 right-0 w-5 h-5 flex items-center justify-center rounded-full bg-white/90 text-rose-500 text-[10px] font-bold shadow-sm">
+                        ✕
                     </button>
-                    <div class="flex items-start gap-2 pr-5">
-                        <i data-lucide="bell-ring" class="w-4 h-4 mt-0.5 shrink-0"></i>
-                        <div class="text-xs min-w-0 flex-1">
-                            <div class="font-bold">Notifikasi</div>
-                            <div class="mt-1 leading-relaxed text-[10px] sm:text-xs">${notif.message || ''}</div>
-                        </div>
-                    </div>
                 </div>
             `;
             box.classList.remove('hidden');
-            if (typeof lucide !== 'undefined') lucide.createIcons();
         }
-
+        
         onValue(ref(db, 'notifications_admin'), (snapshot) => {
             cloudNotificationList = snapshot.val() || {};
             queueUiRefresh();
