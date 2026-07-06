@@ -12,6 +12,98 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         };
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
+
+        // ===================================================================
+        // SISTEM NOTIFIKASI TOAST & KONFIRMASI MODERN
+        // Pengganti alert()/confirm() bawaan browser di seluruh aplikasi.
+        // ===================================================================
+        let __toastSeq = 0;
+        window.toast = function(message, type) {
+            if (!message) return;
+            if (!type) {
+                const m = String(message).toLowerCase();
+                if (m.includes('berhasil') || m.includes('tersimpan') || m.includes('sukses') || m.includes('terkirim')) {
+                    type = 'success';
+                } else if (m.includes('gagal') || m.includes('tidak terdaftar') || m.includes('salah') || m.includes('gangguan')
+                    || m.includes('dinonaktifkan') || m.includes('tidak ditemukan') || m.includes('tidak boleh')
+                    || m.includes('mohon') || m.includes('lengkapi') || m.includes('kosong') || m.includes('sudah dipakai')
+                    || m.includes('sudah terdaftar') || m.includes('belum ada')) {
+                    type = 'warning';
+                } else {
+                    type = 'info';
+                }
+            }
+            const container = document.getElementById('toast-container');
+            if (!container) { console.log('[toast]', message); return; }
+
+            const styleMap = {
+                success: { bg: 'bg-emerald-500', icon: 'check-circle-2' },
+                warning: { bg: 'bg-rose-500', icon: 'alert-circle' },
+                info: { bg: 'bg-slate-800', icon: 'info' }
+            };
+            const s = styleMap[type] || styleMap.info;
+
+            // Batasi maksimal 3 toast tampil bersamaan agar ringan di HP RAM kecil
+            while (container.children.length >= 3) {
+                container.removeChild(container.firstChild);
+            }
+
+            const id = 'toast-' + (++__toastSeq);
+            const el = document.createElement('div');
+            el.id = id;
+            el.className = `${s.bg} text-white text-xs font-medium px-4 py-3 rounded-xl shadow-lg flex items-start gap-2.5 pointer-events-auto toast-enter`;
+            el.innerHTML = `<i data-lucide="${s.icon}" class="w-4 h-4 mt-0.5 shrink-0"></i><span class="leading-snug">${message}</span>`;
+            container.appendChild(el);
+            if (window.lucide) lucide.createIcons();
+
+            requestAnimationFrame(() => el.classList.add('toast-show'));
+
+            const lifeMs = 3200;
+            const timer = setTimeout(() => removeToast(el), lifeMs);
+            el.addEventListener('click', () => { clearTimeout(timer); removeToast(el); });
+
+            function removeToast(node) {
+                if (!node || !node.parentNode) return;
+                node.classList.add('toast-exit');
+                setTimeout(() => node.remove(), 250);
+            }
+        };
+
+        // Modal konfirmasi kustom, menggantikan window.confirm().
+        // Pemakaian: const ok = await showConfirm("Yakin hapus data ini?");
+        window.showConfirm = function(message, opts) {
+            opts = opts || {};
+            return new Promise((resolve) => {
+                const modal = document.getElementById('modal-confirm-global');
+                if (!modal) { resolve(window.confirm(message)); return; }
+
+                const msgEl = document.getElementById('confirm-message');
+                const titleEl = document.getElementById('confirm-title');
+                const okBtn = document.getElementById('confirm-btn-ok');
+                const cancelBtn = document.getElementById('confirm-btn-cancel');
+
+                if (msgEl) msgEl.textContent = message || 'Apakah Anda yakin?';
+                if (titleEl) titleEl.textContent = opts.title || 'Konfirmasi';
+                if (okBtn) okBtn.textContent = opts.okText || 'Ya, Lanjutkan';
+                if (cancelBtn) cancelBtn.textContent = opts.cancelText || 'Batal';
+
+                modal.classList.remove('hidden');
+                if (window.lucide) lucide.createIcons();
+
+                function cleanup(result) {
+                    modal.classList.add('hidden');
+                    okBtn.removeEventListener('click', onOk);
+                    cancelBtn.removeEventListener('click', onCancel);
+                    resolve(result);
+                }
+                function onOk() { cleanup(true); }
+                function onCancel() { cleanup(false); }
+
+                okBtn.addEventListener('click', onOk);
+                cancelBtn.addEventListener('click', onCancel);
+            });
+        };
+
         let userSession = null; 
         let currentScreen = 'screen-login';
         let navigationHistory = [];
@@ -300,24 +392,30 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const kurirEntries = Object.entries(cloudKurirList || {}).filter(([id, user]) => user && user.role === 'kurir');
 
             if (kurirEntries.length === 0) {
-                container.innerHTML = '<div class=\"flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-400 py-8\"><div class=\"w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center\"><svg class=\"w-5 h-5 text-slate-300 dark:text-slate-600\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8\"/><path d=\"M3 8l2.45-4.9A2 2 0 0 1 7.24 2h9.52a2 2 0 0 1 1.79 1.1L21 8\"/><path d=\"M3 8h18\"/><path d=\"M9 12a3 3 0 0 0 6 0\"/></svg></div><span>Belum ada data kurir.</span></div>';
+                container.innerHTML = '<div class="text-center text-xs text-slate-400 py-4">Belum ada data kurir.</div>';
                 return;
             }
 
             kurirEntries.forEach(([id, user]) => {
                 const loc = liveLocations[id];
                 const hasLocation = loc && typeof loc.lat === 'number' && typeof loc.lng === 'number';
+                const nama = user.nama || user.username || '?';
+                const initial = nama.trim().charAt(0).toUpperCase();
 
                 container.innerHTML += `
-                    <button onclick="selectTrackingKurir('${id}')" class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 dark:border-slate-700 hover:border-primary hover:shadow-md hover:-translate-y-0.5 text-left transition-all duration-300 active:scale-95">
-                        <div>
-                            <div class="font-bold text-sm">${user.nama || user.username}</div>
-                            <div class="text-[10px] text-slate-400">${hasLocation ? 'Lokasi terdeteksi' : 'Belum ada lokasi'}</div>
+                    <button onclick="selectTrackingKurir('${id}')" class="tracking-item w-full text-left active:scale-95">
+                        <div class="tracking-avatar">${initial}</div>
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold text-sm truncate">${nama}</div>
+                            <div class="text-[10px] ${hasLocation ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'} flex items-center gap-1 mt-0.5">
+                                ${hasLocation ? '<span class="tracking-live-dot"></span> Lokasi terdeteksi' : 'Belum ada lokasi'}
+                            </div>
                         </div>
-                        <span class="w-3 h-3 rounded-full ${hasLocation ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'} shrink-0"></span>
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 dark:text-slate-600 shrink-0"></i>
                     </button>
                 `;
             });
+            if (window.lucide) lucide.createIcons();
         };
 
         window.selectTrackingKurir = function(id) {
@@ -568,8 +666,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                         launchApplicationSession("screen-dashboard");
                         if (typeof startLiveLocationTracking === "function") startLiveLocationTracking();
                     } else if (currentKurir && currentKurir.status !== 'aktif') {
-                        alert("Sesi berakhir. Akun Anda telah dinonaktifkan oleh Admin.");
-                        handleLogout();
+                        toast("Sesi berakhir. Akun Anda telah dinonaktifkan oleh Admin.");
+                        performLogout();
                     }
                 }
             });
@@ -756,6 +854,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                     }, 50);
                 } else if (userSession.role === 'kurir') {
                     launchApplicationSession("screen-dashboard");
+                    // Mulai kirim lokasi live SEKARANG JUGA saat refresh/auto-login,
+                    // jangan menunggu data 'users' selesai sinkron dari cloud dulu.
+                    if (typeof startLiveLocationTracking === "function") startLiveLocationTracking();
                 }
             }
             document.addEventListener('click', function(e) {
@@ -775,6 +876,27 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             if (typeof initOrderDepositModule === 'function') initOrderDepositModule();
             if (typeof renderKurirNotifications === 'function') renderKurirNotifications();
         });
+        window.toggleLoginPasswordVisibility = function() {
+            const input = document.getElementById('login-password');
+            const btn = document.getElementById('btn-toggle-login-pass');
+            if (!input || !btn) return;
+            const showing = input.type === 'text';
+            input.type = showing ? 'password' : 'text';
+            btn.innerHTML = showing
+                ? '<i data-lucide="eye" class="w-4 h-4"></i>'
+                : '<i data-lucide="eye-off" class="w-4 h-4"></i>';
+            if (window.lucide) lucide.createIcons();
+        };
+
+        function setLoginButtonLoading(isLoading) {
+            const btnSubmit = document.getElementById('btn-login-submit');
+            const label = document.getElementById('btn-login-submit-text');
+            if (!btnSubmit) return;
+            btnSubmit.disabled = isLoading;
+            btnSubmit.classList.toggle('opacity-80', isLoading);
+            if (label) label.innerText = isLoading ? 'Memverifikasi...' : 'Masuk';
+        }
+
         window.handleLogin = function(e) {
             if (e) e.preventDefault();
         
@@ -783,14 +905,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const btnSubmit = document.getElementById('btn-login-submit');
         
             if (!userIn || !passIn) {
-                alert("Mohon masukkan username dan password Anda.");
+                if (typeof toast === 'function') toast('Mohon masukkan username dan password Anda.', 'warning');
+                else toast("Mohon masukkan username dan password Anda.");
                 return;
             }
         
-            if (btnSubmit) {
-                btnSubmit.disabled = true;
-                btnSubmit.innerText = "MEMVERIFIKASI...";
-            }
+            setLoginButtonLoading(true);
         
             // 1) Cek login admin utama
             get(ref(db, 'loginadmin'))
@@ -808,10 +928,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                             launchApplicationSession("screen-admin-dashboard");
                             applyManajemenAccess("Owner");
                         
-                            if (btnSubmit) {
-                                btnSubmit.disabled = false;
-                                btnSubmit.innerText = "Masuk Sistem";
-                            }
+                            setLoginButtonLoading(false);
                             return true;
                         }
                     }
@@ -850,10 +967,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                                     applyManajemenAccess(m.kategori || "-");
                                 }, 100);
         
-                                if (btnSubmit) {
-                                    btnSubmit.disabled = false;
-                                    btnSubmit.innerText = "Masuk Sistem";
-                                }
+                                setLoginButtonLoading(false);
                                 return true;
                             }
                         }
@@ -886,14 +1000,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                         }
                     }
         
-                    if (btnSubmit) {
-                        btnSubmit.disabled = false;
-                        btnSubmit.innerText = "Masuk Sistem";
-                    }
+                    setLoginButtonLoading(false);
         
                     if (foundUser) {
                         if (foundUser.status !== "aktif") {
-                            alert("Gagal masuk! Status akun Anda dinonaktifkan atau diblokir oleh Admin.");
+                            toast("Gagal masuk! Status akun Anda dinonaktifkan atau diblokir oleh Admin.");
                             return;
                         }
         
@@ -914,44 +1025,42 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                         launchApplicationSession("screen-dashboard");
                         if (typeof startLiveLocationTracking === "function") startLiveLocationTracking();
                     } else {
-                        alert("Username & Password tidak terdaftar atau salah!");
+                        toast("Username & Password tidak terdaftar atau salah!");
                     }
                 })
                 .catch((error) => {
                     console.error("Login Error: ", error);
-                    alert("Terjadi gangguan koneksi ke server: " + error.message);
-                    if (btnSubmit) {
-                        btnSubmit.disabled = false;
-                        btnSubmit.innerText = "Masuk Sistem";
-                    }
+                    toast("Terjadi gangguan koneksi ke server: " + error.message);
+                    setLoginButtonLoading(false);
                 });
         };
-        window.changePassword = function() {
+        window.changePassword = async function() {
             const newPassword = document.getElementById('new-password').value.trim();
             
             if (!newPassword) {
-                alert("Mohon masukkan password baru!");
+                toast("Mohon masukkan password baru!");
                 return;
             }
             
             if (!userSession || !userSession.id) {
-                alert("Sesi tidak ditemukan. Silakan login ulang.");
+                toast("Sesi tidak ditemukan. Silakan login ulang.");
                 return;
             }
         
-            if (confirm("Apakah Anda yakin ingin mengubah password Anda?")) {
+            const ok = await showConfirm("Apakah Anda yakin ingin mengubah password Anda?");
+            if (ok) {
                 const dbRef = ref(db, 'users/' + userSession.id);
                 
                 update(dbRef, {
                     password: newPassword
                 })
                 .then(() => {
-                    alert("Password berhasil diperbarui! Silakan login kembali untuk keamanan.");
+                    toast("Password berhasil diperbarui! Silakan login kembali untuk keamanan.");
                     document.getElementById('new-password').value = '';
-                    handleLogout(); 
+                    performLogout(); 
                 })
                 .catch((error) => {
-                    alert("Gagal mengubah password: " + error.message);
+                    toast("Gagal mengubah password: " + error.message);
                 });
             }
         };
@@ -960,11 +1069,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const newPassword = document.getElementById('admin-password').value.trim();
         
             if (!newUsername || !newPassword) {
-                alert("Mohon isi username dan password baru!");
+                toast("Mohon isi username dan password baru!");
                 return;
             }
         
-            if (!confirm("Yakin ingin mengubah username dan password akun ini?")) return;
+            if (!(await showConfirm("Yakin ingin mengubah username dan password akun ini?"))) return;
         
             try {
                 if (userSession && userSession.role === 'owner') {
@@ -978,38 +1087,38 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                         password: newPassword
                     });
                 } else {
-                    alert("Akun tidak dikenali.");
+                    toast("Akun tidak dikenali.");
                     return;
                 }
         
-                alert("Username dan password berhasil diubah!");
+                toast("Username dan password berhasil diubah!");
                 document.getElementById('admin-username').value = '';
                 document.getElementById('admin-password').value = '';
                 document.getElementById('admin-current-username').value = newUsername;
                 userSession.username = newUsername;
                 localStorage.setItem('sahabatku_session', JSON.stringify(userSession));
             } catch (err) {
-                alert("Gagal mengubah login: " + err.message);
+                toast("Gagal mengubah login: " + err.message);
             }
         };
 
-        window.changeKurirLogin = function() {
+        window.changeKurirLogin = async function() {
             const newUsername = document.getElementById('new-username').value.trim().toLowerCase();
             const newPassword = document.getElementById('new-password').value.trim();
         
             if (!newUsername || !newPassword) {
-                alert("Mohon isi username dan password baru!");
+                toast("Mohon isi username dan password baru!");
                 return;
             }
         
             if (!userSession || !userSession.id || userSession.role !== 'kurir') {
-                alert("Sesi kurir tidak ditemukan!");
+                toast("Sesi kurir tidak ditemukan!");
                 return;
             }
         
             const currentUser = cloudKurirList[userSession.id];
             if (!currentUser) {
-                alert("Data kurir tidak ditemukan!");
+                toast("Data kurir tidak ditemukan!");
                 return;
             }
         
@@ -1018,25 +1127,25 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             });
         
             if (duplicate) {
-                alert("Username sudah dipakai kurir lain!");
+                toast("Username sudah dipakai kurir lain!");
                 return;
             }
         
-            if (!confirm("Yakin ingin mengubah username dan password kurir?")) return;
+            if (!(await showConfirm("Yakin ingin mengubah username dan password kurir?"))) return;
         
             update(ref(db, `users/${userSession.id}`), {
                 username: newUsername,
                 password: newPassword
             })
             .then(() => {
-                alert("Username dan password kurir berhasil diubah!");
+                toast("Username dan password kurir berhasil diubah!");
                 userSession.username = newUsername;
                 localStorage.setItem('sahabatku_session', JSON.stringify(userSession));
                 document.getElementById('new-username').value = '';
                 document.getElementById('new-password').value = '';
             })
             .catch((error) => {
-                alert("Gagal mengubah login kurir: " + error.message);
+                toast("Gagal mengubah login kurir: " + error.message);
             });
         };
         window.launchApplicationSession = function(targetDashboard) {
@@ -1053,17 +1162,32 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const navDashboardBtn = document.getElementById('nav-dashboard-btn');
             const navNotaBtn = document.getElementById('nav-nota-btn');
             const navSistemBtn = document.getElementById('nav-sistem-btn');
+            const globalNav = document.getElementById('global-nav');
+            const mainLayoutEl = document.getElementById('main-layout');
+            // Bottom nav (Dashboard / + / Sistem) hanya untuk role kurir.
+            // Admin (owner/manajemen) tidak menampilkan nav bawah sama sekali.
             const showKurirNav = userSession && userSession.role === 'kurir';
-            const showOwnerNav = userSession && userSession.role === 'owner';
-            
+
             [navDashboardBtn, navNotaBtn, navSistemBtn].forEach(btn => {
                 if (!btn) return;
-                if (showKurirNav || showOwnerNav) {
+                if (showKurirNav) {
                     btn.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
                 } else {
                     btn.classList.add('hidden', 'opacity-0', 'pointer-events-none');
                 }
             });
+
+            if (globalNav) {
+                if (showKurirNav) {
+                    globalNav.classList.remove('hidden');
+                } else {
+                    globalNav.classList.add('hidden');
+                }
+            }
+            if (mainLayoutEl) {
+                mainLayoutEl.classList.toggle('pb-20', showKurirNav);
+                mainLayoutEl.classList.toggle('pb-4', !showKurirNav);
+            }
         
             const kurirBox = document.getElementById('security-account-box');
             const adminBox = document.getElementById('admin-security-account-box');
@@ -1108,6 +1232,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const adminMenus = [
                 'screen-admin-kurir',
                 'screen-admin-manajemen',
+                'screen-admin-leader',
                 'screen-admin-nota',
                 'screen-admin-mitra',
                 'screen-admin-laporan',
@@ -1145,35 +1270,78 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             if (userSession && userSession.role === 'manajemen') {
                 applyManajemenAccess(userSession.kategori || '-');
             }
+
+            // Reminder otomatis "belum input mitra" — hanya untuk kurir
+            if (userSession && userSession.role === 'kurir') {
+                if (typeof startMitraReminderWatcher === 'function') startMitraReminderWatcher();
+            } else {
+                if (typeof stopMitraReminderWatcher === 'function') stopMitraReminderWatcher();
+            }
         
             navigateTo(targetDashboard);
         };
 
-        window.handleLogout = function() {
-            if(confirm("Apakah Anda yakin ingin keluar dari sistem Sahabatku Delivery?")) {
-                localStorage.removeItem('sahabatku_session');
-                userSession = {};
-                
-                if(document.getElementById('login-username')) document.getElementById('login-username').value = '';
-                if(document.getElementById('login-password')) document.getElementById('login-password').value = '';
-                
-                ['nav-dashboard-btn', 'nav-nota-btn', 'nav-sistem-btn'].forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) {
-                        el.classList.add('hidden', 'opacity-0', 'pointer-events-none');
-                    }
-                });
-                if (watchId) {
-                    navigator.geolocation.clearWatch(watchId);
-                    watchId = null;
+        function performLogout() {
+            localStorage.removeItem('sahabatku_session');
+            userSession = {};
+            if (typeof stopMitraReminderWatcher === 'function') stopMitraReminderWatcher();
+            
+            if(document.getElementById('login-username')) document.getElementById('login-username').value = '';
+            if(document.getElementById('login-password')) document.getElementById('login-password').value = '';
+            
+            ['nav-dashboard-btn', 'nav-nota-btn', 'nav-sistem-btn'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.classList.add('hidden', 'opacity-0', 'pointer-events-none');
                 }
-                navigateTo('screen-login');
+            });
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
             }
+            navigateTo('screen-login');
+        }
+
+        window.handleLogout = async function() {
+            const ok = await showConfirm("Apakah Anda yakin ingin keluar dari sistem Sahabatku Delivery?");
+            if (ok) performLogout();
+        }
+
+        const SCREEN_META = {
+            'screen-nota': { title: 'Buat Nota', icon: 'receipt' },
+            'screen-preview': { title: 'Pratinjau Nota', icon: 'eye' },
+            'screen-riwayat': { title: 'Riwayat Nota', icon: 'history' },
+            'screen-rekap': { title: 'Rekap Kerja', icon: 'bar-chart-4' },
+            'screen-statistik': { title: 'Statistik & Peringkat', icon: 'trending-up' },
+            'screen-mitra': { title: 'Mitra & Transaksi', icon: 'store' },
+            'screen-ongkir': { title: 'Cek Ongkir', icon: 'route' },
+            'screen-pengaturan': { title: 'Pengaturan', icon: 'settings-2' },
+            'screen-admin-kurir': { title: 'Data Akun Kurir', icon: 'users' },
+            'screen-admin-manajemen': { title: 'Manajemen', icon: 'users-round' },
+            'screen-admin-leader': { title: 'Leader & Penilaian', icon: 'crown' },
+            'screen-admin-nota': { title: 'Semua Nota Kurir', icon: 'file-spreadsheet' },
+            'screen-admin-mitra': { title: 'Kelola Mitra', icon: 'store' },
+            'screen-admin-laporan': { title: 'Laporan', icon: 'file-down' },
+            'screen-admin-tracking': { title: 'Tracking Kurir', icon: 'map-pin' },
+            'screen-admin-kpi': { title: 'KPI & Penghargaan', icon: 'trophy' },
+            'screen-admin-absensi': { title: 'Absensi', icon: 'calendar-check' },
+            'screen-admin-ongkir': { title: 'Wilayah Ongkir', icon: 'route' },
+            'screen-admin-order-deposit': { title: 'Input Deposit', icon: 'clipboard-list' },
+            'screen-admin-testimonial': { title: 'Testimoni Customer', icon: 'message-circle-more' },
+            'screen-admin-notifikasi': { title: 'Kirim Notifikasi', icon: 'bell-ring' }
+        };
+        function applyAppBarMeta(screenId) {
+            const appBarTitle = document.getElementById('app-bar-title');
+            const appBarIcon = document.getElementById('app-bar-icon');
+            const meta = SCREEN_META[screenId] || { title: screenId.replace('screen-', '').replace(/-/g, ' ').toUpperCase(), icon: 'layout-grid' };
+            if (appBarTitle) appBarTitle.innerText = meta.title;
+            if (appBarIcon) appBarIcon.setAttribute('data-lucide', meta.icon);
+            if (window.lucide) lucide.createIcons();
         }
 
         window.navigateTo = function(screenId) {
             if (screenId === 'screen-nota' && (!userSession || userSession.role !== 'kurir')) {
-                alert('Menu Nota hanya untuk login kurir.');
+                toast('Menu Nota hanya untuk login kurir.');
                 return;
             }
             if (screenId === 'screen-admin-laporan') {
@@ -1206,6 +1374,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             if (screenId === 'screen-admin-notifikasi') {
                 setTimeout(() => {
                     populateNotifKurirList();
+                    const senderLabelEl = document.getElementById('notif-sender-label');
+                    if (senderLabelEl) senderLabelEl.innerText = getSenderInfo().senderLabel;
                 }, 100);
             }
             
@@ -1214,6 +1384,17 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                     const bulanEl = document.getElementById('kpi-filter-bulan');
                     if (bulanEl && !bulanEl.value) bulanEl.value = getWibRawDate().slice(0, 7);
                     renderKPISection(currentKPISection);
+                }, 100);
+            }
+            if (screenId === 'screen-admin-leader') {
+                setTimeout(() => {
+                    if (typeof populateAnggotaDropdownLeader === 'function') populateAnggotaDropdownLeader();
+                    if (typeof renderLeaderList === 'function') renderLeaderList();
+                }, 100);
+            }
+            if (screenId === 'screen-statistik') {
+                setTimeout(() => {
+                    if (typeof renderStatistikKurir === 'function') renderStatistikKurir();
                 }, 100);
             }
             if (screenId === currentScreen) return;
@@ -1229,8 +1410,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 } else {
                     appBar.classList.remove('hidden');
                     appBar.classList.add('flex');
-                    const appBarTitle = document.getElementById('app-bar-title');
-                    if (appBarTitle) appBarTitle.innerText = screenId.replace('screen-', '').toUpperCase();
+                    applyAppBarMeta(screenId);
                 }
             }
         
@@ -1267,8 +1447,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                         appBar.classList.remove('flex');
                         appBar.classList.add('hidden');
                     } else {
-                        const appBarTitle = document.getElementById('app-bar-title');
-                        if (appBarTitle) appBarTitle.innerText = prev.replace('screen-', '').toUpperCase();
+                        applyAppBarMeta(prev);
                     }
                 }
 
@@ -1363,12 +1542,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const status = document.getElementById('ak-status').value;
         
             if (!nama || !username || !password || !tglGabung) {
-                alert('Mohon lengkapi seluruh form akun kurir!');
+                toast('Mohon lengkapi seluruh form akun kurir!');
                 return;
             }
         
             if (leader && !isLeaderExist(leader)) {
-                alert('Leader yang dipilih belum ada di data leader!');
+                toast('Leader yang dipilih belum ada di data leader!');
                 return;
             }
         
@@ -1393,7 +1572,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 );
         
                 if (isDuplicated) {
-                    alert(`Username "${username}" sudah terdaftar! Gunakan username yang berbeda.`);
+                    toast(`Username "${username}" sudah terdaftar! Gunakan username yang berbeda.`);
                     return;
                 }
         
@@ -1402,12 +1581,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         
             set(targetRef, userData)
                 .then(() => {
-                    alert('Akun kurir berhasil disimpan!');
+                    toast('Akun kurir berhasil disimpan!');
                     resetFormKurir();
                 })
                 .catch((error) => {
                     console.error("Error saving to Firebase:", error);
-                    alert('Gagal menyimpan data: ' + error.message);
+                    toast('Gagal menyimpan data: ' + error.message);
                 });
         };
         window.resetFormKurir = function() {
@@ -1456,11 +1635,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const tglGabung = document.getElementById('edit-kurir-tgl-gabung').value;
             const status = document.getElementById('edit-kurir-status').value;
         
-            if (!id) return alert('Data kurir tidak ditemukan!');
-            if (!nama || !username || !password || !tglGabung) return alert('Lengkapi semua data kurir!');
+            if (!id) return toast('Data kurir tidak ditemukan!');
+            if (!nama || !username || !password || !tglGabung) return toast('Lengkapi semua data kurir!');
         
             if (leader && !isLeaderExist(leader)) {
-                alert('Leader yang dipilih belum ada di data leader!');
+                toast('Leader yang dipilih belum ada di data leader!');
                 return;
             }
         
@@ -1472,18 +1651,19 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 tglGabung,
                 status
             }).then(() => {
-                alert('Data kurir berhasil diperbarui!');
+                toast('Data kurir berhasil diperbarui!');
                 closeEditKurirModal();
             }).catch(err => {
-                alert('Gagal update kurir: ' + err.message);
+                toast('Gagal update kurir: ' + err.message);
             });
         };
 
-        window.hapusAkunKurir = function(key) {
-            if (confirm("Apakah Anda yakin ingin menghapus akun kurir ini secara permanen dari database?")) {
+        window.hapusAkunKurir = async function(key) {
+            const ok = await showConfirm("Apakah Anda yakin ingin menghapus akun kurir ini secara permanen dari database?");
+            if (ok) {
                 remove(ref(db, `users/${key}`))
-                .then(() => alert("Akun kurir berhasil dihapus."))
-                .catch(err => alert("Gagal menghapus: " + err.message));
+                .then(() => toast("Akun kurir berhasil dihapus."))
+                .catch(err => toast("Gagal menghapus: " + err.message));
             }
         };
         let selectedKpiDetail = null;
@@ -1574,14 +1754,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         
             const passwordOngkir = input.value.trim();
             if (!passwordOngkir) {
-                alert('Password ongkir tidak boleh kosong!');
+                toast('Password ongkir tidak boleh kosong!');
                 return;
             }
         
             update(ref(db, `users/${key}`), {
                 ongkirPassword: passwordOngkir
             }).then(() => {
-                alert('Password ongkir berhasil disimpan!');
+                toast('Password ongkir berhasil disimpan!');
             });
         };
         
@@ -1594,7 +1774,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             update(ref(db, `users/${key}`), {
                 ongkirLocked: newStatus
             }).then(() => {
-                alert(newStatus ? 'Akses ongkir dikunci.' : 'Akses ongkir dibuka.');
+                toast(newStatus ? 'Akses ongkir dikunci.' : 'Akses ongkir dibuka.');
             });
         };
 
@@ -1608,8 +1788,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 }
             }
         }
-        window.hapusNotaGlobal = function(key) {
-            if(confirm("Hapus nota ini secara permanen dari server cloud?")) {
+        window.hapusNotaGlobal = async function(key) {
+            const ok = await showConfirm("Hapus nota ini secara permanen dari server cloud?");
+            if (ok) {
                 const n = cloudNotaList?.[key];
                 const notaId = n?.id;
 
@@ -1617,13 +1798,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 remove(ref(db, `nota/${key}`)).then(() => {
                     // ikut hapus ongkir history per nota
                     if (notaId) remove(ref(db, `ongkir_history/${notaId}`)).catch(() => {});
-                    alert('Nota dan history ongkir ikut terhapus!');
+                    toast('Nota dan history ongkir ikut terhapus!');
                 }).catch(err => {
-                    alert('Gagal hapus nota: ' + err.message);
+                    toast('Gagal hapus nota: ' + err.message);
                 });
             }
         };
-        window.hapusSemuaNotaTersaring = function() {
+        window.hapusSemuaNotaTersaring = async function() {
             const filterKurir = document.getElementById('an-filter-kurir')?.value || 'semua';
             const filterTgl = document.getElementById('an-filter-tgl')?.value || '';
             const filterBulan = document.getElementById('an-filter-bulan')?.value || '';
@@ -1637,17 +1818,17 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             });
         
             if (!hasil.length) {
-                alert('Tidak ada nota sesuai filter untuk dihapus.');
+                toast('Tidak ada nota sesuai filter untuk dihapus.');
                 return;
             }
         
-            if (!confirm(`Yakin hapus ${hasil.length} nota sesuai filter ini?`)) return;
+            if (!(await showConfirm(`Yakin hapus ${hasil.length} nota sesuai filter ini?`))) return;
         
             hasil.forEach(([key]) => {
                 remove(ref(db, `nota/${key}`));
             });
         
-            alert('Nota sesuai filter sedang dihapus.');
+            toast('Nota sesuai filter sedang dihapus.');
         };
         window.viewAdminNota = function(key) {
             const n = cloudNotaList[key];
@@ -1681,60 +1862,75 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 });
             }
 
+            const jumlahItemAdmin = (n.items && Array.isArray(n.items)) ? n.items.length : 0;
+
             modalCanvas.innerHTML = `
-                <div class="text-center border-b border-dashed border-slate-300 pb-3">
-                    <h3 class="font-extrabold text-lg text-primary tracking-wide">SAHABATKU DELIVERY</h3>
-                    <p class="text-[10px] text-slate-400">Jatibarang, Indramayu</p>
+                <div class="receipt-head">
+                    <div class="receipt-logo-chip"><img src="https://uploads.onecompiler.io/43v32m6x5/44rw83fkz/Sahabatku%20(2).png" alt="Logo Sahabatku"></div>
+                    <h3 class="font-extrabold text-sm tracking-wide">SAHABATKU DELIVERY</h3>
+                    <p class="text-[9px] text-white/80 mt-0.5">Jatibarang, Indramayu</p>
                 </div>
 
-                <div class="text-[11px] space-y-1.5">
-                    <div class="flex justify-between"><span class="text-slate-400">Nomor Nota:</span><span class="font-bold text-slate-700">${n.id || '-'}</span></div>
-                    <div class="flex justify-between"><span class="text-slate-400">Tanggal:</span><span>${n.tanggal || '-'}</span></div>
-                    <div class="flex justify-between"><span class="text-slate-400">Kurir:</span><span class="font-medium">${n.kurirNama || '-'}</span></div>
-                    <div class="flex justify-between"><span class="text-slate-400">Status:</span><span class="uppercase font-semibold">${n.status || '-'}</span></div>
-                </div>
-
-                <table class="w-full text-[11px] text-left mt-2">
-                    <thead>
-                        <tr class="border-b border-dashed border-slate-300 text-slate-400 font-semibold">
-                            <th class="py-1">Item</th>
-                            <th class="text-center">Qty</th>
-                            <th class="text-right">Harga</th>
-                            <th class="text-right">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${itemRows || `<tr><td colspan="4" class="text-center italic text-slate-400 py-2">- Tidak ada rincian -</td></tr>`}
-                    </tbody>
-                </table>
-
-                <div class="border-t border-dashed border-slate-300 pt-2.5 text-[11px] space-y-1">
-                    <div class="flex justify-between"><span class="text-slate-400">Subtotal Item</span><span>${(n.subtotal || 0).toLocaleString('id-ID')}</span></div>
-                    <div class="flex justify-between"><span class="text-slate-400">Ongkir</span><span>${(n.ongkir || 0).toLocaleString('id-ID')}</span></div>
-                    <div class="flex justify-between"><span class="text-slate-400">Tambahan Biaya</span><span>${totalBiaya.toLocaleString('id-ID')}</span></div>
-                    ${rincianBiaya ? `<div id="p-rincian-biaya-list" class="pl-2 space-y-0.5 text-[10px] text-slate-500">${rincianBiaya}</div>` : ''}
-                    <div class="flex justify-between text-sm font-extrabold text-slate-900 pt-1">
-                        <span>TOTAL</span><span class="text-primary">${(n.total || 0).toLocaleString('id-ID')}</span>
+                <div class="receipt-body">
+                    <div class="receipt-info-grid text-[10px]">
+                        <div><span class="ri-label">Nomor Nota</span><span class="ri-value">${n.id || '-'}</span></div>
+                        <div><span class="ri-label">Tanggal</span><span class="ri-value">${n.tanggal || '-'}</span></div>
+                        <div><span class="ri-label">Kurir</span><span class="ri-value">${n.kurirNama || '-'}</span></div>
+                        <div><span class="ri-label">Status</span><span class="receipt-status-pill">${n.status || '-'}</span></div>
                     </div>
-                </div>
 
-                <!-- Ongkir History -->
-                <div class="border-t border-dashed border-slate-300 pt-3 mt-2 text-[10px] space-y-2">
-                    <div class="flex items-center justify-between">
-                        <span class="text-slate-400 font-bold uppercase">Ongkir History</span>
-                        <span id="p-ongkir-history-count" class="text-slate-400">-</span>
+                    <div class="receipt-section-title">
+                        <span class="rst-label">Rincian Pesanan</span>
+                        <span class="rst-count">${jumlahItemAdmin} item</span>
                     </div>
-                    <div id="p-ongkir-history-container" class="space-y-1"></div>
-                </div>
+                    <table class="receipt-item-table text-[11px] text-left">
+                        <thead>
+                            <tr>
+                                <th class="text-left">Item</th>
+                                <th class="text-center">Qty</th>
+                                <th class="text-right">Harga</th>
+                                <th class="text-right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${itemRows || `<tr><td colspan="4" class="text-center italic text-slate-400 py-2">- Tidak ada rincian -</td></tr>`}
+                        </tbody>
+                    </table>
 
-                <div class="border-t border-dashed border-slate-300 pt-3 text-center space-y-1">
-                    <p class="text-[10px] text-slate-500 italic">Terima kasih telah menggunakan jasa Sahabatku Delivery.</p>
-                    <p class="text-[10px] font-medium text-slate-700">
-                        Pastikan Selalu Order Melalui WhatsApp Resmi Kami:<br>
-                        <span class="text-primary font-bold text-xs">0821-1845-415</span>
-                    </p>
+                    <div class="receipt-divider"></div>
+                    <div class="text-[11px] space-y-1">
+                        <div class="flex justify-between text-slate-500"><span>Subtotal Item</span><span>${(n.subtotal || 0).toLocaleString('id-ID')}</span></div>
+                        <div class="flex justify-between text-slate-500"><span>Ongkir</span><span>${(n.ongkir || 0).toLocaleString('id-ID')}</span></div>
+                        <div class="flex justify-between text-slate-500"><span>Tambahan Biaya</span><span>${totalBiaya.toLocaleString('id-ID')}</span></div>
+                        ${rincianBiaya ? `<div id="p-rincian-biaya-list" class="pl-2 space-y-0.5 text-[10px] text-slate-400">${rincianBiaya}</div>` : ''}
+                    </div>
+
+                    <div class="receipt-total-box mt-2.5">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-white/70">Total</span>
+                        <span class="text-base font-black">${(n.total || 0).toLocaleString('id-ID')}</span>
+                    </div>
+
+                    <!-- Ongkir History -->
+                    <div class="receipt-divider"></div>
+                    <div class="text-[10px] space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-400 font-bold uppercase">Ongkir History</span>
+                            <span id="p-ongkir-history-count" class="text-slate-400">-</span>
+                        </div>
+                        <div id="p-ongkir-history-container" class="space-y-1"></div>
+                    </div>
+
+                    <div class="receipt-divider"></div>
+                    <div class="text-center space-y-1">
+                        <p class="text-[10px] text-slate-400 italic">Terima kasih telah menggunakan jasa Sahabatku Delivery.</p>
+                        <p class="text-[10px] font-medium text-slate-600">
+                            Pastikan Selalu Order Melalui WhatsApp Resmi Kami:<br>
+                            <span class="text-primary font-bold text-xs">0821-1845-415</span>
+                        </p>
+                    </div>
                 </div>
             `;
+            if (window.lucide) lucide.createIcons();
 
             // RESET isi history (biar nggak nyangkut dari nota sebelumnya)
             const box = document.getElementById('p-ongkir-history-container');
@@ -1764,7 +1960,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 const tgl = e.createdAt ? new Date(e.createdAt).toLocaleString('id-ID') : (e.tglRaw || '-');
 
                 return `
-                    <div class="bg-slate-50 dark:bg-darkBg p-2 rounded-xl border border-slate-200/70">
+                    <div class="bg-slate-50 dark:bg-darkBg p-2 rounded-lg border border-slate-200/70">
                         <div class="flex justify-between gap-2">
                             <div class="min-w-0">
                                 <div class="font-bold text-[10px] text-slate-700 truncate">${asal} → ${tujuan}</div>
@@ -1786,7 +1982,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             if (!el) return;
         
             if (typeof html2canvas === 'undefined') {
-                alert('Fitur gambar belum siap. Coba reload halaman.');
+                toast('Fitur gambar belum siap. Coba reload halaman.');
                 return;
             }
         
@@ -1817,16 +2013,16 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const target = parseInt(document.getElementById('am-target').value) || 0;
 
             if(!nama || !alamat || !hp || target <= 0) {
-                alert("Lengkapi seluruh form mitra!");
+                toast("Lengkapi seluruh form mitra!");
                 return;
             }
 
             const payload = { nama, alamat, hp, target };
 
             if(idEdit) {
-                update(ref(db, `mitra/${idEdit}`), payload).then(() => { alert("Mitra berhasil di-update!"); resetFormMitra(); });
+                update(ref(db, `mitra/${idEdit}`), payload).then(() => { toast("Mitra berhasil di-update!"); resetFormMitra(); });
             } else {
-                push(ref(db, 'mitra'), payload).then(() => { alert("Mitra baru sukses ditambahkan!"); resetFormMitra(); });
+                push(ref(db, 'mitra'), payload).then(() => { toast("Mitra baru sukses ditambahkan!"); resetFormMitra(); });
             }
         }
         window.editDataMitra = function(key) {
@@ -1847,8 +2043,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const hp = document.getElementById('edit-mitra-hp').value.trim();
             const target = parseInt(document.getElementById('edit-mitra-target').value) || 0;
         
-            if (!id) return alert('Data mitra tidak ditemukan!');
-            if (!nama || !alamat || !hp || target <= 0) return alert('Lengkapi semua data mitra!');
+            if (!id) return toast('Data mitra tidak ditemukan!');
+            if (!nama || !alamat || !hp || target <= 0) return toast('Lengkapi semua data mitra!');
         
             update(ref(db, `mitra/${id}`), {
                 nama,
@@ -1856,10 +2052,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 hp,
                 target
             }).then(() => {
-                alert('Data mitra berhasil diperbarui!');
+                toast('Data mitra berhasil diperbarui!');
                 closeEditMitraModal();
             }).catch(err => {
-                alert('Gagal update mitra: ' + err.message);
+                toast('Gagal update mitra: ' + err.message);
             });
         };
         window.closeEditMitraModal = function() {
@@ -1870,8 +2066,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             document.getElementById('edit-mitra-hp').value = '';
             document.getElementById('edit-mitra-target').value = '';
         };
-        window.hapusMitra = function(key) {
-            if(confirm("Hapus mitra ini beserta seluruh data record?")) {
+        window.hapusMitra = async function(key) {
+            const ok = await showConfirm("Hapus mitra ini beserta seluruh data record?");
+            if (ok) {
                 remove(ref(db, `mitra/${key}`));
             }
         }
@@ -1909,14 +2106,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 adaData = true;
 
                 container.innerHTML += `
-                    <div class="flex justify-between items-center bg-slate-50 dark:bg-slate-800 p-2 rounded-xl text-[11px] border border-slate-100 dark:border-slate-700/50 mb-1" data-log-key="${k}">
+                    <div class="flex justify-between items-center bg-slate-50 dark:bg-slate-800 p-2 rounded-lg text-[11px] border border-slate-100 dark:border-slate-700/50 mb-1" data-log-key="${k}">
                         <div>
                             <span class="font-bold text-slate-800 dark:text-white">${log.mitraNama}</span> (${log.trxInput} Trx)
                             <p class="text-[9px] text-slate-400">
                                 Input: ${log.kurirNama} - ${log.tglRaw} ${log.waktu}
                             </p>
                         </div>
-                        <button onclick="hapusLogMitra('${k}')" class="text-danger font-bold px-2 py-1 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-950/30 transition">
+                        <button onclick="hapusLogMitra('${k}')" class="text-danger font-bold px-2 py-1 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/30 transition">
                             ✕
                         </button>
                     </div>
@@ -1924,7 +2121,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             }
 
             if (!adaData) {
-                container.innerHTML = '<div class=\"flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-400 py-8\"><div class=\"w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center\"><svg class=\"w-5 h-5 text-slate-300 dark:text-slate-600\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8\"/><path d=\"M3 8l2.45-4.9A2 2 0 0 1 7.24 2h9.52a2 2 0 0 1 1.79 1.1L21 8\"/><path d=\"M3 8h18\"/><path d=\"M9 12a3 3 0 0 0 6 0\"/></svg></div><span>Tidak ada data ditemukan.</span></div>';
+                container.innerHTML = '<div class="text-center text-xs text-slate-400 py-4">Tidak ada data ditemukan.</div>';
             }
         };
 
@@ -1943,19 +2140,15 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             }
             dropdown.value = currentSelection;
         }
-        window.hapusLogMitra = function(key) {
-            if (confirm('Hapus riwayat transaksi input ini?')) {
+        window.hapusLogMitra = async function(key) {
+            const ok = await showConfirm('Hapus riwayat transaksi input ini?');
+            if (ok) {
                 remove(ref(db, `log_mitra/${key}`)).then(() => {
-                    // Gunakan alert atau implementasi toast yang sudah ada
-                    if (typeof toast === 'function') {
-                        toast('Riwayat transaksi dihapus');
-                    } else {
-                        alert('Riwayat transaksi dihapus');
-                    }
+                    toast('Riwayat transaksi dihapus', 'success');
                     // Refresh list tanpa tutup popup
                     renderAdminLogMitra();
                 }).catch(err => {
-                    alert('Gagal hapus riwayat: ' + err.message);
+                    toast('Gagal hapus riwayat: ' + err.message);
                 });
             }
         };
@@ -2031,25 +2224,25 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                                 </div>
                                 <a href="${waLink}" target="_blank" class="px-2.5 py-1 bg-emerald-50 text-success rounded font-bold text-[10px] border border-emerald-100 shrink-0">WhatsApp</a>
                             </div>
-                            <div class="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl text-[11px] border border-slate-100 dark:border-slate-800">
+                            <div class="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg text-[11px] border border-slate-100 dark:border-slate-800">
                                 <div><span class="text-slate-400 block text-[9px] uppercase">Total Transaksi</span><span class="font-extrabold text-slate-700 dark:text-slate-200">${filterBulan ? totalTrxFilterBulan : totalTrxMenyeluruh} Trx</span></div>
                                 <div><span class="text-slate-400 block text-[9px] uppercase">Target Bulanan</span><span class="font-extrabold text-amber-500">${targetMitra} Trx</span></div>
                             </div>
                             <div class="grid grid-cols-3 gap-2 pt-0.5">
-                                <button onclick="bukaInputTransaksiMitra('${m.nama}')" class="py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-[10px] uppercase">Input Trx</button>
-                                <button onclick="lihatRiwayatMitraOtomatis('${m.nama}')" class="py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-xl text-[10px] uppercase border border-slate-200/50">Lihat</button>
-                                <button onclick="hapusMitra('${key}')" class="py-2 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 font-bold rounded-xl text-[10px] uppercase">Hapus</button>
+                                <button onclick="bukaInputTransaksiMitra('${m.nama}')" class="py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-[10px] uppercase">Input Trx</button>
+                                <button onclick="lihatRiwayatMitraOtomatis('${m.nama}')" class="py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-lg text-[10px] uppercase border border-slate-200/50">Lihat</button>
+                                <button onclick="hapusMitra('${key}')" class="py-2 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 font-bold rounded-lg text-[10px] uppercase">Hapus</button>
                             </div>
                             ${isOwner ? `
                             <div class="flex justify-end gap-2 pt-1 border-t border-slate-100 dark:border-slate-700">
-                                <button onclick="editDataMitra('${key}')" class="px-2.5 py-1 bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-white rounded-xl font-semibold text-xs">Edit</button>
+                                <button onclick="editDataMitra('${key}')" class="px-2.5 py-1 bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-white rounded-md font-semibold text-xs">Edit</button>
                             </div>` : ''}
                         </div>
                     `);
                     nomorUrut++;
                 }
 
-                inner.innerHTML = list.join('') || '<div class=\"flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-400 py-8\"><div class=\"w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center\"><svg class=\"w-5 h-5 text-slate-300 dark:text-slate-600\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8\"/><path d=\"M3 8l2.45-4.9A2 2 0 0 1 7.24 2h9.52a2 2 0 0 1 1.79 1.1L21 8\"/><path d=\"M3 8h18\"/><path d=\"M9 12a3 3 0 0 0 6 0\"/></svg></div><span>Belum ada data mitra.</span></div>';
+                inner.innerHTML = list.join('') || '<div class="text-center text-xs text-slate-400 py-4">Belum ada data mitra.</div>';
             } finally {
                 isRenderMitraRunning = false;
             }
@@ -2085,9 +2278,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             
             renderAdminTestimonial();
         };
-        window.hapusSemuaTestimonialBulan = function() {
+        window.hapusSemuaTestimonialBulan = async function() {
             const bulanFilter = document.getElementById('testimonial-filter-bulan')?.value || '';
-            if (!bulanFilter) return alert('Pilih bulan terlebih dahulu.');
+            if (!bulanFilter) return toast('Pilih bulan terlebih dahulu.');
 
             const keys = Object.keys(cloudTestimonialList || {}).filter(key => {
                 const t = cloudTestimonialList[key];
@@ -2096,35 +2289,35 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 return rawBulan === bulanFilter;
             });
 
-            if (!keys.length) return alert('Tidak ada testimoni pada bulan ini.');
-            if (!confirm(`Hapus semua ${keys.length} testimoni pada bulan ini?`)) return;
+            if (!keys.length) return toast('Tidak ada testimoni pada bulan ini.');
+            if (!(await showConfirm(`Hapus semua ${keys.length} testimoni pada bulan ini?`))) return;
 
             keys.forEach(key => remove(ref(db, `testimonials/${key}`)));
             
-            alert('Testimoni sedang dihapus...');
+            toast('Testimoni sedang dihapus...');
             
             setTimeout(() => {
                 renderAdminTestimonial();
             }, 800);
         };
-        window.hapusTestimonialPilihan = function() {
+        window.hapusTestimonialPilihan = async function() {
             const checkboxes = document.querySelectorAll('.testimonial-checkbox:checked');
             if (!checkboxes.length) {
-                alert('Pilih minimal 1 testimoni untuk dihapus!');
+                toast('Pilih minimal 1 testimoni untuk dihapus!');
                 return;
             }
 
             const jumlah = checkboxes.length;
-            const konfirmasi = confirm(`Apakah Anda YAKIN ingin menghapus ${jumlah} testimoni yang dipilih?\n\nTindakan ini TIDAK BISA DIBATALKAN!`);
+            const konfirmasi = await showConfirm(`Apakah Anda YAKIN ingin menghapus ${jumlah} testimoni yang dipilih? Tindakan ini TIDAK BISA DIBATALKAN!`);
             
             if (!konfirmasi) {
-                alert('Penghapusan dibatalkan. Data testimoni aman.');
+                toast('Penghapusan dibatalkan. Data testimoni aman.');
                 return;
             }
 
-            const konfirmasi2 = confirm(`Hapus ${jumlah} testimoni secara PERMANEN?`);
+            const konfirmasi2 = await showConfirm(`Hapus ${jumlah} testimoni secara PERMANEN?`, { okText: 'Ya, Hapus Permanen' });
             if (!konfirmasi2) {
-                alert('Penghapusan dibatalkan. Data testimoni aman.');
+                toast('Penghapusan dibatalkan. Data testimoni aman.');
                 return;
             }
 
@@ -2139,7 +2332,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 });
             });
 
-            alert(`${jumlah} testimoni sedang dihapus dari server...`);
+            toast(`${jumlah} testimoni sedang dihapus dari server...`);
             
             setTimeout(() => {
                 document.body.dataset.testimonialSelectMode = '0';
@@ -2196,7 +2389,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 });
 
             if (!filteredKeys.length) {
-                container.innerHTML = '<div class=\"flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-400 py-8\"><div class=\"w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center\"><svg class=\"w-5 h-5 text-slate-300 dark:text-slate-600\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8\"/><path d=\"M3 8l2.45-4.9A2 2 0 0 1 7.24 2h9.52a2 2 0 0 1 1.79 1.1L21 8\"/><path d=\"M3 8h18\"/><path d=\"M9 12a3 3 0 0 0 6 0\"/></svg></div><span>Tidak ada testimoni pada bulan ini.</span></div>';
+                container.innerHTML = '<div class="text-center text-xs text-slate-400 py-4">Tidak ada testimoni pada bulan ini.</div>';
                 return;
             }
 
@@ -2234,28 +2427,28 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                         </div>
 
                         <div class="grid grid-cols-3 gap-2 text-[10px]">
-                            <div class="bg-white dark:bg-darkCard p-2 rounded-xl">
+                            <div class="bg-white dark:bg-darkCard p-2 rounded-lg">
                                 <div class="text-slate-400">Rating</div>
                                 <div class="font-bold">${t.rating || 0}</div>
                             </div>
-                            <div class="bg-white dark:bg-darkCard p-2 rounded-xl">
+                            <div class="bg-white dark:bg-darkCard p-2 rounded-lg">
                                 <div class="text-slate-400">Attitude</div>
                                 <div class="font-bold">${t.attitude || '-'}</div>
                             </div>
-                            <div class="bg-white dark:bg-darkCard p-2 rounded-xl">
+                            <div class="bg-white dark:bg-darkCard p-2 rounded-lg">
                                 <div class="text-slate-400">Speed</div>
                                 <div class="font-bold">${t.speed || '-'}</div>
                             </div>
                         </div>
 
-                        <div class="bg-white dark:bg-darkCard p-2 rounded-xl text-[11px] text-slate-600 dark:text-slate-300">${t.comments || '-'}</div>
+                        <div class="bg-white dark:bg-darkCard p-2 rounded-lg text-[11px] text-slate-600 dark:text-slate-300">${t.comments || '-'}</div>
 
                         ${!selectMode ? `
                             <div class="flex gap-2">
-                                <button onclick="toggleTestimonialPublish('${key}')" class="flex-1 py-2 rounded-xl text-[10px] font-bold uppercase ${t.isPublished ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40' : 'bg-blue-50 text-blue-600 dark:bg-blue-950/40'}">
+                                <button onclick="toggleTestimonialPublish('${key}')" class="flex-1 py-2 rounded-lg text-[10px] font-bold uppercase ${t.isPublished ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40' : 'bg-blue-50 text-blue-600 dark:bg-blue-950/40'}">
                                     ${t.isPublished ? 'Sembunyikan' : 'Tampilkan'}
                                 </button>
-                                <button onclick="hapusTestimonial('${key}')" class="px-3 py-2 rounded-xl text-[10px] font-bold uppercase bg-rose-50 text-rose-600 dark:bg-rose-950/40">
+                                <button onclick="hapusTestimonial('${key}')" class="px-3 py-2 rounded-lg text-[10px] font-bold uppercase bg-rose-50 text-rose-600 dark:bg-rose-950/40">
                                     Hapus
                                 </button>
                             </div>
@@ -2283,17 +2476,18 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             update(ref(db, `testimonials/${key}`), {
                 isPublished: !item.isPublished
             }).then(() => {
-                alert(item.isPublished ? 'Testimoni disembunyikan.' : 'Testimoni ditampilkan.');
+                toast(item.isPublished ? 'Testimoni disembunyikan.' : 'Testimoni ditampilkan.');
             }).catch(err => {
-                alert('Gagal update testimoni: ' + err.message);
+                toast('Gagal update testimoni: ' + err.message);
             });
         };
 
-        window.hapusTestimonial = function(key) {
-            if (confirm('Hapus testimoni ini secara permanen?')) {
+        window.hapusTestimonial = async function(key) {
+            const ok = await showConfirm('Hapus testimoni ini secara permanen?');
+            if (ok) {
                 remove(ref(db, `testimonials/${key}`))
-                    .then(() => alert('Testimoni berhasil dihapus.'))
-                    .catch(err => alert('Gagal menghapus testimoni: ' + err.message));
+                    .then(() => toast('Testimoni berhasil dihapus.'))
+                    .catch(err => toast('Gagal menghapus testimoni: ' + err.message));
             }
         };
 
@@ -2511,7 +2705,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         window.prosesPratinjauNota = function() {
             const cekOngkir = parseInt(document.getElementById('nota-ongkir').value) || 0;
             if (cekOngkir <= 0) { 
-                alert("Wajib mengisi Ongkir untuk melanjutkan!"); 
+                toast("Wajib mengisi Ongkir untuk melanjutkan!"); 
                 return; 
             }
             calculateNotaTotal();
@@ -2555,6 +2749,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                     tbody.innerHTML += `<tr><td>${it.nama}</td><td class="text-center">${it.qty}</td><td class="text-right">${it.harga.toLocaleString('id-ID')}</td><td class="text-right">${it.subtotal.toLocaleString('id-ID')}</td></tr>`;
                 });
             }
+            const itemCountEl = document.getElementById('p-item-count');
+            if (itemCountEl) itemCountEl.innerText = `${notaState.items.length} item`;
             const btnSimpanNota = document.getElementById('btn-simpan-nota');
             if (btnSimpanNota) btnSimpanNota.classList.remove('hidden');
             updatePreviewButtonsLayout();
@@ -2565,7 +2761,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             if (!el) return;
 
             if (typeof html2canvas === 'undefined') {
-                alert('Fitur gambar belum siap. Coba reload halaman.');
+                toast('Fitur gambar belum siap. Coba reload halaman.');
                 return;
             }
 
@@ -2602,7 +2798,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 
             // simpan nota dengan key yang fix (pushRef.key)
             set(pushRef, payload).then(async () => {
-                alert("Nota kiriman berhasil disimpan!");
+                toast("Nota kiriman berhasil disimpan!");
                 localStorage.removeItem('sahabatku_nota_draft');
 
                 const userId = userSession.id;
@@ -2678,7 +2874,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 updateKurirDashboard();
                 navigateTo('screen-preview');
             }).catch(() => {
-                alert('Gagal simpan nota.');
+                toast('Gagal simpan nota.');
             });
         };
         window.shareWhatsApp = function() {
@@ -2690,12 +2886,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const btnShare = document.querySelector("button[onclick='shareWhatsApp()']");
 
             if (!element) {
-                alert('Preview nota tidak ditemukan.');
+                toast('Preview nota tidak ditemukan.');
                 return;
             }
 
             if (typeof html2canvas === 'undefined') {
-                alert('Fitur gambar belum siap. Coba reload halaman.');
+                toast('Fitur gambar belum siap. Coba reload halaman.');
                 return;
             }
 
@@ -2708,7 +2904,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             }).then(canvas => {
                 canvas.toBlob(function(blob) {
                     if (!blob) {
-                        alert("Gagal memproses gambar nota.");
+                        toast("Gagal memproses gambar nota.");
                         if (btnShare) btnShare.disabled = false;
                         return;
                     }
@@ -2735,7 +2931,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 }, 'image/jpeg', 0.9);
             }).catch(err => {
                 if (btnShare) btnShare.disabled = false;
-                alert("Terjadi kesalahan gambar: " + err.message);
+                toast("Terjadi kesalahan gambar: " + err.message);
             });
         }
 
@@ -2792,28 +2988,34 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 
             for (let { key: k, n } of filtered) {
                 hasData = true;
+                const statusVal = (n.status || 'Lunas');
+                const isOL = statusVal.toUpperCase() === 'OL';
                 container.innerHTML += `
-                    <div class="bg-white dark:bg-darkCard p-3 rounded-xl border text-xs space-y-2 shadow-sm">
-                        <div class="flex justify-between font-bold">
-                            <span>${n.id}</span>
-                            <span class="text-primary">Rp ${(n.total || 0).toLocaleString('id-ID')}</span>
-                        </div>
-                        <div class="flex justify-between items-center text-[10px] text-slate-400">
-                            <div>
-                                <p>${n.tanggal}</p>
-                                <p class="mt-0.5">Status: <span class="font-semibold text-slate-600 dark:text-slate-300">${n.status || 'Lunas'}</span></p>
+                    <div class="list-card-hover bg-white dark:bg-darkCard p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-xs space-y-2 shadow-sm border-l-4 ${isOL ? 'border-l-purple-400' : 'border-l-primary'}">
+                        <div class="flex justify-between items-start gap-2">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <div class="w-8 h-8 rounded-lg ${isOL ? 'bg-purple-50 dark:bg-purple-950/40 text-purple-500' : 'bg-blue-50 dark:bg-blue-950/40 text-primary'} flex items-center justify-center shrink-0"><i data-lucide="receipt" class="w-3.5 h-3.5"></i></div>
+                                <div class="min-w-0">
+                                    <p class="font-bold truncate">${n.id}</p>
+                                    <p class="text-[10px] text-slate-400 mt-0.5">${n.tanggal}</p>
+                                </div>
                             </div>
-                            <div class="flex items-center gap-3">
-                                <button onclick="previewRiwayatNota('${k}')" class="text-blue-500 font-bold bg-blue-50 dark:bg-blue-950/40 px-2 py-1 rounded-xl">Preview</button>
-                                <button onclick="hapusRiwayatNota('${k}')" class="text-danger font-bold bg-red-50 dark:bg-red-950/40 px-2 py-1 rounded-xl">Hapus</button>
+                            <span class="text-primary font-black shrink-0">Rp ${(n.total || 0).toLocaleString('id-ID')}</span>
+                        </div>
+                        <div class="flex justify-between items-center pt-1.5 border-t border-dashed border-slate-100 dark:border-slate-800">
+                            <span class="status-pill ${isOL ? 'bg-purple-50 text-purple-600 dark:bg-purple-950/40' : 'bg-blue-50 text-primary dark:bg-blue-950/40'}"><i data-lucide="tag" class="w-2.5 h-2.5"></i> ${statusVal}</span>
+                            <div class="flex items-center gap-2">
+                                <button onclick="previewRiwayatNota('${k}')" class="flex items-center gap-1 text-blue-500 font-bold bg-blue-50 dark:bg-blue-950/40 px-2.5 py-1.5 rounded-lg active:scale-95 transition-transform"><i data-lucide="eye" class="w-3 h-3"></i> Preview</button>
+                                <button onclick="hapusRiwayatNota('${k}')" class="flex items-center gap-1 text-danger font-bold bg-red-50 dark:bg-red-950/40 px-2.5 py-1.5 rounded-lg active:scale-95 transition-transform"><i data-lucide="trash-2" class="w-3 h-3"></i> Hapus</button>
                             </div>
                         </div>
                     </div>
                 `;
             }
+            if (window.lucide) lucide.createIcons();
 
             if (!hasData) {
-                container.innerHTML = '<div class=\"flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-400 py-8\"><div class=\"w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center\"><svg class=\"w-5 h-5 text-slate-300 dark:text-slate-600\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8\"/><path d=\"M3 8l2.45-4.9A2 2 0 0 1 7.24 2h9.52a2 2 0 0 1 1.79 1.1L21 8\"/><path d=\"M3 8h18\"/><path d=\"M9 12a3 3 0 0 0 6 0\"/></svg></div><span>Tidak ada riwayat nota untuk filter ini.</span></div>';
+                container.innerHTML = '<div class="text-center text-xs text-slate-400 py-4">Tidak ada riwayat nota untuk filter ini.</div>';
             }
         };
         window.resetRiwayatFilter = function() {
@@ -2832,7 +3034,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         window.previewRiwayatNota = function(key) {
             const n = cloudNotaList[key];
             if (!n) {
-                alert("Data nota tidak ditemukan!");
+                toast("Data nota tidak ditemukan!");
                 return;
             }
             document.getElementById('p-nota-num').innerText = n.id;
@@ -2868,7 +3070,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             }
             const tbody = document.getElementById('p-table-body');
             tbody.innerHTML = '';
-            if (n.items && Array.isArray(n.items)) {
+            if (n.items && Array.isArray(n.items) && n.items.length > 0) {
                 n.items.forEach(it => {
                     tbody.innerHTML += `
                         <tr>
@@ -2878,7 +3080,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                             <td class="text-right">${(it.subtotal || 0).toLocaleString('id-ID')}</td>
                         </tr>`;
                 });
+            } else {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center italic text-slate-400 py-2">- Tidak ada rincian.</td></tr>`;
             }
+            const itemCountEl = document.getElementById('p-item-count');
+            if (itemCountEl) itemCountEl.innerText = `${(n.items && Array.isArray(n.items)) ? n.items.length : 0} item`;
             notaState = {
                 items: n.items || [],
                 biaya: n.biayaTambahan || [],
@@ -2896,8 +3102,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 localStorage.setItem('sahabatku_nota_draft', JSON.stringify(notaState));
             } catch (e) {}
         }
-        window.resetNotaBaru = function() {
-            if (!confirm('Bersihkan semua isi nota dan buat nota baru?')) return;
+        window.resetNotaBaru = async function() {
+            if (!(await showConfirm('Bersihkan semua isi nota dan buat nota baru?'))) return;
         
             notaState = { items: [], biaya: [], subtotal: 0, ongkir: 6000, total: 6000 };
             localStorage.removeItem('sahabatku_nota_draft');
@@ -2946,11 +3152,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 return false;
             }
         }
-        window.hapusRiwayatNota = function(key) {
+        window.hapusRiwayatNota = async function(key) {
             const n = cloudNotaList[key];
             const idNota = n ? n.id : "Nota ini";
 
-            if (confirm(`Apakah Anda yakin ingin menghapus ${idNota} secara permanen dari riwayat?`)) {
+            const ok = await showConfirm(`Apakah Anda yakin ingin menghapus ${idNota} secara permanen dari riwayat?`);
+            if (ok) {
                 // LOCK supaya queueUiRefresh gak bikin balik dashboard
                 window.__lockRiwayatScreen = true;
 
@@ -2995,10 +3202,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                             renderKurirRiwayatList(true);
                         }
 
-                        alert("Nota sukses dihapus!");
+                        toast("Nota sukses dihapus!");
                     })
                     .catch((error) => {
-                        alert("Gagal menghapus nota: " + error.message);
+                        toast("Gagal menghapus nota: " + error.message);
                     })
                     .finally(() => {
                         // lepaskan lock setelah beberapa detik supaya refresh yang datang belakangan gak skip terus
@@ -3018,8 +3225,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const mNama = document.getElementById('m-input-pilih').value;
             const trxInput = parseInt(document.getElementById('m-input-trx').value) || 0;
             
-            if(!mNama) { alert("Silahkan pilih mitra terlebih dahulu!"); return; }
-            if(trxInput <= 0) { alert("Jumlah transaksi harus lebih dari 0!"); return; }
+            if(!mNama) { toast("Silahkan pilih mitra terlebih dahulu!"); return; }
+            if(trxInput <= 0) { toast("Jumlah transaksi harus lebih dari 0!"); return; }
         
             const wib = getWibDate();
             const tglRawLokal = getWibRawDate();
@@ -3035,7 +3242,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             };
         
             push(ref(db, 'log_mitra'), payload).then(() => {
-                alert("Transaksi mitra berhasil di-input!");
+                toast("Transaksi mitra berhasil di-input!");
                 document.getElementById('m-input-trx').value = '';
                 if (typeof calculateMitraStats === 'function') calculateMitraStats();
             });
@@ -3049,7 +3256,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         window.lihatRiwayatMitraOtomatis = function(namaMitra) {
             const mitra = Object.values(cloudMitraList || {}).find(m => normalizeNama(m.nama) === normalizeNama(namaMitra));
             if (!mitra) {
-                alert('Data mitra tidak ditemukan!');
+                toast('Data mitra tidak ditemukan!');
                 return;
             }
         
@@ -3096,7 +3303,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const fTgl = document.getElementById('m-filter-tgl-kurir')?.value || '';
         
             if (!filterNamaMitraKhusus && !fTgl) {
-                alert("Pilih tanggal atau klik Lihat pada mitra!");
+                toast("Pilih tanggal atau klik Lihat pada mitra!");
                 return;
             }
         
@@ -3212,33 +3419,43 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                     const waLink = cleanPhone ? `https://wa.me/${cleanPhone}` : '#';
                     const mapsLink = getMapsLink(m.alamat);
 
+                    const pct = target > 0 ? Math.min(100, Math.round((totalTrx / target) * 100)) : 0;
                     return `
-                        <div class="bg-white dark:bg-darkCard p-3 rounded-xl border text-xs space-y-2.5 shadow-sm">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <h5 class="font-bold text-slate-800 dark:text-white">${m.nama}</h5>
-                                    <a href="${mapsLink}" target="_blank" class="text-[10px] text-blue-600 dark:text-blue-400 hover:underline block mt-0.5">
-                                        Alamat: ${m.alamat || 'Belum Diisi'}
-                                    </a>
+                        <div class="bg-white dark:bg-darkCard p-3 rounded-2xl border border-slate-100 dark:border-slate-800 text-xs space-y-2.5 shadow-sm list-card-hover">
+                            <div class="flex justify-between items-start gap-2">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <div class="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-500 flex items-center justify-center shrink-0"><i data-lucide="store" class="w-4 h-4"></i></div>
+                                    <div class="min-w-0">
+                                        <h5 class="font-bold text-slate-800 dark:text-white truncate">${m.nama}</h5>
+                                        <a href="${mapsLink}" target="_blank" class="text-[10px] text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 mt-0.5">
+                                            <i data-lucide="map-pin" class="w-2.5 h-2.5"></i> ${m.alamat || 'Belum Diisi'}
+                                        </a>
+                                    </div>
                                 </div>
-                                <a href="${waLink}" target="_blank" class="px-2.5 py-1 bg-emerald-50 text-success rounded font-bold text-[10px] border border-emerald-100">
-                                    WhatsApp
+                                <a href="${waLink}" target="_blank" class="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 text-success rounded-lg font-bold text-[10px] border border-emerald-100 dark:bg-emerald-950/40 dark:border-emerald-900">
+                                    <i data-lucide="message-circle" class="w-3 h-3"></i> WA
                                 </a>
                             </div>
-                            <div class="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl text-[11px] border border-slate-100 dark:border-slate-800">
-                                <div><span class="text-slate-400 block text-[9px] uppercase">Total Trx</span><span class="font-extrabold text-slate-700 dark:text-slate-200">${totalTrx} Trx</span></div>
-                                <div><span class="text-slate-400 block text-[9px] uppercase">Target</span><span class="font-extrabold text-amber-500">${target} Trx</span></div>
+                            <div class="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1.5">
+                                <div class="flex justify-between text-[11px]">
+                                    <span class="text-slate-400">Total Trx <b class="text-slate-700 dark:text-slate-200">${totalTrx}</b></span>
+                                    <span class="text-slate-400">Target <b class="text-amber-500">${target}</b></span>
+                                </div>
+                                <div class="w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                                    <div class="h-full rounded-full ${pct >= 100 ? 'bg-success' : 'bg-amber-400'}" style="width:${pct}%"></div>
+                                </div>
                             </div>
                             <div class="flex gap-1.5 pt-0.5">
-                                <button onclick="bukaInputTransaksiMitra('${m.nama}')" class="flex-1 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-[10px] uppercase">Input Trx</button>
-                                <button onclick="lihatRiwayatMitraOtomatis('${m.nama}')" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-xl text-[10px] uppercase border border-slate-200/50">Lihat</button>
+                                <button onclick="bukaInputTransaksiMitra('${m.nama}')" class="flex-1 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-[10px] uppercase flex items-center justify-center gap-1 active:scale-95 transition-transform"><i data-lucide="plus" class="w-3 h-3"></i> Input Trx</button>
+                                <button onclick="lihatRiwayatMitraOtomatis('${m.nama}')" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-lg text-[10px] uppercase border border-slate-200/50 flex items-center justify-center gap-1 active:scale-95 transition-transform"><i data-lucide="eye" class="w-3 h-3"></i> Lihat</button>
                             </div>
                         </div>
                     `;
                 })
                 .join('');
 
-            container.innerHTML = allMitraHtml || '<div class=\"flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-400 py-8\"><div class=\"w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center\"><svg class=\"w-5 h-5 text-slate-300 dark:text-slate-600\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8\"/><path d=\"M3 8l2.45-4.9A2 2 0 0 1 7.24 2h9.52a2 2 0 0 1 1.79 1.1L21 8\"/><path d=\"M3 8h18\"/><path d=\"M9 12a3 3 0 0 0 6 0\"/></svg></div><span>Belum ada data mitra.</span></div>';
+            container.innerHTML = allMitraHtml || '<div class="text-center text-xs text-slate-400 py-4">Belum ada data mitra.</div>';
+            if (window.lucide) lucide.createIcons();
         };
         window.toggleMitraList = function() {
             const box = document.getElementById('container-mitra-list');
@@ -3310,31 +3527,31 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                             </div>
                             <span class="text-[10px] text-slate-400 shrink-0">Gabung: ${item.tglGabung || '-'}</span>
                         </div>
-                        <div class="bg-slate-50 dark:bg-slate-800 p-2 rounded-xl grid grid-cols-2 gap-2 font-mono text-[11px]">
+                        <div class="bg-slate-50 dark:bg-slate-800 p-2 rounded-lg grid grid-cols-2 gap-2 font-mono text-[11px]">
                             <div class="dark:text-slate-300">Leader: <span class="text-emerald-600 font-bold block truncate">${item.leader || '-'}</span></div>
                             <div class="dark:text-slate-300">User: <span class="text-primary font-bold block truncate">@${item.username}</span></div>
                             <div class="dark:text-slate-300">Pass: <span class="text-amber-500 font-bold block truncate">${item.password}</span></div>
                             <div class="dark:text-slate-300">Ongkir Pass: <span class="text-fuchsia-500 font-bold block truncate">${item.ongkirPassword || '-'}</span></div>
                         </div>
-                        <div class="bg-slate-50 dark:bg-slate-800 p-2 rounded-xl space-y-2">
+                        <div class="bg-slate-50 dark:bg-slate-800 p-2 rounded-lg space-y-2">
                             <div class="flex items-center justify-between">
                                 <span class="text-[10px] text-slate-500">Akses Cek Ongkir</span>
                                 <span class="text-[10px] font-bold ${item.ongkirLocked ? 'text-rose-500' : 'text-emerald-500'}">${item.ongkirLocked ? 'TERKUNCI' : 'TERBUKA'}</span>
                             </div>
-                            <input type="text" id="ongkir-pass-${key}" value="${item.ongkirPassword || ''}" placeholder="Password khusus ongkir" class="w-full px-2 py-1 border rounded-xl text-[11px] dark:bg-darkBg dark:border-slate-700">
+                            <input type="text" id="ongkir-pass-${key}" value="${item.ongkirPassword || ''}" placeholder="Password khusus ongkir" class="w-full px-2 py-1 border rounded-md text-[11px] dark:bg-darkBg dark:border-slate-700">
                             <div class="grid grid-cols-2 gap-2">
-                                <button onclick="toggleOngkirAkses('${key}')" class="py-1.5 rounded-xl text-[10px] font-bold uppercase ${item.ongkirLocked ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}">
+                                <button onclick="toggleOngkirAkses('${key}')" class="py-1.5 rounded-md text-[10px] font-bold uppercase ${item.ongkirLocked ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}">
                                     ${item.ongkirLocked ? 'Buka Akses Ongkir' : 'Kunci Akses Ongkir'}
                                 </button>
-                                <button onclick="simpanPasswordOngkir('${key}')" class="py-1.5 rounded-xl bg-blue-50 text-blue-600 font-bold text-[10px] uppercase">
+                                <button onclick="simpanPasswordOngkir('${key}')" class="py-1.5 rounded-md bg-blue-50 text-blue-600 font-bold text-[10px] uppercase">
                                     Simpan Password Ongkir
                                 </button>
                             </div>
                         </div>
                         ${isHeadOperasional ? '' : `
                         <div class="flex justify-end gap-2 pt-1">
-                            <button onclick="editAkunKurir('${key}')" class="px-2.5 py-1 bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-white rounded-xl font-semibold">Edit</button>
-                            <button onclick="hapusAkunKurir('${key}')" class="px-2.5 py-1 bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400 rounded-xl font-semibold">Hapus</button>
+                            <button onclick="editAkunKurir('${key}')" class="px-2.5 py-1 bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-white rounded-md font-semibold">Edit</button>
+                            <button onclick="hapusAkunKurir('${key}')" class="px-2.5 py-1 bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400 rounded-md font-semibold">Hapus</button>
                         </div>`}
                     </div>
                 `;
@@ -3375,9 +3592,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const bulan = document.getElementById('trx-mitra-bulan').value;
             const trxInput = parseInt(document.getElementById('trx-mitra-jumlah').value) || 0;
         
-            if (!namaMitra) return alert('Mitra belum dipilih!');
-            if (!bulan) return alert('Pilih bulan!');
-            if (trxInput <= 0) return alert('Jumlah transaksi harus lebih dari 0!');
+            if (!namaMitra) return toast('Mitra belum dipilih!');
+            if (!bulan) return toast('Pilih bulan!');
+            if (trxInput <= 0) return toast('Jumlah transaksi harus lebih dari 0!');
         
             const wib = getWibDate();
             const payload = {
@@ -3391,7 +3608,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             };
         
             push(ref(db, 'log_mitra'), payload).then(() => {
-                alert('Transaksi mitra berhasil disimpan!');
+                toast('Transaksi mitra berhasil disimpan!');
                 closeInputTrxMitraModal();
             });
         };
@@ -3417,7 +3634,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const tujuan = document.getElementById('ongkir-tujuan').value.trim();
         
             if (!asal && !tujuan) {
-                alert('Isi minimal salah satu: asal atau tujuan.');
+                toast('Isi minimal salah satu: asal atau tujuan.');
                 return;
             }
         
@@ -3473,17 +3690,21 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 <div class="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl border text-xs space-y-2">
                     <div class="flex justify-between items-start gap-2">
                         <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-1.5 flex-wrap mb-1">
+                                <span class="sender-badge" data-role="${n.senderRole || 'owner'}">${n.senderLabel || 'Admin'}</span>
+                                ${n.active === false ? '<span class="status-pill bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400">Nonaktif</span>' : ''}
+                            </div>
                             <div class="font-bold text-[11px] sm:text-sm leading-snug break-words">${n.message || '-'}</div>
                             <div class="text-[10px] text-slate-400 mt-1">${n.target === 'all' ? 'Semua Kurir' : `Kurir Terpilih (${(n.targetList || []).length})`}</div>
                             <div class="text-[10px] text-slate-400">${n.createdAt ? new Date(n.createdAt).toLocaleString('id-ID') : '-'}</div>
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-2">
-                        <button onclick="resendNotification('${key}')" class="w-full py-2 rounded-xl bg-blue-50 text-blue-600 text-[10px] font-bold uppercase">Kirim Lagi</button>
-                        <button onclick="deleteNotification('${key}')" class="w-full py-2 rounded-xl bg-rose-50 text-rose-600 text-[10px] font-bold uppercase">Hapus</button>
+                        <button onclick="resendNotification('${key}')" class="w-full py-2 rounded-lg bg-blue-50 text-blue-600 text-[10px] font-bold uppercase">Kirim Lagi</button>
+                        <button onclick="deleteNotification('${key}')" class="w-full py-2 rounded-lg bg-rose-50 text-rose-600 text-[10px] font-bold uppercase">Hapus</button>
                     </div>
                 </div>
-            `).join('') : '<div class=\"flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-400 py-8\"><div class=\"w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center\"><svg class=\"w-5 h-5 text-slate-300 dark:text-slate-600\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8\"/><path d=\"M3 8l2.45-4.9A2 2 0 0 1 7.24 2h9.52a2 2 0 0 1 1.79 1.1L21 8\"/><path d=\"M3 8h18\"/><path d=\"M9 12a3 3 0 0 0 6 0\"/></svg></div><span>Belum ada notifikasi.</span></div>';
+            `).join('') : '<div class="text-center text-xs text-slate-400 py-4">Belum ada notifikasi.</div>';
         };        
         window.closeModal = function(id) {
             const modal = document.getElementById(id);
@@ -3936,7 +4157,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                         : 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-300';
             
                     container.innerHTML += `
-                        <div class="bg-white dark:bg-darkCard p-2.5 rounded-xl border shadow-sm text-[11px] space-y-1.5">
+                        <div class="bg-white dark:bg-darkCard p-2.5 rounded-lg border shadow-sm text-[11px] space-y-1.5">
                             <div class="flex justify-between items-start gap-2">
                                 <div class="min-w-0">
                                     <div class="font-bold text-[12px] leading-tight truncate">${n.id || '-'}</div>
@@ -3952,7 +4173,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                                 </div>
                             </div>
             
-                            <div class="grid grid-cols-2 gap-1.5 bg-slate-50 dark:bg-slate-800 p-2 rounded-xl">
+                            <div class="grid grid-cols-2 gap-1.5 bg-slate-50 dark:bg-slate-800 p-2 rounded-md">
                                 <div>
                                     <div class="text-[9px] text-slate-400">Ongkir</div>
                                     <div class="font-bold text-[11px]">Rp ${(n.ongkir || 0).toLocaleString('id-ID')}</div>
@@ -3972,15 +4193,15 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                             </div>
             
                             <div class="flex justify-end gap-2 pt-0.5">
-                                <button onclick="viewAdminNota('${key}')" class="px-2.5 py-1 rounded-xl bg-blue-50 text-blue-600 font-bold text-[10px]">Preview</button>
-                                <button onclick="hapusNotaGlobal('${key}')" class="px-2.5 py-1 rounded-xl bg-red-50 text-red-600 font-bold text-[10px]">Hapus</button>
+                                <button onclick="viewAdminNota('${key}')" class="px-2.5 py-1 rounded-md bg-blue-50 text-blue-600 font-bold text-[10px]">Preview</button>
+                                <button onclick="hapusNotaGlobal('${key}')" class="px-2.5 py-1 rounded-md bg-red-50 text-red-600 font-bold text-[10px]">Hapus</button>
                             </div>
                         </div>
                     `;
                 });
             
                 if (!adaData) {
-                    container.innerHTML = `<div class=\"flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-400 py-8\"><div class=\"w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center\"><svg class=\"w-5 h-5 text-slate-300 dark:text-slate-600\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8\"/><path d=\"M3 8l2.45-4.9A2 2 0 0 1 7.24 2h9.52a2 2 0 0 1 1.79 1.1L21 8\"/><path d=\"M3 8h18\"/><path d=\"M9 12a3 3 0 0 0 6 0\"/></svg></div><span>Tidak ada nota sesuai filter.</span></div>`;
+                    container.innerHTML = `<div class="text-center text-xs text-slate-400 py-4">Tidak ada nota sesuai filter.</div>`;
                 }
             } finally {
                 isRenderAdminNotaRunning = false;
@@ -4159,11 +4380,105 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             });
 
             if (!html) {
-                html = '<div class=\"flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-400 py-8\"><div class=\"w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center\"><svg class=\"w-5 h-5 text-slate-300 dark:text-slate-600\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8\"/><path d=\"M3 8l2.45-4.9A2 2 0 0 1 7.24 2h9.52a2 2 0 0 1 1.79 1.1L21 8\"/><path d=\"M3 8h18\"/><path d=\"M9 12a3 3 0 0 0 6 0\"/></svg></div><span>Belum ada data laporan.</span></div>';
+                html = '<div class="text-center text-xs text-slate-400 py-4">Belum ada data laporan.</div>';
             }
 
             container.innerHTML = html;
+
+            loadChartJs().then(() => initAdminLaporanChart(mapHarian)).catch(console.error);
         };
+
+        let instanceChartLaporanAdmin = null;
+        function initAdminLaporanChart(mapHarian = {}) {
+            const chartContainer = document.getElementById('chart-laporan-admin-container');
+            if (!chartContainer) return;
+            if (instanceChartLaporanAdmin !== null) {
+                instanceChartLaporanAdmin.destroy();
+                instanceChartLaporanAdmin = null;
+            }
+            chartContainer.innerHTML = '<canvas id="chartLaporanAdmin" class="w-full h-40"></canvas>';
+            const ctx = document.getElementById('chartLaporanAdmin').getContext('2d');
+
+            const urutanTgl = Object.keys(mapHarian).sort((a, b) => a.localeCompare(b));
+            const tampil = urutanTgl.slice(-14); // 14 hari terakhir biar chart tetap ringan di HP RAM kecil
+
+            let labels = [];
+            let dataPendapatan = [];
+            let dataNota = [];
+
+            tampil.forEach(tgl => {
+                labels.push(new Date(tgl).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }));
+                dataPendapatan.push(mapHarian[tgl].pendapatan || 0);
+                dataNota.push(mapHarian[tgl].totalNota || 0);
+            });
+
+            if (labels.length === 0) {
+                labels = ['Belum Ada Data'];
+                dataPendapatan = [0];
+                dataNota = [0];
+            }
+
+            instanceChartLaporanAdmin = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            type: 'bar',
+                            label: 'Pendapatan (Rp)',
+                            data: dataPendapatan,
+                            backgroundColor: 'rgba(0, 102, 255, 0.55)',
+                            borderRadius: 6,
+                            yAxisID: 'yPendapatan',
+                            order: 2
+                        },
+                        {
+                            type: 'line',
+                            label: 'Jumlah Nota',
+                            data: dataNota,
+                            borderColor: '#F59E0B',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            pointRadius: 3,
+                            pointBackgroundColor: '#F59E0B',
+                            yAxisID: 'yNota',
+                            order: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true, labels: { boxWidth: 12, font: { size: 9, weight: 'bold' } } }
+                    },
+                    scales: {
+                        yPendapatan: {
+                            type: 'linear',
+                            position: 'left',
+                            beginAtZero: true,
+                            grid: { color: 'rgba(148, 163, 184, 0.06)' },
+                            ticks: {
+                                font: { size: 8 },
+                                callback: (v) => v >= 1000 ? 'Rp ' + (v / 1000) + 'k' : 'Rp ' + v
+                            }
+                        },
+                        yNota: {
+                            type: 'linear',
+                            position: 'right',
+                            beginAtZero: true,
+                            grid: { drawOnChartArea: false },
+                            ticks: { font: { size: 8 }, stepSize: 1, callback: (v) => v + ' Nta' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { size: 9 } }
+                        }
+                    }
+                }
+            });
+        }
         window.backupLaporanExcel = function() {
             const bulan = document.getElementById('laporan-filter-bulan')?.value || getWibRawDate().substring(0, 7);
             const kurirFilter = document.getElementById('laporan-filter-kurir')?.value || 'semua';
@@ -4314,7 +4629,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             });
 
             if (!sheetCount) {
-                alert('Tidak ada data untuk dibackup.');
+                toast('Tidak ada data untuk dibackup.');
                 return;
             }
 
@@ -4327,7 +4642,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const tarif = bersihkanAngka(document.getElementById('ongkir-tarif').value);
         
             if (!wilayah || tarif <= 0) {
-                alert('Lengkapi nama wilayah dan tarif ongkir!');
+                toast('Lengkapi nama wilayah dan tarif ongkir!');
                 return;
             }
         
@@ -4335,12 +4650,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         
             if (idEdit) {
                 update(ref(db, `ongkir_wilayah/${idEdit}`), payload).then(() => {
-                    alert('Data ongkir berhasil diupdate!');
+                    toast('Data ongkir berhasil diupdate!');
                     resetFormOngkir();
                 });
             } else {
                 push(ref(db, 'ongkir_wilayah'), payload).then(() => {
-                    alert('Data ongkir berhasil disimpan!');
+                    toast('Data ongkir berhasil disimpan!');
                     resetFormOngkir();
                 });
             }
@@ -4374,17 +4689,17 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const wilayah = document.getElementById('edit-ongkir-wilayah').value.trim();
             const tarif = bersihkanAngka(document.getElementById('edit-ongkir-tarif').value);
         
-            if (!id) return alert('Data ongkir tidak ditemukan!');
-            if (!wilayah || tarif <= 0) return alert('Lengkapi nama wilayah dan tarif ongkir!');
+            if (!id) return toast('Data ongkir tidak ditemukan!');
+            if (!wilayah || tarif <= 0) return toast('Lengkapi nama wilayah dan tarif ongkir!');
         
             update(ref(db, `ongkir_wilayah/${id}`), {
                 wilayah,
                 tarif
             }).then(() => {
-                alert('Data ongkir berhasil diperbarui!');
+                toast('Data ongkir berhasil diperbarui!');
                 closeEditOngkirModal();
             }).catch(err => {
-                alert('Gagal update ongkir: ' + err.message);
+                toast('Gagal update ongkir: ' + err.message);
             });
         };
         window.closeEditOngkirModal = function() {
@@ -4400,8 +4715,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             document.getElementById('title-form-ongkir').innerText = 'Tambah / Edit Ongkir';
         };
         
-        window.hapusDataOngkir = function(key) {
-            if (confirm('Hapus data ongkir ini?')) {
+        window.hapusDataOngkir = async function(key) {
+            const ok = await showConfirm('Hapus data ongkir ini?');
+            if (ok) {
                 remove(ref(db, `ongkir_wilayah/${key}`));
             }
         };
@@ -4413,7 +4729,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const keys = Object.keys(cloudOngkirList || {});
 
             if (!keys.length) {
-                container.innerHTML = '<div class=\"flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-400 py-8\"><div class=\"w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center\"><svg class=\"w-5 h-5 text-slate-300 dark:text-slate-600\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8\"/><path d=\"M3 8l2.45-4.9A2 2 0 0 1 7.24 2h9.52a2 2 0 0 1 1.79 1.1L21 8\"/><path d=\"M3 8h18\"/><path d=\"M9 12a3 3 0 0 0 6 0\"/></svg></div><span>Belum ada data ongkir.</span></div>';
+                container.innerHTML = '<div class="text-center text-xs text-slate-400 py-4">Belum ada data ongkir.</div>';
                 return;
             }
 
@@ -4516,7 +4832,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                         </div>
                     </div>
                 `;
-            }).join('') : '<div class=\"flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-400 py-8\"><div class=\"w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center\"><svg class=\"w-5 h-5 text-slate-300 dark:text-slate-600\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8\"/><path d=\"M3 8l2.45-4.9A2 2 0 0 1 7.24 2h9.52a2 2 0 0 1 1.79 1.1L21 8\"/><path d=\"M3 8h18\"/><path d=\"M9 12a3 3 0 0 0 6 0\"/></svg></div><span>Belum ada data ongkir.</span></div>';
+            }).join('') : '<div class="text-center text-xs text-slate-400 py-4">Belum ada data ongkir.</div>';
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
         };
@@ -4614,7 +4930,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
           const asal = document.getElementById('admin-ongkir-asal').value.trim();
           const tujuan = document.getElementById('admin-ongkir-tujuan').value.trim();
       
-          if (!asal && !tujuan) return alert('Isi minimal salah satu.');
+          if (!asal && !tujuan) return toast('Isi minimal salah satu.');
       
           const cariTarif = (nama) => {
               for (let k in cloudOngkirList) {
@@ -4672,10 +4988,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const asal = document.getElementById('admin-jarak-asal').value.trim();
             const jarak = parseFloat(document.getElementById('admin-jarak-km').value) || 0;
 
-            if (!asal || jarak <= 0) return alert('Isi wilayah dan jarak.');
+            if (!asal || jarak <= 0) return toast('Isi wilayah dan jarak.');
 
             if (jarak <= 12) {
-                alert('⚠️ Jarak ≤ 12km. Gunakan fitur "Cek Ongkir" normal untuk hasil akurat.');
+                toast('⚠️ Jarak ≤ 12km. Gunakan fitur "Cek Ongkir" normal untuk hasil akurat.');
                 return;
             }
 
@@ -4703,7 +5019,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const titik = document.getElementById('admin-ongkir-3-titik').value.trim();
             const tujuan = document.getElementById('admin-ongkir-3-tujuan').value.trim();
             if (!asal || !titik || !tujuan) {
-                alert('Lengkapi semua kolom.');
+                toast('Lengkapi semua kolom.');
                 return;
             }
             const cariTarif = (nama) => {
@@ -4772,14 +5088,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         window.openOngkirFeature = function() {
             if (!userSession || userSession.role !== 'kurir') return;
             const currentKurir = cloudKurirList[userSession.id];
-            if (!currentKurir) { alert('Data akun tidak ditemukan.'); return; }
+            if (!currentKurir) { toast('Data akun tidak ditemukan.'); return; }
 
             // izin cek: kalau locked, minta password dulu
             if (currentKurir.ongkirLocked) {
                 const inputPass = prompt('Masukkan password khusus untuk membuka fitur ongkir:');
                 if (!inputPass) return;
                 if (inputPass !== currentKurir.ongkirPassword) {
-                    alert('Password ongkir salah!');
+                    toast('Password ongkir salah!');
                     return;
                 }
                 update(ref(db, `users/${userSession.id}`), { ongkirLocked: false });
@@ -4790,13 +5106,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         window.openCekOngkirPopupFromNota = function() {
             if (!userSession || userSession.role !== 'kurir') return;
             const currentKurir = cloudKurirList[userSession.id];
-            if (!currentKurir) { alert('Data akun tidak ditemukan.'); return; }
+            if (!currentKurir) { toast('Data akun tidak ditemukan.'); return; }
 
             if (currentKurir.ongkirLocked) {
                 const inputPass = prompt('Masukkan password khusus untuk membuka fitur ongkir:');
                 if (!inputPass) return;
                 if (inputPass !== currentKurir.ongkirPassword) {
-                    alert('Password ongkir salah!');
+                    toast('Password ongkir salah!');
                     return;
                 }
                 update(ref(db, `users/${userSession.id}`), { ongkirLocked: false });
@@ -4871,7 +5187,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         const asal = document.getElementById('cek-ongkir-asal')?.value.trim() || '';
         const tujuan = document.getElementById('cek-ongkir-tujuan')?.value.trim() || '';
 
-        if (!asal && !tujuan) return alert('Isi minimal salah satu: asal atau tujuan.');
+        if (!asal && !tujuan) return toast('Isi minimal salah satu: asal atau tujuan.');
 
         const tarifAsal = asal ? popupCariTarif(asal) : 0;
         const tarifTujuan = tujuan ? popupCariTarif(tujuan) : 0;
@@ -4894,7 +5210,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         };
         window.setOngkirToNotaPopup = function() {
         const val = window.__lastOngkirPopupValue || 0;
-        if (val <= 0) return alert('Belum ada hasil estimasi ongkir.');
+        if (val <= 0) return toast('Belum ada hasil estimasi ongkir.');
 
         const asal = document.getElementById('cek-ongkir-asal')?.value?.trim() || '';
         const tujuan = document.getElementById('cek-ongkir-tujuan')?.value?.trim() || '';
@@ -5381,6 +5697,15 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 if (!container) return;
             
                 currentKPISection = section;
+                ['penghargaan', 'top5', 'ranking', 'rekapjadwal'].forEach(key => {
+                    const btn = document.getElementById('kpi-tab-' + key);
+                    if (!btn) return;
+                    if (key === section) {
+                        btn.className = 'kpi-tab active';
+                    } else {
+                        btn.className = 'kpi-tab';
+                    }
+                });
                 const bulan = getKpiMonth();
                 const data = buildKPIData(bulan);
             
@@ -5468,76 +5793,93 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 
                 if (section === 'penghargaan') {
                     const testimoniTerbaik = getTestimoniTerbaik(bulan);
-                
+                    const namaBulanLabel = new Date(bulan + '-01').toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+
+                    // Susunan podium: kiri #2, tengah #1 (paling tinggi), kanan #3
+                    const podiumOrder = [
+                        { d: top2, rank: 2, medal: '🥈', barH: 'h-14', grad: 'from-slate-300 to-slate-400', ring: 'ring-slate-300' },
+                        { d: top1, rank: 1, medal: '🥇', barH: 'h-20', grad: 'from-yellow-300 to-amber-400', ring: 'ring-amber-300' },
+                        { d: top3, rank: 3, medal: '🥉', barH: 'h-10', grad: 'from-orange-300 to-orange-400', ring: 'ring-orange-300' }
+                    ];
+
+                    const awardCards = [
+                        {
+                            icon: '💬', tone: 'from-pink-400 to-rose-500', label: 'Testimoni Terbaik',
+                            nama: testimoniTerbaik?.nama, metric: testimoniTerbaik ? `⭐ ${testimoniTerbaik.avgRating.toFixed(1)}/5 · ${testimoniTerbaik.jumlah} testimoni` : '-',
+                            metricClass: 'text-rose-500 dark:text-rose-400'
+                        },
+                        {
+                            icon: '🏪', tone: 'from-indigo-400 to-blue-500', label: 'Trx Mitra Terbanyak',
+                            nama: topTrxMitra?.nama, metric: `${topTrxMitra?.trxMitra || 0} transaksi`,
+                            metricClass: 'text-indigo-500 dark:text-indigo-400'
+                        },
+                        {
+                            icon: '🔥', tone: 'from-orange-400 to-amber-500', label: 'Kurir Paling Aktif',
+                            nama: topAktif?.nama, metric: `Rating ${topAktif?.rating || 0}%`,
+                            metricClass: 'text-orange-500 dark:text-orange-400'
+                        }
+                    ];
+
                     container.innerHTML = `
                         <div class="space-y-4">
-                            <div class="rounded-3xl p-5 bg-gradient-to-br from-yellow-100 to-yellow-300 dark:from-yellow-900/40 dark:to-yellow-800/20 border border-yellow-200 dark:border-yellow-900 shadow-xl">
-                                <div class="text-[10px] uppercase tracking-wider text-yellow-700 dark:text-yellow-200 font-black">🏆 Kurir Terbaik</div>
-                                <div class="flex items-center justify-between mt-2">
-                                    <div>
-                                        <div class="text-2xl font-black">${topKurirTerbaik?.nama || '-'}</div>
-                                        <div class="text-xs font-bold mt-1">${topKurirTerbaik ? `${getRatingBadge(topKurirTerbaik.rating).emoji} ${Number(topKurirTerbaik.rating).toFixed(1)}% ${getRatingBadge(topKurirTerbaik.rating).label}` : '-'}</div>
+                            <!-- HERO: Kurir Terbaik Bulan Ini -->
+                            <div class="relative overflow-hidden rounded-3xl p-5 bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-500 shadow-xl shadow-amber-500/30">
+                                <div class="pointer-events-none absolute inset-0 opacity-[0.12]" style="background-image:radial-gradient(circle,#fff 1.5px,transparent 1.5px);background-size:16px 16px;"></div>
+                                <div class="relative flex items-center gap-4">
+                                    <div class="relative w-[68px] h-[68px] shrink-0 rounded-[22px] bg-white/25 ring-4 ring-white/40 flex items-center justify-center backdrop-blur-sm shadow-lg">
+                                        <span class="text-xl font-black text-white drop-shadow-sm">${getKpiAvatarName(topKurirTerbaik?.nama || '')}</span>
+                                        <div class="absolute -top-2.5 -right-2.5 w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-md text-base">👑</div>
                                     </div>
-                                    <div class="w-16 h-16 rounded-full bg-white/70 flex items-center justify-center font-black text-xl text-yellow-900 shadow-lg">
-                                        ${getKpiAvatarName(topKurirTerbaik?.nama || '')}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="rounded-3xl p-5 bg-gradient-to-br from-pink-100 to-rose-300 dark:from-pink-900/40 dark:to-rose-800/20 border border-pink-200 dark:border-pink-900 shadow-xl">
-                                <div class="text-[10px] uppercase tracking-wider text-pink-700 dark:text-pink-200 font-black">💬 Kurir Testimoni Terbaik</div>
-                                <div class="flex items-center justify-between mt-2">
-                                    <div>
-                                        <div class="text-2xl font-black">${testimoniTerbaik?.nama || '-'}</div>
-                                        <div class="text-xs font-bold mt-1">
-                                            ${testimoniTerbaik ? `⭐ ${testimoniTerbaik.avgRating.toFixed(1)} / 5 dari ${testimoniTerbaik.jumlah} testimoni` : '-'}
+                                    <div class="min-w-0 flex-1">
+                                        <div class="text-[9px] font-black uppercase tracking-widest text-amber-900/70">🏆 Kurir Terbaik Bulan Ini</div>
+                                        <div class="text-xl font-black text-amber-950 truncate mt-0.5">${topKurirTerbaik?.nama || '-'}</div>
+                                        <div class="inline-flex items-center gap-1 mt-1.5 px-2.5 py-1 rounded-full bg-white/45 text-[10px] font-black text-amber-900">
+                                            ${topKurirTerbaik ? `${getRatingBadge(topKurirTerbaik.rating).emoji} ${Number(topKurirTerbaik.rating).toFixed(1)}% • ${getRatingBadge(topKurirTerbaik.rating).label}` : 'Belum ada data'}
                                         </div>
                                     </div>
-                                    <div class="w-16 h-16 rounded-full bg-white/70 flex items-center justify-center font-black text-xl text-pink-900 shadow-lg">
-                                        ${getKpiAvatarName(testimoniTerbaik?.nama || '')}
-                                    </div>
                                 </div>
                             </div>
 
-                            <div class="rounded-3xl p-5 bg-gradient-to-br from-slate-200 to-slate-400 dark:from-slate-700 dark:to-slate-800 border shadow-xl">
-                                <div class="text-[10px] uppercase tracking-wider text-slate-700 dark:text-slate-200 font-black">🥇 Trx Mitra Terbanyak</div>
-                                <div class="flex items-center justify-between mt-2">
-                                    <div>
-                                        <div class="text-2xl font-black text-slate-900 dark:text-white">${topTrxMitra?.nama || '-'}</div>
-                                        <div class="text-xs font-bold mt-1 text-slate-700 dark:text-slate-200">${topTrxMitra?.trxMitra || 0} trx</div>
-                                    </div>
-                                    <div class="w-16 h-16 rounded-full bg-white/70 flex items-center justify-center font-black text-xl text-slate-900 shadow-lg">
-                                        ${getKpiAvatarName(topTrxMitra?.nama || '')}
-                                    </div>
+                            <!-- PODIUM TOP 3 -->
+                            <div class="rounded-3xl p-4 bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800 shadow-sm">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h4 class="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5"><i data-lucide="award" class="w-3.5 h-3.5 text-amber-500"></i> Podium Ranking</h4>
+                                    <span class="text-[9px] font-bold text-slate-400">${namaBulanLabel}</span>
                                 </div>
-                            </div>
-
-                            <div class="rounded-3xl p-5 bg-gradient-to-br from-orange-100 to-orange-300 dark:from-orange-900/40 dark:to-orange-800/20 border border-orange-200 dark:border-orange-900 shadow-xl">
-                                <div class="text-[10px] uppercase tracking-wider text-orange-700 dark:text-orange-200 font-black">🔥 Kurir Paling Aktif</div>
-                                <div class="flex items-center justify-between mt-2">
-                                    <div>
-                                        <div class="text-2xl font-black">${topAktif?.nama || '-'}</div>
-                                        <div class="text-xs font-bold mt-1 text-orange-700 dark:text-orange-200">Rating ${topAktif?.rating || 0}%</div>
-                                    </div>
-                                    <div class="w-16 h-16 rounded-full bg-white/70 flex items-center justify-center font-black text-xl text-orange-900 shadow-lg">
-                                        ${getKpiAvatarName(topAktif?.nama || '')}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-3 gap-2">
-                                ${[top1, top2, top3].map((x, idx) => {
-                                    if (!x) return `<div class="rounded-2xl bg-slate-100 dark:bg-slate-800 p-3 text-center text-xs">-</div>`;
-                                    const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉';
-                                    const bg = idx === 0 ? 'from-yellow-300 to-yellow-500' : idx === 1 ? 'from-slate-300 to-slate-500' : 'from-orange-300 to-orange-500';
-                                    return `
-                                        <div class="rounded-2xl bg-gradient-to-br ${bg} p-3 text-center shadow-lg">
-                                            <div class="text-2xl">${medal}</div>
-                                            <div class="font-black text-sm mt-1">${x.nama}</div>
-                                            <div class="text-[10px] font-bold">${Number(x.rating).toFixed(1)}%</div>
+                                <div class="flex items-end justify-center gap-2.5">
+                                    ${podiumOrder.map(p => `
+                                        <div class="flex flex-col items-center flex-1 min-w-0">
+                                            <div class="text-xl leading-none">${p.medal}</div>
+                                            <div class="w-11 h-11 -mt-1 rounded-full bg-gradient-to-br ${p.grad} flex items-center justify-center text-sm font-black text-white shadow-md ring-2 ring-white dark:ring-darkCard">
+                                                ${p.d ? getKpiAvatarName(p.d.nama) : '-'}
+                                            </div>
+                                            <div class="text-[10px] font-bold mt-1.5 text-center truncate w-full px-0.5">${p.d?.nama || '-'}</div>
+                                            <div class="text-[9px] font-black text-slate-400">${p.d ? Number(p.d.rating).toFixed(1) + '%' : '-'}</div>
+                                            <div class="w-full ${p.barH} rounded-t-2xl bg-gradient-to-b ${p.grad} mt-2 flex items-start justify-center pt-1.5 shadow-inner">
+                                                <span class="text-white font-black text-base drop-shadow-sm">${p.rank}</span>
+                                            </div>
                                         </div>
-                                    `;
-                                }).join('')}
+                                    `).join('')}
+                                </div>
+                            </div>
+
+                            <!-- GRID PENGHARGAAN LAIN -->
+                            <div>
+                                <h4 class="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5"><i data-lucide="sparkles" class="w-3.5 h-3.5 text-violet-500"></i> Penghargaan Lainnya</h4>
+                                <div class="grid grid-cols-1 gap-2.5">
+                                    ${awardCards.map(a => `
+                                        <div class="rounded-2xl p-3.5 bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-3">
+                                            <div class="w-11 h-11 rounded-2xl bg-gradient-to-br ${a.tone} flex items-center justify-center text-lg shrink-0 shadow-md">
+                                                ${a.icon}
+                                            </div>
+                                            <div class="min-w-0 flex-1">
+                                                <div class="text-[9px] font-bold uppercase tracking-wider text-slate-400">${a.label}</div>
+                                                <div class="text-sm font-black truncate">${a.nama || '-'}</div>
+                                            </div>
+                                            <div class="text-[10px] font-black shrink-0 ${a.metricClass}">${a.metric}</div>
+                                        </div>
+                                    `).join('')}
+                                </div>
                             </div>
                         </div>
                     `;
@@ -5736,9 +6078,149 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                     </div>
                 `;
             } finally {
+                if (window.lucide) lucide.createIcons();
                 isRenderKpiRunning = false;
             }
         };
+
+        // ===================================================================
+        // STATISTIK & PERINGKAT KURIR — khusus untuk akun kurir yang sedang login.
+        // Menampilkan posisi ranking bulan ini, naik/turun dibanding bulan lalu,
+        // rincian skor, dan mini leaderboard di sekitar posisinya.
+        // ===================================================================
+        function getPrevMonthStr(ym) {
+            let [y, m] = (ym || '').split('-').map(Number);
+            if (!y || !m) return ym;
+            m -= 1;
+            if (m === 0) { m = 12; y -= 1; }
+            return `${y}-${String(m).padStart(2, '0')}`;
+        }
+
+        window.renderStatistikKurir = function() {
+            if (!userSession || userSession.role !== 'kurir') return;
+
+            const bulan = getWibRawDate().slice(0, 7);
+            const bulanPrev = getPrevMonthStr(bulan);
+            const norm = (v) => (v || '').toString().trim().toLowerCase();
+            const myUsername = norm(userSession.username);
+            const myId = norm(userSession.id);
+            const myNama = norm(userSession.nama);
+
+            const dataNow = buildKPIData(bulan);
+            const dataPrev = buildKPIData(bulanPrev);
+
+            const matchMe = (row) => norm(row.id) === myId || norm(row.username) === myUsername || norm(row.nama) === myNama;
+
+            const idxNow = dataNow.findIndex(matchMe);
+            const idxPrev = dataPrev.findIndex(matchMe);
+
+            const bulanLabelEl = document.getElementById('statistik-bulan-label');
+            if (bulanLabelEl) {
+                const namaBulan = new Date(bulan + '-01').toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+                bulanLabelEl.innerText = 'Periode ' + namaBulan;
+            }
+
+            const rankNumberEl = document.getElementById('statistik-rank-number');
+            const rankTotalEl = document.getElementById('statistik-rank-total');
+            const deltaBadgeEl = document.getElementById('statistik-delta-badge');
+
+            if (idxNow === -1) {
+                if (rankNumberEl) rankNumberEl.innerText = '-';
+                if (rankTotalEl) rankTotalEl.innerText = 'Belum ada data KPI bulan ini';
+                if (deltaBadgeEl) deltaBadgeEl.innerHTML = '';
+                const breakdownEl = document.getElementById('statistik-breakdown');
+                if (breakdownEl) breakdownEl.innerHTML = '<div class="text-center text-xs text-slate-400 py-4">Belum ada aktivitas yang tercatat bulan ini.</div>';
+                const boardEl = document.getElementById('statistik-leaderboard');
+                if (boardEl) boardEl.innerHTML = '';
+                return;
+            }
+
+            const me = dataNow[idxNow];
+            const rankNow = idxNow + 1;
+            const total = dataNow.length;
+
+            if (rankNumberEl) rankNumberEl.innerText = rankNow;
+            if (rankTotalEl) rankTotalEl.innerText = `dari ${total} kurir aktif`;
+
+            if (deltaBadgeEl) {
+                if (idxPrev === -1) {
+                    deltaBadgeEl.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold mx-auto bg-slate-100 dark:bg-slate-800 text-slate-500';
+                    deltaBadgeEl.innerHTML = '<i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Belum ada data bulan lalu';
+                } else {
+                    const rankPrev = idxPrev + 1;
+                    const delta = rankPrev - rankNow; // positif = naik peringkat
+                    if (delta > 0) {
+                        deltaBadgeEl.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold mx-auto bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600';
+                        deltaBadgeEl.innerHTML = `<i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i> Naik ${delta} peringkat`;
+                    } else if (delta < 0) {
+                        deltaBadgeEl.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold mx-auto bg-rose-50 dark:bg-rose-950/40 text-rose-500';
+                        deltaBadgeEl.innerHTML = `<i data-lucide="arrow-down-right" class="w-3.5 h-3.5"></i> Turun ${Math.abs(delta)} peringkat`;
+                    } else {
+                        deltaBadgeEl.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold mx-auto bg-slate-100 dark:bg-slate-800 text-slate-500';
+                        deltaBadgeEl.innerHTML = '<i data-lucide="minus" class="w-3.5 h-3.5"></i> Tetap dari bulan lalu';
+                    }
+                }
+            }
+
+            const badge = getRatingBadge(me.rating || 0);
+            const badgeEmojiEl = document.getElementById('statistik-badge-emoji');
+            const badgeLabelEl = document.getElementById('statistik-badge-label');
+            const ratingNumberEl = document.getElementById('statistik-rating-number');
+            const ratingBarEl = document.getElementById('statistik-rating-bar');
+
+            if (badgeEmojiEl) badgeEmojiEl.innerText = badge.emoji;
+            if (badgeLabelEl) { badgeLabelEl.innerText = badge.label; badgeLabelEl.className = 'text-sm font-black ' + badge.color; }
+            if (ratingNumberEl) ratingNumberEl.innerText = (me.rating || 0) + ' / 100';
+            if (ratingBarEl) {
+                ratingBarEl.style.width = Math.min(100, me.rating || 0) + '%';
+                ratingBarEl.className = 'h-full rounded-full transition-all duration-500 ' + progressColor(me.rating || 0);
+            }
+
+            const breakdownEl = document.getElementById('statistik-breakdown');
+            if (breakdownEl) {
+                const rows = [
+                    { label: 'Kehadiran', icon: 'calendar-check', score: me.kehadiranScore || 0, color: 'bg-blue-500' },
+                    { label: 'Total Penghasilan', icon: 'wallet', score: me.totalPenghasilanScore || 0, color: 'bg-emerald-500', extra: 'Rp ' + (me.totalPenghasilan || 0).toLocaleString('id-ID') },
+                    { label: 'Total Nota', icon: 'file-text', score: me.totalNotaScore || 0, color: 'bg-indigo-500', extra: (me.totalNota || 0) + ' nota' },
+                    { label: 'Transaksi Mitra', icon: 'store', score: me.trxMitraScore || 0, color: 'bg-amber-500', extra: (me.trxMitra || 0) + ' trx' },
+                    { label: 'Kedisiplinan (Off/Izin/Sakit)', icon: 'shield-check', score: me.offScore || 0, color: 'bg-purple-500' }
+                ];
+                breakdownEl.innerHTML = rows.map(r => `
+                    <div class="space-y-1">
+                        <div class="flex items-center justify-between text-[11px]">
+                            <span class="flex items-center gap-1.5 text-slate-600 dark:text-slate-300"><i data-lucide="${r.icon}" class="w-3.5 h-3.5 text-slate-400"></i> ${r.label}${r.extra ? ` <span class="text-slate-400">(${r.extra})</span>` : ''}</span>
+                            <span class="font-bold text-slate-700 dark:text-slate-200">${r.score.toFixed(1)}/20</span>
+                        </div>
+                        <div class="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                            <div class="h-full rounded-full ${r.color}" style="width:${Math.min(100, (r.score / 20) * 100)}%"></div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            const boardEl = document.getElementById('statistik-leaderboard');
+            if (boardEl) {
+                const startIdx = Math.max(0, idxNow - 1);
+                const endIdx = Math.min(dataNow.length, idxNow + 2);
+                const slice = dataNow.slice(startIdx, endIdx);
+                boardEl.innerHTML = slice.map((row, i) => {
+                    const rank = startIdx + i + 1;
+                    const isMe = (startIdx + i) === idxNow;
+                    return `
+                        <div class="flex items-center gap-2.5 p-2.5 rounded-xl ${isMe ? 'bg-blue-50 dark:bg-blue-950/30 ring-1 ring-primary/30' : 'bg-slate-50 dark:bg-slate-800/50'}">
+                            <div class="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black shrink-0 ${isMe ? 'bg-primary text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}">${rank}</div>
+                            <div class="min-w-0 flex-1">
+                                <p class="text-[11px] font-bold truncate ${isMe ? 'text-primary' : 'text-slate-700 dark:text-slate-200'}">${row.nama || '-'}${isMe ? ' (Kamu)' : ''}</p>
+                            </div>
+                            <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 shrink-0">${(row.rating || 0).toFixed(1)}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            if (window.lucide) lucide.createIcons();
+        };
+
         window.saveDataManajemen = function() {
             const idEdit = document.getElementById('manajemen-id-edit').value;
             const kategori = document.getElementById('manajemen-kategori').value;
@@ -5748,7 +6230,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const status = document.getElementById('manajemen-status').value;
         
             if (!kategori || !nama || !username || !password) {
-                alert('Lengkapi semua data!');
+                toast('Lengkapi semua data!');
                 return;
             }
         
@@ -5757,23 +6239,23 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             if (idEdit) {
                 update(ref(db, `manajemen_sahabatku/${idEdit}`), payload)
                     .then(() => {
-                        alert('Data berhasil diperbarui!');
+                        toast('Data berhasil diperbarui!');
                         resetFormManajemen();
                         setTimeout(() => {
                             if (typeof renderAdminManajemen === 'function') renderAdminManajemen();
                         }, 300);
                     })
-                    .catch(err => alert('Gagal update: ' + err.message));
+                    .catch(err => toast('Gagal update: ' + err.message));
             } else {
                 push(ref(db, 'manajemen_sahabatku'), payload)
                     .then(() => {
-                        alert('Data berhasil disimpan!');
+                        toast('Data berhasil disimpan!');
                         resetFormManajemen();
                         setTimeout(() => {
                             if (typeof renderAdminManajemen === 'function') renderAdminManajemen();
                         }, 300);
                     })
-                    .catch(err => alert('Gagal simpan: ' + err.message));
+                    .catch(err => toast('Gagal simpan: ' + err.message));
             }
 
         };
@@ -5799,8 +6281,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const password = document.getElementById('edit-manajemen-password').value.trim();
             const status = document.getElementById('edit-manajemen-status').value;
         
-            if (!id) return alert('Data manajemen tidak ditemukan!');
-            if (!kategori || !nama || !username || !password) return alert('Lengkapi semua data!');
+            if (!id) return toast('Data manajemen tidak ditemukan!');
+            if (!kategori || !nama || !username || !password) return toast('Lengkapi semua data!');
         
             update(ref(db, `manajemen_sahabatku/${id}`), {
                 kategori,
@@ -5809,10 +6291,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 password,
                 status
             }).then(() => {
-                alert('Data manajemen berhasil diperbarui!');
+                toast('Data manajemen berhasil diperbarui!');
                 closeEditManajemenModal();
             }).catch(err => {
-                alert('Gagal update: ' + err.message);
+                toast('Gagal update: ' + err.message);
             });
         };
         window.closeEditManajemenModal = function() {
@@ -5865,7 +6347,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         const message = document.getElementById('notif-message').value.trim();
 
         if (!message) {
-            alert('Isi pesan notifikasi wajib diisi!');
+            toast('Isi pesan notifikasi wajib diisi!');
             return;
         }
 
@@ -5874,10 +6356,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const checkboxes = document.querySelectorAll('.notif-kurir-check:checked');
             targetList = Array.from(checkboxes).map(checkbox => checkbox.value);
             if (!targetList.length) {
-            alert('Pilih minimal 1 kurir!');
+            toast('Pilih minimal 1 kurir!');
             return;
             }
         }
+
+        const sender = getSenderInfo();
 
         const payload = {
             target,
@@ -5885,22 +6369,26 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             message,
             type: 'warning',
             active: true,
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            senderRole: sender.senderRole,
+            senderLabel: sender.senderLabel,
+            senderNama: sender.senderNama
         };
 
         push(ref(db, 'notifications_admin'), payload)
             .then(() => {
-            alert('Notifikasi berhasil dikirim!');
+            toast('Notifikasi berhasil dikirim!');
             resetNotifForm();
             })
-            .catch(err => alert('Gagal kirim notifikasi: ' + err.message));
+            .catch(err => toast('Gagal kirim notifikasi: ' + err.message));
         };
                 
-        window.hapusDataManajemen = function(key) {
-            if (confirm('Hapus data ini?')) {
+        window.hapusDataManajemen = async function(key) {
+            const ok = await showConfirm('Hapus data ini?');
+            if (ok) {
                 remove(ref(db, `manajemen_sahabatku/${key}`))
-                    .then(() => alert('Data berhasil dihapus!'))
-                    .catch(err => alert('Gagal hapus: ' + err.message));
+                    .then(() => toast('Data berhasil dihapus!'))
+                    .catch(err => toast('Gagal hapus: ' + err.message));
             }
         };
         window.renderAdminManajemen = function() {
@@ -5920,7 +6408,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             if (!inner || !isOpen) return;
 
             if (!keys.length) {
-                inner.innerHTML = '<div class=\"flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-400 py-8\"><div class=\"w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center\"><svg class=\"w-5 h-5 text-slate-300 dark:text-slate-600\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8\"/><path d=\"M3 8l2.45-4.9A2 2 0 0 1 7.24 2h9.52a2 2 0 0 1 1.79 1.1L21 8\"/><path d=\"M3 8h18\"/><path d=\"M9 12a3 3 0 0 0 6 0\"/></svg></div><span>Belum ada data.</span></div>';
+                inner.innerHTML = '<div class="text-center text-xs text-slate-400 py-4">Belum ada data.</div>';
                 return;
             }
 
@@ -5936,14 +6424,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                             </div>
                             <span class="text-[10px] text-slate-400 shrink-0">${d.kategori || '-'}</span>
                         </div>
-                        <div class="bg-slate-50 dark:bg-slate-800 p-2 rounded-xl grid grid-cols-1 gap-1 font-mono text-[11px]">
+                        <div class="bg-slate-50 dark:bg-slate-800 p-2 rounded-lg grid grid-cols-1 gap-1 font-mono text-[11px]">
                             <div class="dark:text-slate-300">User: <span class="text-primary font-bold">${d.username || '-'}</span></div>
                             <div class="dark:text-slate-300">Pass: <span class="text-amber-500 font-bold">${d.password || '-'}</span></div>
                             <div class="dark:text-slate-300">Status: <span class="font-bold ${d.status === 'aktif' ? 'text-emerald-500' : 'text-rose-500'}">${d.status || '-'}</span></div>
                         </div>
                         <div class="flex justify-end gap-2 pt-1">
-                            <button onclick="editDataManajemen('${key}')" class="px-2.5 py-1 bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-white rounded-xl font-semibold">Edit</button>
-                            <button onclick="hapusDataManajemen('${key}')" class="px-2.5 py-1 bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400 rounded-xl font-semibold">Hapus</button>
+                            <button onclick="editDataManajemen('${key}')" class="px-2.5 py-1 bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-white rounded-md font-semibold">Edit</button>
+                            <button onclick="hapusDataManajemen('${key}')" class="px-2.5 py-1 bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400 rounded-md font-semibold">Hapus</button>
                         </div>
                     </div>
                 `;
@@ -5956,7 +6444,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const badge = document.getElementById('badge-admin-role');
             const kurirForm = document.querySelector('#screen-admin-kurir > .bg-white');
             const manajemenScreen = document.getElementById('screen-admin-manajemen');
+            const leaderScreen = document.getElementById('screen-admin-leader');
             const manajemenCardBtn = document.querySelector('#screen-admin-dashboard button[onclick*="screen-admin-manajemen"]');
+            const leaderCardBtn = document.querySelector('#screen-admin-dashboard button[onclick*="screen-admin-leader"]');
             const ongkirCardBtn = document.querySelector('#screen-admin-dashboard button[onclick*="screen-admin-ongkir"]');
             const orderDepositCardBtn = document.querySelector('#screen-admin-dashboard button[onclick*="screen-admin-order-deposit"]');
 
@@ -5971,7 +6461,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 
             if (kategoriFixed === 'Owner' || kategoriFixed === 'Head Operasional') {
                 const allScreenIds = [
-                    'screen-admin-kurir', 'screen-admin-manajemen', 'screen-admin-nota',
+                    'screen-admin-kurir', 'screen-admin-manajemen', 'screen-admin-leader', 'screen-admin-nota',
                     'screen-admin-mitra', 'screen-admin-laporan', 'screen-admin-tracking',
                     'screen-admin-kpi', 'screen-admin-testimonial', 'screen-admin-notifikasi',
                     'screen-admin-absensi', 'screen-admin-ongkir', 'screen-admin-order-deposit', 'screen-pengaturan'
@@ -5989,6 +6479,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 if (kurirForm) kurirForm.classList.remove('hidden');
                 if (mitraForm) mitraForm.classList.remove('hidden');
                 if (manajemenCardBtn) manajemenCardBtn.classList.remove('hidden');
+                if (leaderCardBtn) leaderCardBtn.classList.remove('hidden');
                 if (ongkirCardBtn) ongkirCardBtn.classList.remove('hidden');
                 if (orderDepositCardBtn) orderDepositCardBtn.classList.remove('hidden');
 
@@ -5999,7 +6490,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                             btn.classList.add('hidden', 'opacity-0', 'pointer-events-none');
                         });
                     }
+                    if (leaderScreen) {
+                        leaderScreen.classList.add('hidden');
+                        leaderScreen.querySelectorAll('button').forEach(btn => {
+                            btn.classList.add('hidden', 'opacity-0', 'pointer-events-none');
+                        });
+                    }
                     if (manajemenCardBtn) manajemenCardBtn.classList.add('hidden');
+                    if (leaderCardBtn) leaderCardBtn.classList.add('hidden');
                     if (ongkirCardBtn) ongkirCardBtn.classList.add('hidden');
 
                     const orderDepositCardBtn = document.querySelector('#screen-admin-dashboard button[onclick*="screen-admin-order-deposit"]');
@@ -6059,6 +6557,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 
                 const hiddenForHRD = [
                     'screen-admin-manajemen',
+                    'screen-admin-leader',
                     'screen-admin-nota',
                     'screen-admin-mitra',
                     'screen-admin-laporan',
@@ -6077,10 +6576,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 });
 
                 const manajemenCardBtn = document.querySelector('#screen-admin-dashboard button[onclick*="screen-admin-manajemen"]');
+                const leaderCardBtnHRD = document.querySelector('#screen-admin-dashboard button[onclick*="screen-admin-leader"]');
                 const ongkirCardBtn = document.querySelector('#screen-admin-dashboard button[onclick*="screen-admin-ongkir"]');
                 const orderDepositCardBtn = document.querySelector('#screen-admin-dashboard button[onclick*="screen-admin-order-deposit"]');
 
                 if (manajemenCardBtn) manajemenCardBtn.classList.add('hidden');
+                if (leaderCardBtnHRD) leaderCardBtnHRD.classList.add('hidden');
                 if (ongkirCardBtn) ongkirCardBtn.classList.add('hidden');
                 if (orderDepositCardBtn) orderDepositCardBtn.classList.add('hidden');
 
@@ -6090,18 +6591,46 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             console.log('Kategori manajemen tidak dikenali:', kategoriFixed);
         };
         window.openPopupPenilaianLeader = function() {
-            const modal = document.getElementById('modal-penilaian-leader');
-            const bulan = document.getElementById('leader-penilaian-bulan');
-            if (!modal || !bulan) return;
-        
-            bulan.value = getWibRawDate().substring(0, 7);
-            modal.classList.remove('hidden');
-            renderPenilaianLeader();
+            navigateTo('screen-admin-leader');
+            switchLeaderTab('penilaian');
         };
 
         window.closePopupPenilaianLeader = function() {
-            const modal = document.getElementById('modal-penilaian-leader');
-            if (modal) modal.classList.add('hidden');
+            navigateBack();
+        };
+
+        window.switchLeaderTab = function(tab) {
+            const panelDaftar = document.getElementById('panel-leader-daftar');
+            const panelPenilaian = document.getElementById('panel-leader-penilaian');
+            const tabDaftar = document.getElementById('tab-leader-daftar');
+            const tabPenilaian = document.getElementById('tab-leader-penilaian');
+            if (!panelDaftar || !panelPenilaian || !tabDaftar || !tabPenilaian) return;
+
+            const activeClasses = ['bg-primary', 'text-white', 'shadow-sm'];
+            const inactiveClasses = ['text-slate-500', 'dark:text-slate-400'];
+
+            if (tab === 'penilaian') {
+                panelDaftar.classList.add('hidden');
+                panelPenilaian.classList.remove('hidden');
+                tabPenilaian.classList.add(...activeClasses);
+                tabPenilaian.classList.remove(...inactiveClasses);
+                tabDaftar.classList.remove(...activeClasses);
+                tabDaftar.classList.add(...inactiveClasses);
+
+                const bulan = document.getElementById('leader-penilaian-bulan');
+                if (bulan && !bulan.value) bulan.value = getWibRawDate().substring(0, 7);
+                if (typeof renderPenilaianLeader === 'function') renderPenilaianLeader();
+            } else {
+                panelPenilaian.classList.add('hidden');
+                panelDaftar.classList.remove('hidden');
+                tabDaftar.classList.add(...activeClasses);
+                tabDaftar.classList.remove(...inactiveClasses);
+                tabPenilaian.classList.remove(...activeClasses);
+                tabPenilaian.classList.add(...inactiveClasses);
+
+                if (typeof populateAnggotaDropdownLeader === 'function') populateAnggotaDropdownLeader();
+                if (typeof renderLeaderList === 'function') renderLeaderList();
+            }
         };
         function getLeaderScore(namaLeader, bulan) {
             const leaderName = (namaLeader || '').trim();
@@ -6221,7 +6750,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 .sort((a, b) => b.skorAkhir - a.skorAkhir);
         
             if (!data.length) {
-                container.innerHTML = '<div class=\"flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-400 py-8\"><div class=\"w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center\"><svg class=\"w-5 h-5 text-slate-300 dark:text-slate-600\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8\"/><path d=\"M3 8l2.45-4.9A2 2 0 0 1 7.24 2h9.52a2 2 0 0 1 1.79 1.1L21 8\"/><path d=\"M3 8h18\"/><path d=\"M9 12a3 3 0 0 0 6 0\"/></svg></div><span>Belum ada data leader.</span></div>';
+                container.innerHTML = '<div class="text-center text-xs text-slate-400 py-4">Belum ada data leader.</div>';
                 return;
             }
         
@@ -6349,7 +6878,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         
             const keys = Object.keys(cloudLeaderList || {});
             if (!keys.length) {
-                container.innerHTML = '<div class=\"flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-400 py-8\"><div class=\"w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center\"><svg class=\"w-5 h-5 text-slate-300 dark:text-slate-600\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8\"/><path d=\"M3 8l2.45-4.9A2 2 0 0 1 7.24 2h9.52a2 2 0 0 1 1.79 1.1L21 8\"/><path d=\"M3 8h18\"/><path d=\"M9 12a3 3 0 0 0 6 0\"/></svg></div><span>Belum ada leader tersimpan.</span></div>';
+                container.innerHTML = '<div class="text-center text-xs text-slate-400 py-3">Belum ada leader tersimpan.</div>';
                 return;
             }
         
@@ -6376,8 +6905,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                                 <div class="text-[10px] text-slate-400">Anggota: ${anggota.length}</div>
                             </div>
                             <div class="flex gap-2">
-                                <button onclick="editLeaderData('${key}')" class="px-2 py-1 rounded-xl bg-blue-50 text-blue-600 text-[10px] font-bold">Edit</button>
-                                <button onclick="hapusLeaderData('${key}')" class="px-2 py-1 rounded-xl bg-rose-50 text-rose-600 text-[10px] font-bold">Hapus</button>
+                                <button onclick="editLeaderData('${key}')" class="px-2 py-1 rounded-md bg-blue-50 text-blue-600 text-[10px] font-bold">Edit</button>
+                                <button onclick="hapusLeaderData('${key}')" class="px-2 py-1 rounded-md bg-rose-50 text-rose-600 text-[10px] font-bold">Hapus</button>
                             </div>
                         </div>
         
@@ -6389,17 +6918,17 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                         </div>
         
                         <div class="grid grid-cols-3 gap-2 text-[10px]">
-                            <div class="p-2 rounded-xl bg-emerald-50 text-emerald-700">
+                            <div class="p-2 rounded-lg bg-emerald-50 text-emerald-700">
                                 <div class="font-bold">Terbaik</div>
                                 <div>${terbaik ? terbaik.nama : '-'}</div>
                                 <div>Rating: ${terbaik ? terbaik.rating : 0}%</div>
                             </div>
-                            <div class="p-2 rounded-xl bg-amber-50 text-amber-700">
+                            <div class="p-2 rounded-lg bg-amber-50 text-amber-700">
                                 <div class="font-bold">Sedang</div>
                                 <div>${sedang ? sedang.nama : '-'}</div>
                                 <div>Rating: ${sedang ? sedang.rating : 0}%</div>
                             </div>
-                            <div class="p-2 rounded-xl bg-rose-50 text-rose-700">
+                            <div class="p-2 rounded-lg bg-rose-50 text-rose-700">
                                 <div class="font-bold">Beban</div>
                                 <div>${beban ? beban.nama : '-'}</div>
                                 <div>Rating: ${beban ? beban.rating : 0}%</div>
@@ -6425,16 +6954,18 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             }
         };
 
-        window.hapusLeaderData = function(key) {
-            if (confirm('Hapus data leader ini?')) {
+        window.hapusLeaderData = async function(key) {
+            const ok = await showConfirm('Hapus data leader ini?');
+            if (ok) {
                 remove(ref(db, `leader_list/${key}`))
-                    .then(() => alert('Leader berhasil dihapus!'))
-                    .catch(err => alert('Gagal hapus leader: ' + err.message));
+                    .then(() => toast('Leader berhasil dihapus!'))
+                    .catch(err => toast('Gagal hapus leader: ' + err.message));
             }
         };
 
         window.closeLeaderModal = function() {
-            document.getElementById('modal-leader').classList.add('hidden');
+            resetLeaderForm();
+            if (typeof renderLeaderList === 'function') renderLeaderList();
         };
         
         window.saveLeaderData = function() {
@@ -6443,8 +6974,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const select = document.getElementById('leader-anggota');
             const anggota = Array.from(select.selectedOptions).map(opt => opt.value.trim()).filter(Boolean);
         
-            if (!nama) return alert('Nama leader wajib diisi!');
-            if (!anggota.length) return alert('Pilih minimal 1 anggota!');
+            if (!nama) return toast('Nama leader wajib diisi!');
+            if (!anggota.length) return toast('Pilih minimal 1 anggota!');
         
             const payload = { nama, anggota };
         
@@ -6463,18 +6994,18 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 update(ref(db, `leader_list/${idEdit}`), payload)
                     .then(async () => {
                         await syncKeKurir();
-                        alert('Data leader berhasil disimpan!');
+                        toast('Data leader berhasil disimpan!');
                         closeLeaderModal();
                     })
-                    .catch(err => alert('Gagal update leader: ' + err.message));
+                    .catch(err => toast('Gagal update leader: ' + err.message));
             } else {
                 push(ref(db, 'leader_list'), payload)
                     .then(async () => {
                         await syncKeKurir();
-                        alert('Data leader berhasil disimpan!');
+                        toast('Data leader berhasil disimpan!');
                         closeLeaderModal();
                     })
-                    .catch(err => alert('Gagal simpan leader: ' + err.message));
+                    .catch(err => toast('Gagal simpan leader: ' + err.message));
             }
         };
 
@@ -6515,9 +7046,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         }
         window.openLeaderModal = function() {
             resetLeaderForm();
-            document.getElementById('modal-leader').classList.remove('hidden');
-            populateAnggotaDropdownLeader();
-            renderLeaderList();
+            navigateTo('screen-admin-leader');
+            switchLeaderTab('daftar');
         };
         function isLeaderExist(namaLeader) {
             const target = (namaLeader || '').trim().toLowerCase();
@@ -6542,7 +7072,29 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             });
         }
         let cloudNotificationList = {};
-        
+
+        // Menentukan identitas pengirim notifikasi berdasarkan siapa yang sedang login.
+        // Dipakai untuk menandai setiap notifikasi: dari Head Ops, Owner/Admin, atau Manajemen lain.
+        function getSenderInfo() {
+            if (!userSession) {
+                return { senderRole: 'owner', senderLabel: 'Admin', senderNama: 'Admin' };
+            }
+            if (userSession.role === 'owner') {
+                return { senderRole: 'owner', senderLabel: 'Owner / Admin', senderNama: userSession.nama || 'Owner' };
+            }
+            if (userSession.role === 'manajemen') {
+                const kategori = (userSession.kategori || '').trim();
+                if (kategori === 'Head Operasional') {
+                    return { senderRole: 'head_ops', senderLabel: 'Head Operasional', senderNama: userSession.nama || 'Head Operasional' };
+                }
+                if (kategori === 'Owner') {
+                    return { senderRole: 'owner', senderLabel: 'Owner / Admin', senderNama: userSession.nama || 'Owner' };
+                }
+                return { senderRole: 'manajemen', senderLabel: kategori || 'Manajemen', senderNama: userSession.nama || (kategori || 'Manajemen') };
+            }
+            return { senderRole: 'owner', senderLabel: 'Admin', senderNama: userSession.nama || 'Admin' };
+        }
+
         window.toggleNotifTarget = function() {
             const target = document.getElementById('notif-target').value;
             const box = document.getElementById('notif-selected-box');
@@ -6586,6 +7138,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 
         function renderKurirNotifications() {
             if (!userSession || userSession.role !== 'kurir') return;
+
+            // Sinkronkan indikator titik merah + isi panel lonceng notifikasi
+            if (typeof renderKurirNotifPanel === 'function') renderKurirNotifPanel();
         
             const box = document.getElementById('kurir-notif-box');
             const text = document.getElementById('kurir-notif-text');
@@ -6615,6 +7170,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const [notifId, notif] = found;
             text.innerHTML = `
                 <div class="relative pr-7 leading-snug text-[10px]">
+                    <span class="sender-badge mb-1" data-role="${notif.senderRole || 'owner'}">${notif.senderLabel || 'Admin'}</span><br>
                     ${notif.message || ''}
                     <button onclick="dismissKurirNotification('${notifId}')"
                         class="absolute top-0 right-0 w-5 h-5 flex items-center justify-center rounded-full bg-white/90 text-rose-500 text-[10px] font-bold shadow-sm">
@@ -6632,19 +7188,163 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         window.dismissKurirNotification = function(notifId) {
             hideNotifForCurrentUser(notifId);
             renderKurirNotifications();
+            renderKurirNotifPanel();
+        };
+
+        // Ambil semua notifikasi aktif yang ditujukan untuk kurir yang sedang login
+        function getActiveNotifsForCurrentKurir() {
+            if (!userSession || userSession.role !== 'kurir') return [];
+            const username = userSession.username;
+            const hiddenIds = getHiddenNotifIds();
+            return Object.entries(cloudNotificationList || {})
+                .filter(([id, n]) => {
+                    if (!n || !n.active) return false;
+                    if (hiddenIds.includes(id)) return false;
+                    if (n.target === 'all') return true;
+                    if (n.target === 'selected' && Array.isArray(n.targetList)) {
+                        return n.targetList.includes(username);
+                    }
+                    return false;
+                })
+                .sort((a, b) => (b[1]?.createdAt || '').localeCompare(a[1]?.createdAt || ''));
+        }
+
+        function renderKurirNotifPanel() {
+            const list = document.getElementById('kurir-notif-list');
+            const dot = document.getElementById('kurir-notif-dot');
+            if (!list) return;
+
+            const firebaseItems = getActiveNotifsForCurrentKurir().map(([id, n]) => ({
+                id, message: n.message || '', createdAt: n.createdAt, isLocal: false,
+                senderRole: n.senderRole || 'owner', senderLabel: n.senderLabel || 'Admin'
+            }));
+            const localItems = (localKurirReminders || []).map(r => ({
+                id: r.id, message: r.message, createdAt: r.createdAt, isLocal: true
+            }));
+
+            const items = [...localItems, ...firebaseItems].sort((a, b) =>
+                (b.createdAt || '').localeCompare(a.createdAt || '')
+            );
+
+            if (dot) dot.classList.toggle('hidden', items.length === 0);
+
+            if (items.length === 0) {
+                list.innerHTML = '<div class="p-4 text-center text-[11px] text-slate-400">Belum ada notifikasi.</div>';
+                return;
+            }
+
+            list.innerHTML = items.map(n => {
+                let waktu = '-';
+                try { waktu = n.createdAt ? new Date(n.createdAt).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-'; } catch (e) {}
+                const typeColor = n.isLocal
+                    ? 'text-orange-500 bg-orange-50 dark:bg-orange-950/30'
+                    : 'text-amber-500 bg-amber-50 dark:bg-amber-950/30';
+                const dismissFn = n.isLocal ? `dismissLocalReminder('${n.id}')` : `dismissKurirNotification('${n.id}')`;
+                const senderBadge = n.isLocal
+                    ? `<span class="sender-badge" data-role="manajemen">Sistem</span>`
+                    : `<span class="sender-badge" data-role="${n.senderRole || 'owner'}">${n.senderLabel || 'Admin'}</span>`;
+                return `
+                    <div class="p-3 flex gap-2.5 items-start hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                        <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${typeColor}">
+                            <i data-lucide="${n.isLocal ? 'store' : 'bell'}" class="w-4 h-4"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-1.5 flex-wrap mb-0.5">${senderBadge}</div>
+                            <p class="text-[11px] leading-snug text-slate-700 dark:text-slate-200">${n.message || ''}</p>
+                            <p class="text-[10px] text-slate-400 mt-1">${waktu}</p>
+                        </div>
+                        <button onclick="${dismissFn}" class="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center text-[10px] shrink-0">✕</button>
+                    </div>
+                `;
+            }).join('');
+
+            if (window.lucide) lucide.createIcons();
+        }
+
+        // ===================================================================
+        // REMINDER OTOMATIS "BELUM INPUT MITRA" — 100% client-side, tanpa Firebase.
+        // Muncul setiap 30 menit sekali selama kurir yang login belum input
+        // transaksi mitra pada hari berjalan. Berhenti otomatis begitu terdeteksi
+        // sudah ada input mitra hari ini.
+        // ===================================================================
+        let localKurirReminders = [];
+        let mitraReminderTimer = null;
+        let __reminderSeq = 0;
+
+        function hasInputMitraToday() {
+            if (!userSession || userSession.role !== 'kurir') return true;
+            const today = getWibRawDate();
+            return Object.values(cloudLogMitra || {}).some(log => {
+                if (!log || !log.tglRaw) return false;
+                if (log.tglRaw.toString().slice(0, 10) !== today) return false;
+                return log.kurirUsername === userSession.username || log.kurirId === userSession.id;
+            });
+        }
+
+        function pushLocalReminder(message) {
+            const id = 'local-' + Date.now() + '-' + (++__reminderSeq);
+            localKurirReminders.unshift({ id, message, createdAt: new Date().toISOString() });
+            if (localKurirReminders.length > 5) localKurirReminders = localKurirReminders.slice(0, 5);
+            toast(message, 'warning');
+            renderKurirNotifPanel();
+        }
+
+        window.dismissLocalReminder = function(id) {
+            localKurirReminders = localKurirReminders.filter(r => r.id !== id);
+            renderKurirNotifPanel();
+        };
+
+        function checkMitraReminderNow() {
+            if (!userSession || userSession.role !== 'kurir') return;
+            if (hasInputMitraToday()) {
+                if (localKurirReminders.length) {
+                    localKurirReminders = [];
+                    renderKurirNotifPanel();
+                }
+                return;
+            }
+            pushLocalReminder('Anda belum input transaksi mitra hari ini. Yuk segera input agar data harian lengkap! 🏪');
+        }
+
+        window.startMitraReminderWatcher = function() {
+            stopMitraReminderWatcher();
+            setTimeout(checkMitraReminderNow, 10000);
+            mitraReminderTimer = setInterval(checkMitraReminderNow, 30 * 60 * 1000);
+        };
+
+        window.stopMitraReminderWatcher = function() {
+            if (mitraReminderTimer) { clearInterval(mitraReminderTimer); mitraReminderTimer = null; }
+            localKurirReminders = [];
+        };
+
+        window.toggleKurirNotifPanel = function() {
+            const panel = document.getElementById('kurir-notif-panel');
+            if (!panel) return;
+            const willShow = panel.classList.contains('hidden');
+            if (willShow) {
+                renderKurirNotifPanel();
+                panel.classList.remove('hidden');
+            } else {
+                panel.classList.add('hidden');
+            }
         };
 
         window.resendNotification = function(key) {
             const n = cloudNotificationList[key];
             if (!n) return;
         
+            const sender = getSenderInfo();
+
             const payload = {
                 target: n.target || 'all',
                 targetList: Array.isArray(n.targetList) ? n.targetList : [],
                 message: n.message || '',
                 type: n.type || 'warning',
                 active: true,
-                createdAt: new Date().toISOString()
+                createdAt: new Date().toISOString(),
+                senderRole: n.senderRole || sender.senderRole,
+                senderLabel: n.senderLabel || sender.senderLabel,
+                senderNama: n.senderNama || sender.senderNama
             };
         
             set(ref(db, `notifications_admin/${key}`), payload)
@@ -6652,17 +7352,17 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                     const hiddenIds = getHiddenNotifIds().filter(id => id !== key);
                     localStorage.setItem('hidden_notif_ids', JSON.stringify(hiddenIds));
         
-                    alert('Notifikasi berhasil dikirim ulang!');
+                    toast('Notifikasi berhasil dikirim ulang!');
                     renderAdminNotificationHistory();
                     renderKurirNotifications();
                 })
-                .catch(err => alert('Gagal kirim ulang notifikasi: ' + err.message));
+                .catch(err => toast('Gagal kirim ulang notifikasi: ' + err.message));
         };
-        window.deleteNotification = function(key) {
-            if (!confirm('Hapus notifikasi ini?')) return;
+        window.deleteNotification = async function(key) {
+            if (!(await showConfirm('Hapus notifikasi ini?'))) return;
             remove(ref(db, `notifications_admin/${key}`))
-                .then(() => alert('Notifikasi berhasil dihapus!'))
-                .catch(err => alert('Gagal menghapus notifikasi: ' + err.message));
+                .then(() => toast('Notifikasi berhasil dihapus!'))
+                .catch(err => toast('Gagal menghapus notifikasi: ' + err.message));
         };
         function getHiddenNotifIds() {
             try {
@@ -6931,7 +7631,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             })).filter(x => x.amount > 0);
 
             if (!date || !items.length) {
-                alert('Lengkapi data deposit.');
+                toast('Lengkapi data deposit.');
                 return;
             }
 
@@ -6945,14 +7645,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 });
 
                 if (result.success) {
-                    alert(result.message || 'Deposit berhasil dikirim.');
+                    toast(result.message || 'Deposit berhasil dikirim.');
                     resetDepositForm();
                     initOrderDepositModule();
                 } else {
-                    alert(result.message || 'Gagal kirim deposit.');
+                    toast(result.message || 'Gagal kirim deposit.');
                 }
             } catch (err) {
-                alert('Gagal kirim deposit: ' + err.message);
+                toast('Gagal kirim deposit: ' + err.message);
             } finally {
                 setOrderDepositLoading('deposit', false);
             }
@@ -6994,7 +7694,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const amount = parseInt(document.getElementById('order-amount')?.value) || 0;
 
             if (!date || amount <= 0) {
-                alert('Lengkapi data orderan.');
+                toast('Lengkapi data orderan.');
                 return;
             }
 
@@ -7003,14 +7703,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 const result = await sendToSpreadsheet('saveOrder', { date, amount });
 
                 if (result.success) {
-                    alert(result.message || 'Orderan berhasil dikirim.');
+                    toast(result.message || 'Orderan berhasil dikirim.');
                     if (document.getElementById('order-date')) document.getElementById('order-date').value = getWibTodayRawDate();
                     if (document.getElementById('order-amount')) document.getElementById('order-amount').value = '';
                 } else {
-                    alert(result.message || 'Gagal kirim orderan.');
+                    toast(result.message || 'Gagal kirim orderan.');
                 }
             } catch (err) {
-                alert('Gagal kirim orderan: ' + err.message);
+                toast('Gagal kirim orderan: ' + err.message);
             } finally {
                 setOrderDepositLoading('order', false);
             }
