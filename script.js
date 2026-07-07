@@ -1986,11 +1986,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 return;
             }
         
-            html2canvas(el, {
-                scale: 1,
-                useCORS: true,
-                backgroundColor: '#ffffff'
-            }).then(canvas => {
+            captureNotaCanvas(el).then(canvas => {
                 const link = document.createElement('a');
         
                 const noNota = document.querySelector('#canvas-nota-admin .font-bold.text-slate-700')?.innerText || 'Nota';
@@ -2001,8 +1997,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                     .replace(/[\/\\:*?"<>|]/g, '');
         
                 link.download = fileName;
-                link.href = canvas.toDataURL('image/jpeg', 0.7);
+                link.href = canvas.toDataURL('image/jpeg', NOTA_JPEG_QUALITY);
                 link.click();
+            }).catch(err => {
+                toast("Terjadi kesalahan gambar: " + err.message);
             });
         }
         window.saveDataMitra = function() {
@@ -2756,6 +2754,58 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             updatePreviewButtonsLayout();
             navigateTo('screen-preview');
         }
+        // ---------- Helper: pastikan gambar (mis. logo) ikut ter-capture ----------
+        // Gambar dari domain lain kadang gagal muncul di hasil html2canvas karena
+        // batasan CORS pada canvas, walau useCORS:true. Solusinya: unduh gambar
+        // sebagai blob lalu ubah ke base64 (data URI) sebelum capture, sehingga
+        // logo pasti ikut tanpa risiko gambar kosong/blank.
+        async function inlineExternalImagesForCapture(el) {
+            const imgs = Array.from(el.querySelectorAll('img'));
+            await Promise.all(imgs.map(async (img) => {
+                const src = img.getAttribute('src') || '';
+                if (!src || src.startsWith('data:')) return;
+                try {
+                    const res = await fetch(src, { mode: 'cors', cache: 'force-cache' });
+                    const blob = await res.blob();
+                    const dataUrl = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(blob);
+                    });
+                    img.setAttribute('data-original-src', src);
+                    img.src = dataUrl;
+                } catch (e) {
+                    // Kalau gagal fetch, biarkan html2canvas coba render seperti biasa.
+                }
+            }));
+        }
+        function restoreExternalImagesAfterCapture(el) {
+            el.querySelectorAll('img[data-original-src]').forEach((img) => {
+                img.src = img.getAttribute('data-original-src');
+                img.removeAttribute('data-original-src');
+            });
+        }
+        // Opsi capture standar: scale 2 supaya tajam (tidak pecah saat dizoom/print),
+        // JPEG quality 0.85 supaya ukuran file tetap kecil tanpa terlihat turun kualitas
+        // (nota didominasi warna flat & teks, sehingga kompresi ini nyaris tanpa artefak).
+        const NOTA_CAPTURE_SCALE = 2;
+        const NOTA_JPEG_QUALITY = 0.85;
+        async function captureNotaCanvas(el) {
+            await inlineExternalImagesForCapture(el);
+            try {
+                const canvas = await html2canvas(el, {
+                    scale: NOTA_CAPTURE_SCALE,
+                    useCORS: true,
+                    allowTaint: false,
+                    backgroundColor: '#ffffff',
+                    imageTimeout: 8000
+                });
+                return canvas;
+            } finally {
+                restoreExternalImagesAfterCapture(el);
+            }
+        }
         window.saveNotaAsJpg = function() {
             const el = document.getElementById('canvas-nota');
             if (!el) return;
@@ -2765,15 +2815,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 return;
             }
 
-            html2canvas(el, {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: '#ffffff'
-            }).then(canvas => {
+            captureNotaCanvas(el).then(canvas => {
                 const link = document.createElement('a');
                 link.download = `${document.getElementById('p-nota-num').innerText}.jpg`;
-                link.href = canvas.toDataURL('image/jpeg', 0.9);
+                link.href = canvas.toDataURL('image/jpeg', NOTA_JPEG_QUALITY);
                 link.click();
+            }).catch(err => {
+                toast("Terjadi kesalahan gambar: " + err.message);
             });
         }
         window.commitSaveNota = function() {
@@ -2897,11 +2945,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 
             if (btnShare) btnShare.disabled = true;
 
-            html2canvas(element, {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: '#ffffff'
-            }).then(canvas => {
+            captureNotaCanvas(element).then(canvas => {
                 canvas.toBlob(function(blob) {
                     if (!blob) {
                         toast("Gagal memproses gambar nota.");
@@ -2922,13 +2966,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                     } else {
                         const link = document.createElement('a');
                         link.download = fileNameJpg;
-                        link.href = canvas.toDataURL('image/jpeg', 0.9);
+                        link.href = canvas.toDataURL('image/jpeg', NOTA_JPEG_QUALITY);
                         link.click();
 
                         window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(captionText)}`, '_blank');
                         if (btnShare) btnShare.disabled = false;
                     }
-                }, 'image/jpeg', 0.9);
+                }, 'image/jpeg', NOTA_JPEG_QUALITY);
             }).catch(err => {
                 if (btnShare) btnShare.disabled = false;
                 toast("Terjadi kesalahan gambar: " + err.message);
@@ -3483,6 +3527,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         
             box.classList.toggle('hidden');
             if (!box.classList.contains('hidden')) {
+                populateMitraLogKurirDropdown();
                 renderAdminLogMitra();
             }
         };
@@ -3491,6 +3536,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             if (!container) return;
 
             const isOpen = ensureSectionToggleState('container-admin-kurir', false);
+            container.classList.toggle('hidden', !isOpen);
+            if (!isOpen) return;
+
             const searchValue = (document.getElementById('admin-kurir-search')?.value || '').toLowerCase().trim();
 
             const filtered = Object.entries(cloudKurirList || {})
@@ -3500,22 +3548,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 })
                 .sort((a, b) => (a[1]?.nama || '').localeCompare(b[1]?.nama || ''));
 
-            container.innerHTML = `
-                <input type="text" id="admin-kurir-search" value="${searchValue}" oninput="renderAdminKurirList()" placeholder="Cari nama kurir..." class="w-full px-3 py-2 border rounded-xl text-xs dark:bg-darkBg dark:border-slate-700 mb-2">
-                <div id="container-admin-kurir-inner" class="${isOpen ? '' : 'hidden'} space-y-2"></div>
-            `;
-
-            const inner = document.getElementById('container-admin-kurir-inner');
-            if (!inner || !isOpen) return;
-
             if (!filtered.length) {
-                inner.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Belum ada data kurir.</p>';
+                container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Belum ada data kurir.</p>';
                 return;
             }
 
             const isHeadOperasional = userSession && userSession.role === 'manajemen' && (userSession.kategori || '').trim() === 'Head Operasional';
 
-            inner.innerHTML = filtered.map(([key, item], index) => {
+            container.innerHTML = filtered.map(([key, item], index) => {
                 const dotStatus = item.status === 'aktif' ? 'bg-emerald-500' : 'bg-rose-500';
                 return `
                     <div class="bg-white dark:bg-darkCard p-3.5 rounded-xl border dark:border-slate-800 shadow-sm space-y-2 text-xs">
@@ -7380,10 +7420,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         window.toggleAdminKurirOpen = function() {
             const container = document.getElementById('container-admin-kurir');
             const btn = document.getElementById('btn-toggle-kurir-text');
+            const icon = document.getElementById('btn-toggle-kurir-icon');
             const isOpen = container.dataset.open === '1';
             
             container.dataset.open = isOpen ? '0' : '1';
             btn.innerText = isOpen ? 'Buka' : 'Tutup';
+            if (icon) icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
             
             if (!isOpen) {
                 renderAdminKurirList();
