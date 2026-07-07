@@ -1834,6 +1834,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const n = cloudNotaList[key];
             const modalCanvas = document.getElementById('canvas-nota-admin');
             if (!n || !modalCanvas) return;
+            invalidateNotaCanvasCache('canvas-nota-admin'); // isi nota berganti, canvas lama tidak valid lagi
 
             let itemRows = '';
             if (n.items && Array.isArray(n.items)) {
@@ -2706,6 +2707,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 toast("Wajib mengisi Ongkir untuk melanjutkan!"); 
                 return; 
             }
+            invalidateNotaCanvasCache('canvas-nota'); // isi nota berganti, canvas lama tidak valid lagi
             calculateNotaTotal();
             
             const tgl = new Date();
@@ -2848,12 +2850,50 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 img.removeAttribute('data-original-src');
             });
         }
-        // Opsi capture standar: scale 2 supaya tajam (tidak pecah saat dizoom/print),
+        // ---------- Cache hasil CANVAS (bukan cuma gambar) ----------
+        // Sebelumnya tiap klik "Simpan Gambar" / "Bagikan WhatsApp" selalu menjalankan
+        // html2canvas dari nol — padahal ini bagian PALING berat di seluruh proses
+        // (clone DOM, hitung layout, rasterisasi), jauh lebih berat dari sekadar fetch
+        // gambar. Kalau user klik 2 tombol berturut-turut untuk nota yang SAMA (misal
+        // Simpan Gambar lalu langsung Bagikan WA), isinya belum berubah sama sekali,
+        // jadi tidak perlu capture ulang. notaCanvasCache menyimpan hasil canvas
+        // terakhir per elemen, dan otomatis dianggap basi (dihapus) setiap kali fungsi
+        // yang menulis ulang isi nota (prosesPratinjauNota / previewRiwayatNota /
+        // viewAdminNota) dipanggil, supaya tidak pernah menampilkan gambar yang salah.
+        const notaCanvasCache = {};
+        function invalidateNotaCanvasCache(elementId) {
+            notaCanvasCache[elementId] = null;
+        }
+        // Jaga-jaga: kalau layar diputar / ukuran window berubah di antara dua klik,
+        // hasil capture lama bisa jadi tidak presisi lagi — cache dianggap basi juga.
+        window.addEventListener('resize', () => {
+            notaCanvasCache['canvas-nota'] = null;
+            notaCanvasCache['canvas-nota-admin'] = null;
+        });
+        window.addEventListener('orientationchange', () => {
+            notaCanvasCache['canvas-nota'] = null;
+            notaCanvasCache['canvas-nota-admin'] = null;
+        });
+        // Deteksi kasar HP RAM kecil lewat navigator.deviceMemory (kalau browser
+        // mendukung; kalau tidak ada, dianggap perangkat "normal"). Dipakai supaya
+        // scale & kompresi gambar otomatis diturunkan sedikit di HP RAM kecil —
+        // hasil gambar tetap jernih & rapi untuk dibaca/di-share, tapi proses
+        // render-nya jauh lebih ringan sehingga tidak macet/nge-loop.
+        const NOTA_LOW_RAM_DEVICE = !!(navigator.deviceMemory && navigator.deviceMemory <= 2);
+        // Scale 2 = tajam untuk HP normal. Scale 1.5 di HP RAM kecil sudah lebih
+        // dari cukup tajam untuk dibaca & dibagikan, tapi jumlah piksel yang harus
+        // digambar ulang oleh html2canvas turun signifikan (≈44% lebih sedikit).
+        const NOTA_CAPTURE_SCALE = NOTA_LOW_RAM_DEVICE ? 1.5 : 2;
         // JPEG quality 0.85 supaya ukuran file tetap kecil tanpa terlihat turun kualitas
         // (nota didominasi warna flat & teks, sehingga kompresi ini nyaris tanpa artefak).
-        const NOTA_CAPTURE_SCALE = 2;
-        const NOTA_JPEG_QUALITY = 0.85;
-        async function captureNotaCanvas(el) {
+        // Sedikit lebih rendah di HP RAM kecil supaya proses encode & share ke WhatsApp lebih cepat.
+        const NOTA_JPEG_QUALITY = NOTA_LOW_RAM_DEVICE ? 0.8 : 0.85;
+        async function captureNotaCanvas(el, elementId) {
+            // Kalau nota belum berubah sejak capture terakhir, langsung pakai canvas lama —
+            // skip total proses html2canvas (bagian paling berat) tanpa syarat apapun.
+            if (elementId && notaCanvasCache[elementId]) {
+                return notaCanvasCache[elementId];
+            }
             await Promise.all([
                 inlineExternalImagesForCapture(el),
                 waitFontsReady()
@@ -2879,6 +2919,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                     windowWidth: document.documentElement.clientWidth,
                     windowHeight: document.documentElement.clientHeight
                 });
+                if (elementId) notaCanvasCache[elementId] = canvas;
                 return canvas;
             } finally {
                 restoreExternalImagesAfterCapture(el);
@@ -2901,7 +2942,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 
             setNotaImageBusy(true, btn);
             try {
-                const canvas = await captureNotaCanvas(el);
+                const canvas = await captureNotaCanvas(el, elementId);
                 const fileName = `${num}_${kurir}.jpg`.replace(/\s+/g, '_').replace(/[\/\\:*?"<>|]/g, '');
 
                 if (mode === 'download') {
@@ -3167,6 +3208,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 toast("Data nota tidak ditemukan!");
                 return;
             }
+            invalidateNotaCanvasCache('canvas-nota'); // isi nota berganti, canvas lama tidak valid lagi
             document.getElementById('p-nota-num').innerText = n.id;
             document.getElementById('p-nota-date').innerText = n.tanggal;
             document.getElementById('p-nota-kurir').innerText = n.kurirNama || n.kurirUsername;
