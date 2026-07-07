@@ -161,7 +161,6 @@
                             <i data-lucide="bell" class="w-4 h-4"></i>
                             <span id="kurir-notif-dot" class="hidden absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-danger ring-2 ring-white dark:ring-darkCard"></span>
                         </button>
-                        <span class="text-[10px] bg-blue-50 text-primary dark:bg-blue-950 font-bold px-2.5 py-1.5 rounded-full uppercase tracking-wider">Kurir</span>
                     </div>
                 </div>
 
@@ -606,28 +605,52 @@
                 <!-- Panel: Daftar Leader -->
                 <div id="panel-leader-daftar" class="space-y-4">
                     <div class="bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm space-y-3">
-                        <div class="flex items-center gap-2">
-                            <div class="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-500 flex items-center justify-center shrink-0"><i data-lucide="user-plus" class="w-4 h-4"></i></div>
-                            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Tambah / Edit Leader</h3>
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <div class="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-500 flex items-center justify-center shrink-0"><i data-lucide="user-plus" class="w-4 h-4"></i></div>
+                                <div class="min-w-0">
+                                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Tambah / Edit Leader</h3>
+                                    <p id="leader-form-mode" class="text-[9px] text-slate-400">Mode: Tambah leader baru</p>
+                                </div>
+                            </div>
                         </div>
                         <input type="hidden" id="leader-id-edit">
                         <div>
                             <label class="block text-[10px] text-slate-400 mb-1">Nama Leader</label>
-                            <input type="text" id="leader-nama" placeholder="Nama Leader" class="w-full px-3 py-2 border rounded-xl text-xs dark:bg-darkBg dark:border-slate-700">
+                            <div class="relative">
+                                <i data-lucide="crown" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                                <input type="text" id="leader-nama" placeholder="Contoh: Leader Wilayah Jatibarang" class="w-full pl-9 pr-3 py-2 border rounded-xl text-xs dark:bg-darkBg dark:border-slate-700">
+                            </div>
                         </div>
                         <div>
-                            <label class="block text-[10px] text-slate-400 mb-1">Anggota</label>
-                            <select id="leader-anggota" multiple class="w-full px-3 py-2 border rounded-xl text-xs dark:bg-darkBg dark:border-slate-700 min-h-32"></select>
-                            <p class="text-[10px] text-slate-400 mt-1">Pilih lebih dari 1 anggota, tahan Ctrl / tap beberapa nama.</p>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block text-[10px] text-slate-400">Anggota</label>
+                                <span id="leader-anggota-counter" class="lap-selected-badge"><i data-lucide="users" class="w-3 h-3"></i> 0 dipilih</span>
+                            </div>
+                            <div class="leader-anggota-picker">
+                                <div class="lap-search-wrap">
+                                    <div class="relative">
+                                        <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2"></i>
+                                        <input type="text" id="leader-anggota-search" oninput="renderLeaderAnggotaOptions()" placeholder="Cari nama kurir..." class="w-full pl-8 pr-2 py-1.5 border rounded-lg text-[11px] dark:bg-darkBg dark:border-slate-700">
+                                    </div>
+                                </div>
+                                <div id="leader-anggota-list" class="lap-list"></div>
+                            </div>
+                            <p class="text-[10px] text-slate-400 mt-1">Tap nama kurir untuk memilih/batalkan sebagai anggota leader ini.</p>
                         </div>
                         <div class="flex gap-2">
-                            <button onclick="saveLeaderData()" class="flex-1 py-2.5 bg-primary text-white text-xs font-bold rounded-xl uppercase active:scale-95 transition-transform">Simpan</button>
-                            <button onclick="resetLeaderForm()" class="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300 text-xs rounded-xl">Reset</button>
+                            <button onclick="saveLeaderData()" id="btn-simpan-leader" class="flex-1 py-2.5 bg-primary text-white text-xs font-bold rounded-xl uppercase active:scale-95 transition-transform flex items-center justify-center gap-1.5">
+                                <i data-lucide="save" class="w-3.5 h-3.5"></i> Simpan
+                            </button>
+                            <button onclick="resetLeaderForm()" class="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300 text-xs rounded-xl flex items-center gap-1.5"><i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reset</button>
                         </div>
                     </div>
                     <div class="bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm space-y-3">
-                        <h4 class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Daftar Leader Tersimpan</h4>
-                        <div id="container-leader-list" class="space-y-2 max-h-[60vh] overflow-y-auto"></div>
+                        <div class="flex items-center justify-between">
+                            <h4 class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Daftar Leader Tersimpan</h4>
+                            <span id="leader-list-count" class="text-[9px] text-slate-400 font-semibold"></span>
+                        </div>
+                        <div id="container-leader-list" class="space-y-2.5 max-h-[60vh] overflow-y-auto"></div>
                     </div>
                 </div>
 
@@ -1227,39 +1250,35 @@
                         <p class="text-[10px] text-white/75">Broadcast pesan ke semua/kurir tertentu</p>
                     </div>
                 </div>
-                <div class="bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm space-y-3">
+                <div class="bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm space-y-4">
                     <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5"><i data-lucide="send" class="w-3.5 h-3.5"></i> Kirim Notifikasi ke Kurir</h3>
-            
+
+                    <input type="hidden" id="notif-target" value="all">
                     <div>
-                        <label class="block text-[10px] text-slate-400 mb-1">Target Penerima</label>
-                        <select id="notif-target" onchange="toggleNotifTarget()" class="w-full px-3 py-2 border rounded-xl text-xs dark:bg-darkBg dark:border-slate-700">
-                            <option value="all">Semua Kurir</option>
-                            <option value="selected">Pilih Kurir Tertentu</option>
-                        </select>
+                        <label class="block text-[10px] text-slate-400 mb-1.5">Target Penerima</label>
+                        <div class="notif-target-seg">
+                            <button type="button" id="notif-target-btn-all" onclick="setNotifTarget('all')" class="notif-target-btn active">
+                                <i data-lucide="users" class="w-3.5 h-3.5"></i> Semua Kurir
+                            </button>
+                            <button type="button" id="notif-target-btn-selected" onclick="setNotifTarget('selected')" class="notif-target-btn">
+                                <i data-lucide="user-check" class="w-3.5 h-3.5"></i> Kurir Tertentu
+                            </button>
+                        </div>
                     </div>
-            
-                    <div id="notif-selected-box" class="hidden">
-                    <label class="block text-[10px] text-slate-400 mb-2">Pilih Kurir</label>
-                    
-                    <!-- Tabel Grid 3 Kolom -->
-                    <div class="overflow-x-auto border rounded-xl dark:border-slate-700">
-                        <table class="w-full text-[10px]">
-                        <thead>
-                            <tr class="border-b bg-slate-50 dark:bg-slate-800/60">
-                            <th class="p-2.5 font-bold text-slate-400 uppercase text-left">No</th>
-                            <th class="p-2.5 font-bold text-slate-400 uppercase text-left">Nama Kurir</th>
-                            <th class="p-2.5 font-bold text-slate-400 uppercase text-left">Leader</th>
-                            </tr>
-                        </thead>
-                        <tbody id="notif-kurir-table-body" class="divide-y divide-slate-100 dark:divide-slate-800">
-                            <!-- Isi dinamis dari JavaScript -->
-                        </tbody>
-                        </table>
+
+                    <div id="notif-selected-box" class="hidden space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label class="block text-[10px] text-slate-400">Pilih Kurir</label>
+                            <span id="notif-kurir-selected-count" class="lap-selected-badge"><i data-lucide="users" class="w-3 h-3"></i> 0 dipilih</span>
+                        </div>
+                        <div class="relative">
+                            <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                            <input type="text" id="notif-kurir-search" oninput="populateNotifKurirList()" placeholder="Cari nama kurir..." class="w-full pl-9 pr-3 py-2 border rounded-xl text-xs dark:bg-darkBg dark:border-slate-700">
+                        </div>
+                        <div id="notif-kurir-picker" class="notif-kurir-picker space-y-1"></div>
+                        <p class="text-[10px] text-slate-400">Tap nama kurir untuk memilih/batalkan penerima notifikasi.</p>
                     </div>
-                    
-                    <p class="text-[10px] text-slate-400 mt-2">Klik nama kurir untuk pilih/tidak pilih</p>
-                    </div>
-            
+
                     <div>
                         <label class="block text-[10px] text-slate-400 mb-1">Template Pesan</label>
                         <select id="notif-template" onchange="fillNotifTemplate()" class="w-full px-3 py-2 border rounded-xl text-xs dark:bg-darkBg dark:border-slate-700">
@@ -1278,22 +1297,24 @@
                         <textarea id="notif-message" rows="4" placeholder="Tulis pesan notifikasi..." class="w-full px-3 py-2 border rounded-xl text-xs dark:bg-darkBg dark:border-slate-700"></textarea>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <button onclick="saveNotification()" class="w-full py-3 bg-primary text-white text-xs font-bold rounded-xl uppercase shadow-md">
-                            Kirim Notifikasi
+                        <button onclick="saveNotification()" class="w-full py-3 bg-gradient-to-br from-rose-600 to-red-600 text-white text-xs font-bold rounded-xl uppercase shadow-md shadow-rose-500/25 flex items-center justify-center gap-1.5 active:scale-95 transition-transform">
+                            <i data-lucide="send" class="w-3.5 h-3.5"></i> Kirim Notifikasi
                         </button>
-                        <button onclick="resetNotifForm()" class="w-full py-3 bg-slate-100 text-slate-600 dark:bg-slate-800 text-xs font-bold rounded-xl uppercase shadow-md">
-                            Reset
+                        <button onclick="resetNotifForm()" class="w-full py-3 bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 text-xs font-bold rounded-xl uppercase shadow-md flex items-center justify-center gap-1.5 active:scale-95 transition-transform">
+                            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reset
                         </button>
                     </div>
-                    <div class="space-y-3">
-                        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Riwayat Notifikasi</h3>
-                            <button onclick="toggleAdminNotifHistoryOpen()" class="w-full sm:w-auto py-2 px-4 rounded-xl bg-slate-800 text-white text-[10px] font-bold uppercase">
-                                <span id="btn-toggle-notif-text">Buka</span>
-                            </button>
-                        </div>
-                        <div id="container-admin-notification-history" class="space-y-2"></div>
+                </div>
+
+                <div class="bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm space-y-3">
+                    <div class="flex items-center justify-between gap-2">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5"><i data-lucide="history" class="w-3.5 h-3.5"></i> Riwayat Notifikasi</h3>
+                        <button onclick="toggleAdminNotifHistoryOpen()" class="py-2 px-3.5 rounded-xl bg-slate-800 dark:bg-slate-700 text-white text-[10px] font-bold uppercase flex items-center gap-1.5 active:scale-95 transition-transform">
+                            <span id="btn-toggle-notif-text">Buka</span>
+                            <i data-lucide="chevron-down" id="btn-toggle-notif-icon" class="w-3 h-3 transition-transform"></i>
+                        </button>
                     </div>
+                    <div id="container-admin-notification-history" class="space-y-2"></div>
                 </div>
             </div>
 
@@ -1654,7 +1675,7 @@
                         <select id="m-input-pilih" class="w-full px-3 py-2 border rounded-xl text-xs dark:bg-darkBg dark:border-slate-700"></select>
                         <input type="number" id="m-input-trx" placeholder="Jumlah Trx" class="w-full px-3 py-2 border rounded-xl text-xs dark:bg-darkBg dark:border-slate-700">
                     </div>
-                    <button onclick="addTransaksiMitra()" class="w-full py-2.5 bg-primary text-white font-bold text-xs rounded-xl uppercase flex items-center justify-center gap-1.5 active:scale-95 transition-transform"><i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Tambah Transaksi</button>
+                    <button id="btn-tambah-transaksi-mitra" onclick="addTransaksiMitra()" class="w-full py-2.5 bg-primary text-white font-bold text-xs rounded-xl uppercase flex items-center justify-center gap-1.5 active:scale-95 transition-transform disabled:opacity-60"><i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Tambah Transaksi</button>
                 </div>
                 
                 <div class="bg-white dark:bg-darkCard p-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm space-y-2">
@@ -1940,7 +1961,7 @@
             <input type="number" id="trx-mitra-jumlah" placeholder="Jumlah transaksi" class="w-full px-3 py-2 border rounded-xl text-xs dark:bg-darkBg dark:border-slate-700">
     
             <div class="flex gap-2">
-                <button onclick="saveInputTrxMitra()" class="flex-1 py-2 bg-primary text-white text-xs font-bold rounded-xl uppercase">
+                <button id="btn-save-trx-mitra" onclick="saveInputTrxMitra()" class="flex-1 py-2 bg-primary text-white text-xs font-bold rounded-xl uppercase disabled:opacity-60">
                     Simpan
                 </button>
                 <button onclick="closeInputTrxMitraModal()" class="px-3 py-2 bg-slate-100 text-slate-500 dark:bg-slate-800 text-xs rounded-xl">
