@@ -304,7 +304,9 @@ body { -webkit-tap-highlight-color: transparent; }
   position: relative;
   background: #fff;
   border-radius: 20px;
-  box-shadow: 0 14px 30px -18px rgba(15,23,42,0.35), 0 2px 8px rgba(15,23,42,0.06);
+  /* Satu shadow tipis saja (bukan 2 layer) — tetap kelihatan "melayang" &
+     modern tapi jauh lebih ringan buat html2canvas menghitungnya. */
+  box-shadow: 0 8px 18px -10px rgba(15,23,42,0.22);
   overflow: hidden;
 }
 .receipt-head {
@@ -314,11 +316,11 @@ body { -webkit-tap-highlight-color: transparent; }
   text-align: center;
   overflow: hidden;
 }
-.receipt-head::after {
-  content: ""; position: absolute; inset: 0;
-  background-image: radial-gradient(circle, #fff 1px, transparent 1px);
-  background-size: 14px 14px; opacity: 0.1; pointer-events: none;
-}
+/* Pola titik radial-gradient sengaja dihapus: pattern berulang seperti ini
+   paling berat dirender ulang oleh html2canvas (harus digambar piksel demi
+   piksel di seluruh area header, apalagi saat scale 2x), dan sering jadi
+   penyebab utama proses "Simpan Gambar/Bagikan WhatsApp" macet/nge-loop di
+   HP dengan RAM kecil. Header tetap modern hanya dengan gradient polos. */
 .receipt-head .receipt-logo-chip {
   width: 34px; height: 34px; border-radius: 10px; margin: 0 auto 6px;
   background: rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center;
@@ -399,7 +401,9 @@ select[multiple] {
 }
 
 .receipt-head {
-  background: linear-gradient(135deg, #0052D6 0%, #0066FF 45%, #14A0FF 100%);
+  /* 2 warna saja (bukan 3 titik gradient) — lebih ringan dirender, hasil
+     visual tetap biru gradasi modern seperti sebelumnya. */
+  background: linear-gradient(135deg, #0058E6 0%, #14A0FF 100%);
   padding: 20px 16px 34px;
 }
 .receipt-head .receipt-logo-chip {
@@ -463,8 +467,9 @@ select[multiple] {
 .receipt-item-table tbody tr td:last-child { border-radius: 0 8px 8px 0; font-weight: 800; color: #0066FF; }
 
 .receipt-total-box {
-  background: linear-gradient(135deg, #0f172a, #1e2a45);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+  /* Warna solid, bukan gradient + inset shadow — cukup untuk kesan "premium"
+     tapi tidak menambah beban render sama sekali. */
+  background: #10192e;
 }
 
 /* Badge sumber notifikasi: Head Ops / Admin-Owner / Manajemen */
