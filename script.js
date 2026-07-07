@@ -1978,6 +1978,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             document.getElementById('modal-preview-nota').classList.add('hidden');
         }
         window.downloadAdminNotaJpg = function() {
+            if (notaImageBusy) return; // cegah dobel-tap saat proses sebelumnya masih jalan
+
             const el = document.getElementById('canvas-nota-admin');
             if (!el) return;
         
@@ -1985,12 +1987,15 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 toast('Fitur gambar belum siap. Coba reload halaman.');
                 return;
             }
+
+            const btn = document.querySelector("#modal-preview-nota button[onclick='downloadAdminNotaJpg()']");
+            setNotaImageBusy(true, btn);
         
             captureNotaCanvas(el).then(canvas => {
                 const link = document.createElement('a');
         
-                const noNota = document.querySelector('#canvas-nota-admin .font-bold.text-slate-700')?.innerText || 'Nota';
-                const kurir = 'Kurir';
+                const noNota = document.querySelector('#canvas-nota-admin .ri-value')?.innerText || 'Nota';
+                const kurir = document.querySelectorAll('#canvas-nota-admin .ri-value')[2]?.innerText || 'Kurir';
         
                 const fileName = `${noNota}_${kurir}.jpg`
                     .replace(/\s+/g, '_')
@@ -1999,8 +2004,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 link.download = fileName;
                 link.href = canvas.toDataURL('image/jpeg', NOTA_JPEG_QUALITY);
                 link.click();
+                toast('Gambar nota berhasil diunduh!');
             }).catch(err => {
                 toast("Terjadi kesalahan gambar: " + err.message);
+            }).finally(() => {
+                setNotaImageBusy(false, btn);
             });
         }
         window.saveDataMitra = function() {
@@ -2227,8 +2235,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                                 <div><span class="text-slate-400 block text-[9px] uppercase">Target Bulanan</span><span class="font-extrabold text-amber-500">${targetMitra} Trx</span></div>
                             </div>
                             <div class="grid grid-cols-3 gap-2 pt-0.5">
-                                <button onclick="bukaInputTransaksiMitra('${m.nama}')" class="py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-[10px] uppercase">Input Trx</button>
-                                <button onclick="lihatRiwayatMitraOtomatis('${m.nama}')" class="py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-lg text-[10px] uppercase border border-slate-200/50">Lihat</button>
+                                <button onclick="bukaInputTransaksiMitra('${m.nama.replace(/'/g, "\\'")}')" class="py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-[10px] uppercase">Input Trx</button>
+                                <button onclick="lihatRiwayatMitraOtomatis('${m.nama.replace(/'/g, "\\'")}')" class="py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-lg text-[10px] uppercase border border-slate-200/50">Lihat</button>
                                 <button onclick="hapusMitra('${key}')" class="py-2 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 font-bold rounded-lg text-[10px] uppercase">Hapus</button>
                             </div>
                             ${isOwner ? `
@@ -2759,12 +2767,22 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         // batasan CORS pada canvas, walau useCORS:true. Solusinya: unduh gambar
         // sebagai blob lalu ubah ke base64 (data URI) sebelum capture, sehingga
         // logo pasti ikut tanpa risiko gambar kosong/blank.
+        // Cache logo/gambar yang sudah pernah di-fetch supaya proses simpan gambar /
+        // bagikan WhatsApp berikutnya tidak perlu download ulang dari internet.
+        // Ini yang paling sering bikin "lag/nge-loop" di HP RAM kecil / koneksi lambat,
+        // karena tanpa cache, setiap kali tombol ditekan javascript fetch ulang gambar yang sama.
+        const notaImageCache = {};
         async function inlineExternalImagesForCapture(el) {
             const imgs = Array.from(el.querySelectorAll('img'));
             await Promise.all(imgs.map(async (img) => {
                 const src = img.getAttribute('src') || '';
                 if (!src || src.startsWith('data:')) return;
                 try {
+                    if (notaImageCache[src]) {
+                        img.setAttribute('data-original-src', src);
+                        img.src = notaImageCache[src];
+                        return;
+                    }
                     const res = await fetch(src, { mode: 'cors', cache: 'force-cache' });
                     const blob = await res.blob();
                     const dataUrl = await new Promise((resolve, reject) => {
@@ -2773,12 +2791,40 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                         reader.onerror = reject;
                         reader.readAsDataURL(blob);
                     });
+                    notaImageCache[src] = dataUrl;
                     img.setAttribute('data-original-src', src);
                     img.src = dataUrl;
                 } catch (e) {
                     // Kalau gagal fetch, biarkan html2canvas coba render seperti biasa.
                 }
             }));
+        }
+
+        // ---------- Anti dobel-tap / anti macet saat proses gambar nota ----------
+        // Tanpa lock, tombol Simpan Gambar / Simpan Nota / Bagikan WhatsApp bisa
+        // ditekan berkali-kali saat html2canvas masih memproses (terutama di HP RAM
+        // kecil yang render-nya lambat), sehingga muncul beberapa proses capture
+        // berjalan bersamaan dan terasa seperti "loop"/macet. notaImageBusy mengunci
+        // semua tombol terkait sampai proses sebelumnya selesai.
+        let notaImageBusy = false;
+        const NOTA_BUSY_BUTTON_IDS = ['btn-simpan-gambar', 'btn-simpan-nota', 'btn-share-wa'];
+        function setNotaImageBusy(busy, activeBtn) {
+            notaImageBusy = busy;
+            NOTA_BUSY_BUTTON_IDS.forEach(id => {
+                const btn = document.getElementById(id);
+                if (!btn) return;
+                btn.disabled = busy;
+                btn.classList.toggle('btn-busy', busy);
+            });
+            if (activeBtn) {
+                if (busy && !activeBtn.dataset.origHtml) {
+                    activeBtn.dataset.origHtml = activeBtn.innerHTML;
+                    activeBtn.innerHTML = '<span class="btn-spin"></span> Memproses...';
+                } else if (!busy && activeBtn.dataset.origHtml) {
+                    activeBtn.innerHTML = activeBtn.dataset.origHtml;
+                    delete activeBtn.dataset.origHtml;
+                }
+            }
         }
         function restoreExternalImagesAfterCapture(el) {
             el.querySelectorAll('img[data-original-src]').forEach((img) => {
@@ -2807,6 +2853,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             }
         }
         window.saveNotaAsJpg = function() {
+            if (notaImageBusy) return; // cegah dobel-tap saat proses sebelumnya masih jalan
+
             const el = document.getElementById('canvas-nota');
             if (!el) return;
 
@@ -2815,13 +2863,19 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 return;
             }
 
+            const btn = document.getElementById('btn-simpan-gambar');
+            setNotaImageBusy(true, btn);
+
             captureNotaCanvas(el).then(canvas => {
                 const link = document.createElement('a');
                 link.download = `${document.getElementById('p-nota-num').innerText}.jpg`;
                 link.href = canvas.toDataURL('image/jpeg', NOTA_JPEG_QUALITY);
                 link.click();
+                toast('Gambar nota berhasil disimpan!');
             }).catch(err => {
                 toast("Terjadi kesalahan gambar: " + err.message);
+            }).finally(() => {
+                setNotaImageBusy(false, btn);
             });
         }
         window.commitSaveNota = function() {
@@ -2926,12 +2980,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             });
         };
         window.shareWhatsApp = function() {
+            if (notaImageBusy) return; // cegah dobel-tap saat proses sebelumnya masih jalan
+
             const num = document.getElementById('p-nota-num').innerText;
             const kurir = document.getElementById('p-nota-kurir').innerText;
             const element = document.getElementById('canvas-nota');
             const captionText = `Nota: ${num}\nKurir: ${kurir}`;
             const fileNameJpg = `${num}_${kurir}.jpg`.replace(/\s+/g, '_');
-            const btnShare = document.querySelector("button[onclick='shareWhatsApp()']");
+            const btnShare = document.getElementById('btn-share-wa');
 
             if (!element) {
                 toast('Preview nota tidak ditemukan.');
@@ -2943,13 +2999,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 return;
             }
 
-            if (btnShare) btnShare.disabled = true;
+            setNotaImageBusy(true, btnShare);
 
             captureNotaCanvas(element).then(canvas => {
                 canvas.toBlob(function(blob) {
                     if (!blob) {
                         toast("Gagal memproses gambar nota.");
-                        if (btnShare) btnShare.disabled = false;
+                        setNotaImageBusy(false, btnShare);
                         return;
                     }
 
@@ -2961,7 +3017,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                             title: `Nota ${num}`,
                             text: captionText
                         }).finally(() => {
-                            if (btnShare) btnShare.disabled = false;
+                            setNotaImageBusy(false, btnShare);
                         });
                     } else {
                         const link = document.createElement('a');
@@ -2970,11 +3026,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                         link.click();
 
                         window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(captionText)}`, '_blank');
-                        if (btnShare) btnShare.disabled = false;
+                        setNotaImageBusy(false, btnShare);
                     }
                 }, 'image/jpeg', NOTA_JPEG_QUALITY);
             }).catch(err => {
-                if (btnShare) btnShare.disabled = false;
+                setNotaImageBusy(false, btnShare);
                 toast("Terjadi kesalahan gambar: " + err.message);
             });
         }
@@ -3260,35 +3316,51 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         function populateMitraSelectionDropdown() {
             const drop = document.getElementById('m-input-pilih');
             if(!drop) return;
-            drop.innerHTML = '';
-            for(let k in cloudMitraList) {
-                drop.innerHTML += `<option value="${cloudMitraList[k].nama}">${cloudMitraList[k].nama}</option>`;
-            }
+            drop.innerHTML = '<option value="">-- Pilih Mitra --</option>';
+            const sortedMitra = Object.values(cloudMitraList || {})
+                .filter(m => m && m.nama)
+                .sort((a, b) => (a.nama || '').localeCompare(b.nama || ''));
+            sortedMitra.forEach(m => {
+                drop.innerHTML += `<option value="${m.nama}">${m.nama}</option>`;
+            });
         }
         window.addTransaksiMitra = function() {
+            const btnTambah = document.getElementById('btn-tambah-transaksi-mitra');
+
+            // Cegah klik dobel yang bisa membuat transaksi kepush berulang (duplikat)
+            if (btnTambah && btnTambah.disabled) return;
+
             const mNama = document.getElementById('m-input-pilih').value;
             const trxInput = parseInt(document.getElementById('m-input-trx').value) || 0;
-            
+
             if(!mNama) { toast("Silahkan pilih mitra terlebih dahulu!"); return; }
             if(trxInput <= 0) { toast("Jumlah transaksi harus lebih dari 0!"); return; }
-        
+            if(!userSession || !userSession.nama) { toast("Sesi login tidak ditemukan. Silakan login ulang."); return; }
+
             const wib = getWibDate();
             const tglRawLokal = getWibRawDate();
             const waktuLokal = wib.toTimeString().split(' ')[0];
-        
+
             const payload = {
                 mitraNama: mNama,
                 trxInput: trxInput,
                 kurirNama: userSession.nama,
                 kurirUsername: userSession.username,
                 waktu: waktuLokal,
-                tglRaw: tglRawLokal
+                tglRaw: tglRawLokal,
+                bulan: tglRawLokal.substring(0, 7)
             };
-        
+
+            if (btnTambah) btnTambah.disabled = true;
+
             push(ref(db, 'log_mitra'), payload).then(() => {
                 toast("Transaksi mitra berhasil di-input!");
                 document.getElementById('m-input-trx').value = '';
                 if (typeof calculateMitraStats === 'function') calculateMitraStats();
+            }).catch((err) => {
+                toast('Gagal menyimpan transaksi: ' + (err && err.message ? err.message : 'Terjadi kesalahan.'));
+            }).finally(() => {
+                if (btnTambah) btnTambah.disabled = false;
             });
         };
         window.sembunyikanRiwayatMitra = function() {
@@ -3344,20 +3416,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         
         window.renderKurirLogMitra = function(filterNamaMitraKhusus = '', filterBulanKhusus = '') {
             const container = document.getElementById('container-kurir-log-mitra');
-            const fTgl = document.getElementById('m-filter-tgl-kurir')?.value || '';
-        
-            if (!filterNamaMitraKhusus && !fTgl) {
-                toast("Pilih tanggal atau klik Lihat pada mitra!");
-                return;
-            }
-        
             if (!container) return;
-            container.innerHTML = '';
+            const fTgl = document.getElementById('m-filter-tgl-kurir')?.value || '';
         
             const bulanSkrg = getWibRawDate().substring(0, 7);
             const bulanFilter = filterBulanKhusus || bulanSkrg;
         
-            let adaDataLog = false;
+            let entries = [];
             let logKeysSorted = Object.keys(cloudLogMitra || {}).sort((a, b) => b.localeCompare(a));
         
             logKeysSorted.forEach(k => {
@@ -3366,28 +3431,47 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         
                 if (userSession && log.kurirUsername !== userSession.username) return;
                 if (filterNamaMitraKhusus && log.mitraNama !== filterNamaMitraKhusus) return;
-                if (!filterNamaMitraKhusus && fTgl && log.tglRaw !== fTgl) return;
-                if (log.tglRaw && log.tglRaw.substring(0, 7) !== bulanFilter) return;
+                if (fTgl) {
+                    if (log.tglRaw !== fTgl) return;
+                } else if (log.tglRaw && log.tglRaw.substring(0, 7) !== bulanFilter) {
+                    return;
+                }
         
-                adaDataLog = true;
-                const waktuTampil = log.waktu ? log.waktu.substring(0, 5) : '00:00';
-        
-                container.innerHTML += `
-                    <div class="bg-slate-50 dark:bg-slate-800 p-2 rounded flex justify-between items-center text-[11px] border border-slate-100 dark:border-slate-700/50 mb-1">
-                        <div class="flex flex-col">
-                            <span class="font-bold text-slate-800 dark:text-white">${log.mitraNama}</span>
-                            <span class="text-[9px] text-slate-500 font-medium">
-                                ${log.tglRaw} • ${waktuTampil} WIB
-                            </span>
-                        </div>
-                        <b class="text-blue-600 dark:text-blue-400 text-sm">+${log.trxInput} Trx</b>
-                    </div>
-                `;
+                entries.push(log);
             });
         
-            if (!adaDataLog) {
-                container.innerHTML = `<div class="text-center text-slate-400 italic py-2">Tidak ada data ditemukan.</div>`;
+            if (!entries.length) {
+                const label = fTgl ? `tanggal ${new Date(fTgl).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}` : `bulan ${new Date(bulanFilter + '-01').toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}`;
+                container.innerHTML = `
+                    <div class="text-center py-6 space-y-1">
+                        <div class="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto"><i data-lucide="inbox" class="w-4 h-4"></i></div>
+                        <p class="text-[11px] text-slate-400">Belum ada transaksi untuk ${label}.</p>
+                    </div>`;
+                if (window.lucide) lucide.createIcons();
+                return;
             }
+        
+            const totalTrx = entries.reduce((a, log) => a + (parseInt(log.trxInput) || 0), 0);
+        
+            container.innerHTML = `
+                <div class="flex items-center justify-between px-1 pb-1">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase">${entries.length} transaksi</span>
+                    <span class="text-[10px] font-black text-blue-600 dark:text-blue-400">Total ${totalTrx} Trx</span>
+                </div>
+                ${entries.map(log => {
+                    const waktuTampil = log.waktu ? log.waktu.substring(0, 5) : '00:00';
+                    return `
+                    <div class="flex items-center gap-2.5 bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                        <div class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-500 flex items-center justify-center shrink-0"><i data-lucide="receipt" class="w-3.5 h-3.5"></i></div>
+                        <div class="min-w-0 flex-1">
+                            <div class="font-bold text-[11px] text-slate-700 dark:text-white truncate">${log.mitraNama}</div>
+                            <div class="text-[9px] text-slate-400 flex items-center gap-1"><i data-lucide="clock" class="w-2.5 h-2.5"></i>${log.tglRaw} • ${waktuTampil} WIB</div>
+                        </div>
+                        <div class="shrink-0 text-sm font-black text-blue-600 dark:text-blue-400">+${log.trxInput}</div>
+                    </div>
+                `;}).join('')}
+            `;
+            if (window.lucide) lucide.createIcons();
         };
         window.cariMitra = function() {
             const input = document.getElementById('input-cari-mitra').value.toLowerCase();
@@ -3489,10 +3573,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                                     <div class="h-full rounded-full ${pct >= 100 ? 'bg-success' : 'bg-amber-400'}" style="width:${pct}%"></div>
                                 </div>
                             </div>
-                            <div class="flex gap-1.5 pt-0.5">
-                                <button onclick="bukaInputTransaksiMitra('${m.nama}')" class="flex-1 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-[10px] uppercase flex items-center justify-center gap-1 active:scale-95 transition-transform"><i data-lucide="plus" class="w-3 h-3"></i> Input Trx</button>
-                                <button onclick="lihatRiwayatMitraOtomatis('${m.nama}')" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-lg text-[10px] uppercase border border-slate-200/50 flex items-center justify-center gap-1 active:scale-95 transition-transform"><i data-lucide="eye" class="w-3 h-3"></i> Lihat</button>
-                            </div>
+                            <button onclick="bukaInputTransaksiMitra('${m.nama.replace(/'/g, "\\'")}')" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-[10px] uppercase flex items-center justify-center gap-1 active:scale-95 transition-transform"><i data-lucide="plus" class="w-3 h-3"></i> Input Trx</button>
                         </div>
                     `;
                 })
@@ -3503,15 +3584,18 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         };
         window.toggleMitraList = function() {
             const box = document.getElementById('container-mitra-list');
+            const btn = document.getElementById('btn-toggle-daftar-mitra');
             if (!box) return;
 
             if (box.dataset.loaded === '1') {
                 box.dataset.loaded = '0';
                 box.innerHTML = '';
-                renderKurirMitraView(false);
+                if (btn) btn.innerHTML = '<i data-lucide="store" class="w-3.5 h-3.5"></i> <span>Tampilkan Daftar Mitra</span>';
             } else {
                 renderKurirMitraView(true);
+                if (btn) btn.innerHTML = '<i data-lucide="chevron-up" class="w-3.5 h-3.5"></i> <span>Sembunyikan Daftar Mitra</span>';
             }
+            if (window.lucide) lucide.createIcons();
         };
 
         window.toggleRiwayatTrxInputan = function() {
@@ -3607,35 +3691,65 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         };
 
         window.bukaInputTransaksiMitra = function(namaMitra) {
+            if (!userSession) {
+                toast('Sesi login tidak ditemukan. Silakan login ulang.');
+                return;
+            }
+
             const modal = document.getElementById('modal-input-trx-mitra');
             const inputNama = document.getElementById('trx-mitra-name');
             const display = document.getElementById('trx-mitra-display');
             const bulan = document.getElementById('trx-mitra-bulan');
             const jumlah = document.getElementById('trx-mitra-jumlah');
-        
+            const btnSave = document.getElementById('btn-save-trx-mitra');
+
             if (!modal || !inputNama || !display || !bulan || !jumlah) return;
-        
+
             inputNama.value = namaMitra;
             display.value = namaMitra;
             bulan.value = getWibRawDate().substring(0, 7);
             jumlah.value = '';
-        
+
+            // Pastikan tombol Simpan selalu dalam kondisi aktif setiap kali popup dibuka
+            if (btnSave) {
+                btnSave.disabled = false;
+                btnSave.innerText = 'Simpan';
+            }
+
             modal.classList.remove('hidden');
         };
         window.closeInputTrxMitraModal = function() {
             const modal = document.getElementById('modal-input-trx-mitra');
             if (modal) modal.classList.add('hidden');
+
+            // Reset tombol Simpan agar tidak "nyangkut" di kondisi loading saat modal dibuka lagi
+            const btnSave = document.getElementById('btn-save-trx-mitra');
+            if (btnSave) {
+                btnSave.disabled = false;
+                btnSave.innerText = 'Simpan';
+            }
         };
-        
+
         window.saveInputTrxMitra = function() {
+            const btnSave = document.getElementById('btn-save-trx-mitra');
+
+            // Cegah klik dobel yang bisa membuat transaksi kepush berulang (duplikat)
+            if (btnSave && btnSave.disabled) return;
+
             const namaMitra = document.getElementById('trx-mitra-name').value;
             const bulan = document.getElementById('trx-mitra-bulan').value;
             const trxInput = parseInt(document.getElementById('trx-mitra-jumlah').value) || 0;
-        
+
             if (!namaMitra) return toast('Mitra belum dipilih!');
             if (!bulan) return toast('Pilih bulan!');
             if (trxInput <= 0) return toast('Jumlah transaksi harus lebih dari 0!');
-        
+            if (!userSession || !userSession.nama) return toast('Sesi login tidak ditemukan. Silakan login ulang.');
+
+            if (btnSave) {
+                btnSave.disabled = true;
+                btnSave.innerText = 'Menyimpan...';
+            }
+
             const wib = getWibDate();
             const payload = {
                 mitraNama: namaMitra,
@@ -3646,27 +3760,43 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 tglRaw: getWibRawDate(),
                 bulan: bulan
             };
-        
+
             push(ref(db, 'log_mitra'), payload).then(() => {
                 toast('Transaksi mitra berhasil disimpan!');
                 closeInputTrxMitraModal();
+            }).catch((err) => {
+                toast('Gagal menyimpan transaksi: ' + (err && err.message ? err.message : 'Terjadi kesalahan.'));
+            }).finally(() => {
+                if (btnSave) {
+                    btnSave.disabled = false;
+                    btnSave.innerText = 'Simpan';
+                }
             });
         };
         
 
         window.toggleRiwayatMitraKurir = function() {
             const box = document.getElementById('box-riwayat-mitra-kurir');
+            const btn = document.getElementById('btn-toggle-riwayat-mitra');
             if (!box) return;
             box.classList.toggle('hidden');
-            if (!box.classList.contains('hidden')) {
+            const isOpen = !box.classList.contains('hidden');
+            if (btn) btn.innerHTML = isOpen
+                ? '<i data-lucide="chevron-up" class="w-3 h-3"></i> <span>Tutup</span>'
+                : '<i data-lucide="history" class="w-3 h-3"></i> <span>Riwayat</span>';
+            if (isOpen) {
                 renderKurirLogMitra();
             }
+            if (window.lucide) lucide.createIcons();
         };
         window.sembunyikanRiwayatMitraKurir = function() {
             const box = document.getElementById('box-riwayat-mitra-kurir');
             const container = document.getElementById('container-kurir-log-mitra');
+            const btn = document.getElementById('btn-toggle-riwayat-mitra');
             if (container) container.innerHTML = '';
             if (box) box.classList.add('hidden');
+            if (btn) btn.innerHTML = '<i data-lucide="history" class="w-3 h-3"></i> <span>Riwayat</span>';
+            if (window.lucide) lucide.createIcons();
         };
         
         window.hitungTarifOngkir = function() {
@@ -3711,40 +3841,59 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const container = document.getElementById('container-admin-notification-history');
             if (!container) return;
 
-            const isOpen = ensureSectionToggleState('container-admin-notification-history', false);
+            const isOpen = container.dataset.open === '1';
+
+            const btnText = document.getElementById('btn-toggle-notif-text');
+            const btnIcon = document.getElementById('btn-toggle-notif-icon');
+            if (btnText) btnText.innerText = isOpen ? 'Tutup' : 'Buka';
+            if (btnIcon) btnIcon.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+
+            if (!isOpen) {
+                container.innerHTML = '';
+                return;
+            }
+
             const items = Object.entries(cloudNotificationList || {}).sort((a, b) => (b[1]?.createdAt || '').localeCompare(a[1]?.createdAt || ''));
 
-            container.innerHTML = `
-                <div class="flex items-center gap-2 mb-2">
-                    <button type="button" onclick="toggleSectionList('container-admin-notification-history')" class="flex-1 py-2 rounded-xl bg-slate-800 text-white text-[10px] font-bold uppercase">
-                        ${isOpen ? 'Tutup' : 'Buka'}
-                    </button>
-                </div>
-                <div id="container-admin-notification-history-inner" class="${isOpen ? '' : 'hidden'} space-y-2"></div>
-            `;
+            if (!items.length) {
+                container.innerHTML = `
+                    <div class="text-center py-6 space-y-1">
+                        <div class="w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto"><i data-lucide="bell-off" class="w-5 h-5"></i></div>
+                        <p class="text-xs text-slate-400">Belum ada notifikasi terkirim.</p>
+                    </div>`;
+                if (window.lucide) lucide.createIcons();
+                return;
+            }
 
-            const inner = document.getElementById('container-admin-notification-history-inner');
-            if (!inner || !isOpen) return;
+            const roleIcon = { owner: 'crown', head_ops: 'briefcase', manajemen: 'shield' };
 
-            inner.innerHTML = items.length ? items.map(([key, n]) => `
-                <div class="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl border text-xs space-y-2">
-                    <div class="flex justify-between items-start gap-2">
-                        <div class="min-w-0 flex-1">
-                            <div class="flex items-center gap-1.5 flex-wrap mb-1">
-                                <span class="sender-badge" data-role="${n.senderRole || 'owner'}">${n.senderLabel || 'Admin'}</span>
-                                ${n.active === false ? '<span class="status-pill bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400">Nonaktif</span>' : ''}
-                            </div>
-                            <div class="font-bold text-[11px] sm:text-sm leading-snug break-words">${n.message || '-'}</div>
-                            <div class="text-[10px] text-slate-400 mt-1">${n.target === 'all' ? 'Semua Kurir' : `Kurir Terpilih (${(n.targetList || []).length})`}</div>
-                            <div class="text-[10px] text-slate-400">${n.createdAt ? new Date(n.createdAt).toLocaleString('id-ID') : '-'}</div>
+            container.innerHTML = items.map(([key, n]) => {
+                const role = n.senderRole || 'owner';
+                const isInactive = n.active === false;
+                const targetLabel = n.target === 'all' ? 'Semua Kurir' : `Kurir Terpilih (${(n.targetList || []).length})`;
+                const waktu = n.createdAt ? new Date(n.createdAt).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+
+                return `
+                <div class="notif-history-item role-${role} ${isInactive ? 'is-inactive' : ''}">
+                    <div class="flex items-start justify-between gap-2 mb-2">
+                        <div class="flex items-center gap-1.5 flex-wrap min-w-0">
+                            <span class="sender-badge" data-role="${role}"><i data-lucide="${roleIcon[role] || 'user'}" class="w-2.5 h-2.5 inline-block mr-0.5 -mt-0.5"></i>${n.senderLabel || 'Admin'}</span>
+                            ${isInactive ? '<span class="status-pill bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400">Nonaktif</span>' : '<span class="status-pill bg-emerald-100 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">Aktif</span>'}
                         </div>
                     </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button onclick="resendNotification('${key}')" class="w-full py-2 rounded-lg bg-blue-50 text-blue-600 text-[10px] font-bold uppercase">Kirim Lagi</button>
-                        <button onclick="deleteNotification('${key}')" class="w-full py-2 rounded-lg bg-rose-50 text-rose-600 text-[10px] font-bold uppercase">Hapus</button>
+                    <div class="font-bold text-[11px] sm:text-xs leading-snug break-words text-slate-700 dark:text-slate-200">${n.message || '-'}</div>
+                    <div class="flex items-center gap-3 mt-2 text-[10px] text-slate-400 flex-wrap">
+                        <span class="flex items-center gap-1"><i data-lucide="users" class="w-3 h-3"></i> ${targetLabel}</span>
+                        <span class="flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> ${waktu}</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mt-3">
+                        <button onclick="resendNotification('${key}')" class="w-full py-2 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 text-[10px] font-bold uppercase flex items-center justify-center gap-1 active:scale-95 transition-transform"><i data-lucide="send" class="w-3 h-3"></i> Kirim Lagi</button>
+                        <button onclick="deleteNotification('${key}')" class="w-full py-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-[10px] font-bold uppercase flex items-center justify-center gap-1 active:scale-95 transition-transform"><i data-lucide="trash-2" class="w-3 h-3"></i> Hapus</button>
                     </div>
                 </div>
-            `).join('') : '<div class="text-center text-xs text-slate-400 py-4">Belum ada notifikasi.</div>';
+                `;
+            }).join('');
+            if (window.lucide) lucide.createIcons();
         };        
         window.closeModal = function(id) {
             const modal = document.getElementById(id);
@@ -4192,53 +4341,63 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             
                     const totalBiaya = (n.biayaTambahan || []).reduce((acc, b) => acc + (b.nominal || 0), 0);
                     const statusText = normalizeStatusNota(n.status) || '-';
-                    const statusColor = statusText === 'admin'
+                    const isAdminStatus = statusText === 'admin';
+                    const statusColor = isAdminStatus
                         ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-300'
                         : 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-300';
+                    const accentBorder = isAdminStatus ? 'border-l-blue-400' : 'border-l-amber-400';
+                    const iconBg = isAdminStatus
+                        ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-500'
+                        : 'bg-amber-50 dark:bg-amber-950/40 text-amber-500';
+                    const kurirInitial = (n.kurirNama || '?').trim().charAt(0).toUpperCase();
             
                     container.innerHTML += `
-                        <div class="bg-white dark:bg-darkCard p-2.5 rounded-lg border shadow-sm text-[11px] space-y-1.5">
+                        <div class="list-card-hover bg-white dark:bg-darkCard p-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm text-[11px] space-y-2.5 border-l-4 ${accentBorder}">
                             <div class="flex justify-between items-start gap-2">
-                                <div class="min-w-0">
-                                    <div class="font-bold text-[12px] leading-tight truncate">${n.id || '-'}</div>
-                                    <div class="text-[10px] text-slate-400">${n.tanggal || '-'}</div>
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <div class="w-8 h-8 rounded-lg ${iconBg} flex items-center justify-center shrink-0"><i data-lucide="receipt" class="w-3.5 h-3.5"></i></div>
+                                    <div class="min-w-0">
+                                        <div class="font-bold text-[12px] leading-tight truncate">${n.id || '-'}</div>
+                                        <div class="text-[10px] text-slate-400">${n.tanggal || '-'}</div>
+                                    </div>
                                 </div>
-                                <div class="flex flex-col items-end gap-1">
-                                    <span class="px-2 py-0.5 rounded-full text-[9px] font-bold ${statusColor}">
-                                        ${statusText.toUpperCase()}
-                                    </span>
-                                    <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                                        ${n.kurirNama || '-'}
-                                    </span>
+                                <span class="px-2 py-0.5 rounded-full text-[9px] font-bold ${statusColor} shrink-0">
+                                    ${statusText.toUpperCase()}
+                                </span>
+                            </div>
+
+                            <div class="flex items-center gap-1.5 pl-1">
+                                <div class="leader-avatar" style="width:20px;height:20px;font-size:9px;border-radius:6px;">${kurirInitial}</div>
+                                <span class="text-[10px] font-semibold text-slate-500 dark:text-slate-300 truncate">${n.kurirNama || '-'}</span>
+                            </div>
+            
+                            <div class="grid grid-cols-4 gap-1.5 bg-slate-50 dark:bg-slate-800/60 p-2 rounded-xl text-center">
+                                <div>
+                                    <div class="text-[8px] text-slate-400 uppercase">Ongkir</div>
+                                    <div class="font-bold text-[10px]">${(n.ongkir || 0).toLocaleString('id-ID')}</div>
+                                </div>
+                                <div>
+                                    <div class="text-[8px] text-slate-400 uppercase">Tambahan</div>
+                                    <div class="font-bold text-[10px]">${totalBiaya.toLocaleString('id-ID')}</div>
+                                </div>
+                                <div>
+                                    <div class="text-[8px] text-slate-400 uppercase">Item</div>
+                                    <div class="font-bold text-[10px]">${(n.items || []).length}</div>
+                                </div>
+                                <div>
+                                    <div class="text-[8px] text-slate-400 uppercase">Total</div>
+                                    <div class="font-black text-[10px] text-primary">${(n.total || 0).toLocaleString('id-ID')}</div>
                                 </div>
                             </div>
             
-                            <div class="grid grid-cols-2 gap-1.5 bg-slate-50 dark:bg-slate-800 p-2 rounded-md">
-                                <div>
-                                    <div class="text-[9px] text-slate-400">Ongkir</div>
-                                    <div class="font-bold text-[11px]">Rp ${(n.ongkir || 0).toLocaleString('id-ID')}</div>
-                                </div>
-                                <div>
-                                    <div class="text-[9px] text-slate-400">Tambahan</div>
-                                    <div class="font-bold text-[11px]">Rp ${totalBiaya.toLocaleString('id-ID')}</div>
-                                </div>
-                                <div>
-                                    <div class="text-[9px] text-slate-400">Item</div>
-                                    <div class="font-bold text-[11px]">${(n.items || []).length}</div>
-                                </div>
-                                <div>
-                                    <div class="text-[9px] text-slate-400">Total</div>
-                                    <div class="font-bold text-[11px] text-primary">Rp ${(n.total || 0).toLocaleString('id-ID')}</div>
-                                </div>
-                            </div>
-            
-                            <div class="flex justify-end gap-2 pt-0.5">
-                                <button onclick="viewAdminNota('${key}')" class="px-2.5 py-1 rounded-md bg-blue-50 text-blue-600 font-bold text-[10px]">Preview</button>
-                                <button onclick="hapusNotaGlobal('${key}')" class="px-2.5 py-1 rounded-md bg-red-50 text-red-600 font-bold text-[10px]">Hapus</button>
+                            <div class="flex justify-end gap-2 pt-0.5 border-t border-dashed border-slate-100 dark:border-slate-800 pt-2">
+                                <button onclick="viewAdminNota('${key}')" class="flex items-center gap-1 text-blue-500 font-bold bg-blue-50 dark:bg-blue-950/40 px-2.5 py-1.5 rounded-lg active:scale-95 transition-transform"><i data-lucide="eye" class="w-3 h-3"></i> Preview</button>
+                                <button onclick="hapusNotaGlobal('${key}')" class="flex items-center gap-1 text-danger font-bold bg-red-50 dark:bg-red-950/40 px-2.5 py-1.5 rounded-lg active:scale-95 transition-transform"><i data-lucide="trash-2" class="w-3 h-3"></i> Hapus</button>
                             </div>
                         </div>
                     `;
                 });
+                if (window.lucide) lucide.createIcons();
             
                 if (!adaData) {
                     container.innerHTML = `<div class="text-center text-xs text-slate-400 py-4">Tidak ada nota sesuai filter.</div>`;
@@ -5772,62 +5931,103 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 
                 if (section === 'rekapjadwal') {
                     const rekap = window.calcRekapJadwalKurir();
-                
+                    const namaBulanLabel = new Date(bulan + '-01').toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+
+                    const totalHadir = rekap.reduce((a, r) => a + (r.kehadiran || 0), 0);
+                    const totalOffAll = rekap.reduce((a, r) => a + (r.totalOff || 0), 0);
+                    const totalTanpaOffAll = rekap.reduce((a, r) => a + (r.totalTidakAmbilOff || 0), 0);
+
                     container.innerHTML = `
                         <div class="space-y-3">
-                            ${rekap.length ? rekap.map((r, i) => `
-                                <div class="bg-white dark:bg-darkCard rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-4 space-y-3">
-                                    <div class="flex items-start justify-between gap-3">
-                                        <div class="min-w-0">
-                                            <div class="flex items-center gap-2">
-                                                <div class="w-8 h-8 rounded-full bg-violet-100 dark:bg-violet-950 flex items-center justify-center text-violet-600 dark:text-violet-300 font-black text-xs">
-                                                    ${i + 1}
-                                                </div>
-                                                <div class="min-w-0">
-                                                    <div class="font-bold text-sm truncate">${r.namaKurir}</div>
-                                                    <div class="text-[10px] text-slate-400 truncate">Leader: ${r.leader || '-'}</div>
-                                                </div>
+                            <div class="rounded-3xl p-4 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 shadow-xl shadow-emerald-600/25 text-white relative overflow-hidden">
+                                <div class="pointer-events-none absolute inset-0 opacity-[0.10]" style="background-image:radial-gradient(circle,#fff 1.5px,transparent 1.5px);background-size:16px 16px;"></div>
+                                <div class="relative flex items-center gap-3 mb-3">
+                                    <div class="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center shrink-0"><i data-lucide="calendar-days" class="w-5 h-5"></i></div>
+                                    <div class="min-w-0">
+                                        <div class="text-[9px] font-black uppercase tracking-widest text-white/70">Rekap Jadwal Kurir</div>
+                                        <div class="text-sm font-black">${namaBulanLabel}</div>
+                                    </div>
+                                </div>
+                                <div class="relative grid grid-cols-3 gap-2">
+                                    <div class="bg-white/15 backdrop-blur-sm rounded-xl p-2.5 text-center">
+                                        <div class="text-[9px] font-bold uppercase text-white/70">Total Hadir</div>
+                                        <div class="text-base font-black mt-0.5">${totalHadir}</div>
+                                    </div>
+                                    <div class="bg-white/15 backdrop-blur-sm rounded-xl p-2.5 text-center">
+                                        <div class="text-[9px] font-bold uppercase text-white/70">Total Off</div>
+                                        <div class="text-base font-black mt-0.5">${totalOffAll}</div>
+                                    </div>
+                                    <div class="bg-white/15 backdrop-blur-sm rounded-xl p-2.5 text-center">
+                                        <div class="text-[9px] font-bold uppercase text-white/70">Tanpa Off</div>
+                                        <div class="text-base font-black mt-0.5">${totalTanpaOffAll}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            ${rekap.length ? rekap.map((r, i) => {
+                                const initial = (r.namaKurir || '?').trim().charAt(0).toUpperCase();
+                                const rank = i + 1;
+                                const crownClass = rank === 1 ? 'rank-crown-1' : rank === 2 ? 'rank-crown-2' : rank === 3 ? 'rank-crown-3' : 'rank-crown-default';
+                                return `
+                                <div class="rekap-jadwal-card bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800 shadow-sm p-4 space-y-3">
+                                    <div class="rjc-glow"></div>
+                                    <div class="relative flex items-start justify-between gap-3">
+                                        <div class="flex items-center gap-2.5 min-w-0">
+                                            <div class="w-10 h-10 rounded-2xl ${crownClass} flex items-center justify-center text-white font-black text-xs shrink-0">
+                                                ${initial}
+                                            </div>
+                                            <div class="min-w-0">
+                                                <div class="font-bold text-sm truncate">${r.namaKurir}</div>
+                                                <div class="text-[10px] text-slate-400 truncate flex items-center gap-1"><i data-lucide="crown" class="w-2.5 h-2.5"></i>${r.leader || '-'}</div>
                                             </div>
                                         </div>
                                         <div class="text-right shrink-0">
-                                            <div class="text-[10px] text-slate-400 uppercase font-bold">Kehadiran</div>
-                                            <div class="text-lg font-black text-success">${r.kehadiran}</div>
+                                            <div class="text-[9px] text-slate-400 uppercase font-bold tracking-wide">Kehadiran</div>
+                                            <div class="text-xl font-black text-emerald-500 leading-none">${r.kehadiran}</div>
                                         </div>
                                     </div>
-                                    <div class="grid grid-cols-2 gap-2 text-xs">
-                                        <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60">
-                                            <div class="text-[10px] text-slate-400 uppercase">Total Off</div>
-                                            <div class="font-bold">${r.totalOff}</div>
+                                    <div class="relative grid grid-cols-3 gap-2">
+                                        <div class="rekap-mini-stat">
+                                            <div class="rms-icon bg-slate-100 dark:bg-slate-800 text-slate-500"><i data-lucide="calendar-off" class="w-3 h-3"></i></div>
+                                            <div class="rms-label">Total Off</div>
+                                            <div class="rms-value">${r.totalOff}</div>
                                         </div>
-                                        <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60">
-                                            <div class="text-[10px] text-slate-400 uppercase">Tidak Ambil Off</div>
-                                            <div class="font-bold text-rose-500">${r.totalTidakAmbilOff}</div>
+                                        <div class="rekap-mini-stat">
+                                            <div class="rms-icon bg-rose-100 dark:bg-rose-950/40 text-rose-500"><i data-lucide="alert-triangle" class="w-3 h-3"></i></div>
+                                            <div class="rms-label">Tanpa Off</div>
+                                            <div class="rms-value text-rose-500">${r.totalTidakAmbilOff}</div>
                                         </div>
-                                        <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60">
-                                            <div class="text-[10px] text-slate-400 uppercase">Izin</div>
-                                            <div class="font-bold text-amber-500">${r.totalIzin}</div>
+                                        <div class="rekap-mini-stat">
+                                            <div class="rms-icon bg-amber-100 dark:bg-amber-950/40 text-amber-500"><i data-lucide="hand" class="w-3 h-3"></i></div>
+                                            <div class="rms-label">Izin</div>
+                                            <div class="rms-value text-amber-500">${r.totalIzin}</div>
                                         </div>
-                                        <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60">
-                                            <div class="text-[10px] text-slate-400 uppercase">Sakit</div>
-                                            <div class="font-bold text-blue-500">${r.totalSakit}</div>
+                                        <div class="rekap-mini-stat">
+                                            <div class="rms-icon bg-blue-100 dark:bg-blue-950/40 text-blue-500"><i data-lucide="thermometer" class="w-3 h-3"></i></div>
+                                            <div class="rms-label">Sakit</div>
+                                            <div class="rms-value text-blue-500">${r.totalSakit}</div>
                                         </div>
-                                        <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60">
-                                            <div class="text-[10px] text-slate-400 uppercase">Absen Masuk</div>
-                                            <div class="font-bold">${r.totalAbsenMasuk}</div>
+                                        <div class="rekap-mini-stat">
+                                            <div class="rms-icon bg-emerald-100 dark:bg-emerald-950/40 text-emerald-500"><i data-lucide="log-in" class="w-3 h-3"></i></div>
+                                            <div class="rms-label">Absen Masuk</div>
+                                            <div class="rms-value">${r.totalAbsenMasuk}</div>
                                         </div>
-                                        <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60">
-                                            <div class="text-[10px] text-slate-400 uppercase">Absen Pulang</div>
-                                            <div class="font-bold">${r.totalAbsenPulang}</div>
+                                        <div class="rekap-mini-stat">
+                                            <div class="rms-icon bg-violet-100 dark:bg-violet-950/40 text-violet-500"><i data-lucide="log-out" class="w-3 h-3"></i></div>
+                                            <div class="rms-label">Absen Pulang</div>
+                                            <div class="rms-value">${r.totalAbsenPulang}</div>
                                         </div>
                                     </div>
                                 </div>
-                            `).join('') : `
-                                <div class="text-center text-xs text-slate-400 py-6 bg-white dark:bg-darkCard rounded-2xl border">
-                                    Belum ada data rekap jadwal.
+                            `; }).join('') : `
+                                <div class="text-center py-8 space-y-1 bg-white dark:bg-darkCard rounded-2xl border border-slate-100 dark:border-slate-800">
+                                    <div class="w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto"><i data-lucide="calendar-x" class="w-5 h-5"></i></div>
+                                    <p class="text-xs text-slate-400">Belum ada data rekap jadwal.</p>
                                 </div>
                             `}
                         </div>
                     `;
+                    if (window.lucide) lucide.createIcons();
                     return;
                 }
 
@@ -6356,31 +6556,57 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             document.getElementById('manajemen-status').value = 'aktif';
             document.getElementById('title-form-manajemen').innerText = 'Tambah / Edit Data Manajemen';
         };
-        function populateNotifKurirList() {
-        const tbody = document.getElementById('notif-kurir-table-body');
-        if (!tbody) return;
+        window.toggleNotifKurirChip = function(nama) {
+            const checkbox = document.querySelector(`.notif-kurir-check[value="${CSS.escape(nama)}"]`);
+            if (checkbox) checkbox.checked = !checkbox.checked;
+            populateNotifKurirList();
+        };
 
-        tbody.innerHTML = '';
-        
+        function populateNotifKurirList() {
+        const container = document.getElementById('notif-kurir-picker');
+        const counter = document.getElementById('notif-kurir-selected-count');
+        if (!container) return;
+
+        // Simpan status centang yang sudah ada sebelum di-render ulang
+        const previouslyChecked = new Set(
+            Array.from(document.querySelectorAll('.notif-kurir-check:checked')).map(el => el.value)
+        );
+
+        const keyword = (document.getElementById('notif-kurir-search')?.value || '').toLowerCase().trim();
+
         const kurirList = Object.entries(cloudKurirList || {})
             .filter(([_, u]) => u && u.role === 'kurir' && u.status === 'aktif')
-            .map(([id, u]) => ({ id, nama: u.nama || u.username || id, leader: u.leader || '-' }));
+            .map(([id, u]) => ({ id, nama: u.nama || u.username || id, leader: u.leader || '-' }))
+            .filter(k => !keyword || k.nama.toLowerCase().includes(keyword))
+            .sort((a, b) => (a.nama || '').localeCompare(b.nama || ''));
 
-        kurirList.forEach((kurir, idx) => {
-            const tr = document.createElement('tr');
-            tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer';
-            tr.innerHTML = `
-            <td class="p-2.5 text-slate-700 dark:text-slate-300 font-semibold">${idx + 1}</td>
-            <td class="p-2.5">
-                <label class="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" class="notif-kurir-check accent-primary" value="${kurir.nama}">
-                <span class="text-slate-800 dark:text-white font-medium">${kurir.nama}</span>
-                </label>
-            </td>
-            <td class="p-2.5 text-slate-500 dark:text-slate-400">${kurir.leader}</td>
-            `;
-            tbody.appendChild(tr);
-        });
+        if (!kurirList.length) {
+            container.innerHTML = '<div class="text-center text-[10px] text-slate-400 py-4">Tidak ada kurir yang cocok.</div>';
+        } else {
+            container.innerHTML = kurirList.map(kurir => {
+                const isChecked = previouslyChecked.has(kurir.nama);
+                const initial = (kurir.nama || '?').trim().charAt(0).toUpperCase();
+                return `
+                    <div class="notif-kurir-chip-item ${isChecked ? 'is-checked' : ''}" onclick="toggleNotifKurirChip('${kurir.nama.replace(/'/g, "\\'")}')">
+                        <input type="checkbox" class="notif-kurir-check hidden" value="${kurir.nama}" ${isChecked ? 'checked' : ''}>
+                        <div class="nci-check">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        </div>
+                        <div class="nci-avatar">${initial}</div>
+                        <div class="min-w-0 flex-1">
+                            <div class="nci-name truncate">${kurir.nama}</div>
+                            <div class="nci-sub truncate">Leader: ${kurir.leader}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        if (counter) {
+            const totalChecked = document.querySelectorAll('.notif-kurir-check:checked').length;
+            counter.innerHTML = `<i data-lucide="users" class="w-3 h-3"></i> ${totalChecked} dipilih`;
+        }
+        if (window.lucide) lucide.createIcons();
         }
         window.saveNotification = function() {
         const target = document.getElementById('notif-target').value;
@@ -6797,87 +7023,99 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             container.innerHTML = data.map((d, i) => {
                 const badge = getRatingBadge(d.skorAkhir);
                 const anggotaList = d.anggotaRanking || [];
+                const rank = i + 1;
+                const crownClass = rank === 1 ? 'rank-crown-1' : rank === 2 ? 'rank-crown-2' : rank === 3 ? 'rank-crown-3' : 'rank-crown-default';
+                const cardRankClass = rank <= 3 ? `is-rank-${rank}` : '';
+                const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
+                const initial = (d.namaLeader || '?').trim().charAt(0).toUpperCase();
         
                 return `
-                    <div class="bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm space-y-4">
+                    <div class="leader-score-card ${cardRankClass} bg-white dark:bg-darkCard p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm space-y-4">
                         <div class="flex items-start justify-between gap-3">
-                            <div class="min-w-0">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-8 h-8 rounded-full bg-violet-100 dark:bg-violet-950 flex items-center justify-center text-violet-600 dark:text-violet-300 font-black text-xs">
-                                        ${i + 1}
-                                    </div>
-                                    <div class="min-w-0">
-                                        <div class="font-bold text-sm truncate">${d.namaLeader}</div>
-                                        <div class="text-[10px] text-slate-400 truncate">Username: ${d.leaderUsername}</div>
-                                    </div>
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <div class="relative w-11 h-11 rounded-2xl ${crownClass} flex items-center justify-center text-white font-black text-sm shrink-0">
+                                    ${initial}
+                                    <span class="absolute -top-2 -left-2 w-5 h-5 rounded-full bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-700 flex items-center justify-center text-[10px] shadow-sm">${rank <= 3 ? medal : rank}</span>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="font-bold text-sm truncate">${d.namaLeader}</div>
+                                    <div class="text-[10px] text-slate-400 truncate flex items-center gap-1"><i data-lucide="at-sign" class="w-2.5 h-2.5"></i>${d.leaderUsername}</div>
                                 </div>
                             </div>
         
                             <div class="text-right shrink-0">
-                                <div class="text-lg font-black text-primary">${d.skorAkhir}%</div>
-                                <div class="text-[10px] font-bold ${badge.color || 'text-slate-500'}">
+                                <div class="text-xl font-black text-primary leading-none">${d.skorAkhir}%</div>
+                                <div class="text-[10px] font-bold mt-1 ${badge.color || 'text-slate-500'}">
                                     ${badge.emoji} ${badge.label}
                                 </div>
                             </div>
                         </div>
-        
-                        <div class="grid grid-cols-2 gap-2 text-xs">
-                            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800">
-                                <div class="text-[10px] text-slate-400 uppercase">Skor Dasar Leader</div>
-                                <div class="font-black mt-1">${d.leaderRating}</div>
+
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between text-[9px] font-bold uppercase text-slate-400 tracking-wide">
+                                <span>Progress Skor</span>
+                                <span>${d.skorAkhir}%</span>
                             </div>
-                            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800">
-                                <div class="text-[10px] text-slate-400 uppercase">Bonus Top Ranking</div>
-                                <div class="font-black mt-1">+${d.bonusTopRanking}</div>
-                            </div>
-                            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 col-span-2">
-                                <div class="text-[10px] text-slate-400 uppercase">Total Anggota Aktif</div>
-                                <div class="font-black mt-1">${d.anggotaCount}</div>
+                            <div class="h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                                <div class="h-full ${crownClass} rounded-full transition-all" style="width:${d.skorAkhir}%"></div>
                             </div>
                         </div>
         
-                        <div class="grid grid-cols-4 gap-2 text-xs">
-                            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800">
-                                <div class="text-[10px] text-slate-400 uppercase">Kehadiran</div>
-                                <div class="font-black mt-1">${d.totalKehadiranAnggota}</div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div class="leader-stat-tile">
+                                <div class="lst-label">Skor Dasar</div>
+                                <div class="lst-value">${d.leaderRating}</div>
                             </div>
-                            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800">
-                                <div class="text-[10px] text-slate-400 uppercase">Penghasilan</div>
-                                <div class="font-black mt-1 text-emerald-600 dark:text-emerald-400">
-                                    Rp ${d.totalPenghasilanAnggota.toLocaleString('id-ID')}
-                                </div>
+                            <div class="leader-stat-tile">
+                                <div class="lst-label">Bonus Top</div>
+                                <div class="lst-value text-emerald-500">+${d.bonusTopRanking}</div>
                             </div>
-                            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800">
-                                <div class="text-[10px] text-slate-400 uppercase">Total Nota</div>
-                                <div class="font-black mt-1">${d.totalNotaAnggota}</div>
-                            </div>
-                            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800">
-                                <div class="text-[10px] text-slate-400 uppercase">Trx Mitra</div>
-                                <div class="font-black mt-1">${d.totalTrxMitraAnggota}</div>
+                            <div class="leader-stat-tile">
+                                <div class="lst-label">Anggota</div>
+                                <div class="lst-value">${d.anggotaCount}</div>
                             </div>
                         </div>
         
-                        <div class="grid grid-cols-1 gap-2 text-xs">
-                            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800">
-                                <div class="text-[10px] text-slate-400 uppercase">Total OFF / Izin / Sakit</div>
-                                <div class="font-black mt-1">${d.totalOffAnggota}</div>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            <div class="leader-stat-tile">
+                                <div class="lst-label flex items-center gap-1"><i data-lucide="calendar-check" class="w-2.5 h-2.5"></i>Hadir</div>
+                                <div class="lst-value">${d.totalKehadiranAnggota}</div>
+                            </div>
+                            <div class="leader-stat-tile">
+                                <div class="lst-label flex items-center gap-1"><i data-lucide="wallet" class="w-2.5 h-2.5"></i>Penghasilan</div>
+                                <div class="lst-value text-emerald-600 dark:text-emerald-400 truncate">Rp ${d.totalPenghasilanAnggota.toLocaleString('id-ID')}</div>
+                            </div>
+                            <div class="leader-stat-tile">
+                                <div class="lst-label flex items-center gap-1"><i data-lucide="receipt" class="w-2.5 h-2.5"></i>Nota</div>
+                                <div class="lst-value">${d.totalNotaAnggota}</div>
+                            </div>
+                            <div class="leader-stat-tile">
+                                <div class="lst-label flex items-center gap-1"><i data-lucide="store" class="w-2.5 h-2.5"></i>Trx Mitra</div>
+                                <div class="lst-value">${d.totalTrxMitraAnggota}</div>
                             </div>
                         </div>
+
+                        <div class="leader-stat-tile">
+                            <div class="lst-label flex items-center gap-1"><i data-lucide="calendar-x" class="w-2.5 h-2.5"></i>Total OFF / Izin / Sakit</div>
+                            <div class="lst-value">${d.totalOffAnggota}</div>
+                        </div>
+
                         <div>
-                            <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-                            Anggota & Badge
+                            <div class="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1">
+                                <i data-lucide="users-round" class="w-3 h-3"></i> Anggota &amp; Badge
                             </div>
-                            <div class="flex flex-wrap gap-1">
+                            <div class="flex flex-wrap gap-1.5">
                             ${anggotaList.length
                                 ? anggotaList.map(a => {
                                     const badgeA = getRatingBadge(a.rating);
+                                    const initA = (a.nama || '?').trim().charAt(0).toUpperCase();
                                     return `
-                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 border text-[9px] font-semibold whitespace-nowrap leading-none">
+                                    <span class="anggota-chip">
+                                        <span class="ac-avatar">${initA}</span>
                                         <span>${a.nama}</span>
                                         <span class="text-slate-400">•</span>
                                         <span>${a.rating}%</span>
-                                        <span class="text-slate-400">•</span>
-                                        <span>${badgeA.emoji} ${badgeA.label}</span>
+                                        <span>${badgeA.emoji}</span>
                                     </span>
                                     `;
                                 }).join('')
@@ -6885,40 +7123,99 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                             }
                             </div>
                         </div>
-
-                        <div class="space-y-2">
-                            <div class="flex justify-between text-[10px] font-bold uppercase text-slate-400">
-                                <span>Progress Leader</span>
-                                <span>${d.skorAkhir}%</span>
-                            </div>
-                            <div class="h-2.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
-                                <div class="h-full bg-primary rounded-full" style="width:${d.skorAkhir}%"></div>
-                            </div>
-                        </div>
         
-                        <div class="text-[11px] text-slate-600 dark:text-slate-300 space-y-1 leading-relaxed">
-                            <p><b>Leader Score</b> diambil dari total rating seluruh anggota + bonus Top 3 anggota.</p>
-                            <p>Badge tiap anggota tetap mengikuti KPI kurir masing-masing.</p>
-                            <p>Anggota nonaktif/blokir tidak dihitung.</p>
+                        <div class="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed border-t border-dashed border-slate-100 dark:border-slate-800 pt-2.5 space-y-0.5">
+                            <p class="flex items-start gap-1"><i data-lucide="info" class="w-3 h-3 mt-0.5 shrink-0"></i><span><b class="text-slate-600 dark:text-slate-300">Leader Score</b> = total rating anggota + bonus Top 3 anggota. Anggota nonaktif/blokir tidak dihitung.</span></p>
                         </div>
                     </div>
                 `;
             }).join('');
+            if (window.lucide) lucide.createIcons();
         };
+        // Set nama anggota yang sedang dicentang di form Tambah/Edit Leader (menggantikan <select multiple>)
+        let leaderAnggotaSelected = new Set();
+
         window.resetLeaderForm = function() {
             document.getElementById('leader-id-edit').value = '';
             document.getElementById('leader-nama').value = '';
-            const select = document.getElementById('leader-anggota');
-            if (select) Array.from(select.options).forEach(o => o.selected = false);
+            const searchEl = document.getElementById('leader-anggota-search');
+            if (searchEl) searchEl.value = '';
+            leaderAnggotaSelected = new Set();
+            const modeEl = document.getElementById('leader-form-mode');
+            if (modeEl) modeEl.innerText = 'Mode: Tambah leader baru';
+            renderLeaderAnggotaOptions();
+        };
+
+        window.toggleLeaderAnggota = function(nama, lockedTo) {
+            if (lockedTo) {
+                toast(`${nama} sudah menjadi anggota leader "${lockedTo}". Hapus dari leader itu dulu.`);
+                return;
+            }
+            if (leaderAnggotaSelected.has(nama)) {
+                leaderAnggotaSelected.delete(nama);
+            } else {
+                leaderAnggotaSelected.add(nama);
+            }
+            renderLeaderAnggotaOptions();
+        };
+
+        window.renderLeaderAnggotaOptions = function() {
+            const list = document.getElementById('leader-anggota-list');
+            const counter = document.getElementById('leader-anggota-counter');
+            if (!list) return;
+
+            const keyword = (document.getElementById('leader-anggota-search')?.value || '').toLowerCase().trim();
+            const idEdit = document.getElementById('leader-id-edit')?.value || '';
+            const namaLeaderSaatIni = (cloudLeaderList?.[idEdit]?.nama || '').trim();
+
+            const kurirs = Object.values(cloudKurirList || {})
+                .filter(u => u && u.role === 'kurir' && u.status === 'aktif')
+                .filter(u => !keyword || u.nama.toLowerCase().includes(keyword))
+                .sort((a, b) => (a.nama || '').localeCompare(b.nama || ''));
+
+            if (!kurirs.length) {
+                list.innerHTML = '<div class="text-center text-[10px] text-slate-400 py-4">Tidak ada kurir yang cocok.</div>';
+            } else {
+                list.innerHTML = kurirs.map(u => {
+                    const leaderLain = (u.leader || '').trim();
+                    const isLockedByOther = leaderLain && leaderLain !== namaLeaderSaatIni;
+                    const isChecked = leaderAnggotaSelected.has(u.nama);
+                    const initial = (u.nama || '?').trim().charAt(0).toUpperCase();
+                    const sub = isLockedByOther ? `Sudah di leader: ${leaderLain}` : (leaderLain ? 'Anggota leader ini' : 'Belum punya leader');
+                    return `
+                        <div class="leader-anggota-item ${isChecked ? 'is-checked' : ''} ${isLockedByOther ? 'is-locked' : ''}"
+                            onclick="toggleLeaderAnggota('${u.nama.replace(/'/g, "\\'")}', ${isLockedByOther ? `'${leaderLain.replace(/'/g, "\\'")}'` : 'null'})">
+                            <div class="lap-check">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            </div>
+                            <div class="leader-avatar" style="width:26px;height:26px;font-size:10px;border-radius:8px;">${initial}</div>
+                            <div class="min-w-0 flex-1">
+                                <div class="lap-name truncate">${u.nama}</div>
+                                <div class="lap-sub truncate">${sub}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            if (counter) counter.innerHTML = `<i data-lucide="users" class="w-3 h-3"></i> ${leaderAnggotaSelected.size} dipilih`;
+            if (window.lucide) lucide.createIcons();
         };
 
         window.renderLeaderList = function() {
             const container = document.getElementById('container-leader-list');
+            const countEl = document.getElementById('leader-list-count');
             if (!container) return;
         
             const keys = Object.keys(cloudLeaderList || {});
+            if (countEl) countEl.innerText = keys.length ? `${keys.length} leader` : '';
             if (!keys.length) {
-                container.innerHTML = '<div class="text-center text-xs text-slate-400 py-3">Belum ada leader tersimpan.</div>';
+                container.innerHTML = `
+                    <div class="text-center py-6 space-y-1">
+                        <div class="w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto"><i data-lucide="users-round" class="w-5 h-5"></i></div>
+                        <p class="text-xs text-slate-400">Belum ada leader tersimpan.</p>
+                    </div>`;
+                if (window.lucide) lucide.createIcons();
                 return;
             }
         
@@ -6936,47 +7233,54 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 const terbaik = hasilAnggota[0] || null;
                 const sedang = hasilAnggota.length ? hasilAnggota[Math.floor(hasilAnggota.length / 2)] : null;
                 const beban = hasilAnggota[hasilAnggota.length - 1] || null;
+                const initial = (item.nama || '?').trim().charAt(0).toUpperCase();
         
                 return `
-                    <div class="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl border text-xs space-y-2">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <div class="font-bold text-sm">${item.nama || '-'}</div>
-                                <div class="text-[10px] text-slate-400">Anggota: ${anggota.length}</div>
+                    <div class="leader-list-card bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800 shadow-sm text-xs">
+                        <div class="llc-header flex justify-between items-start gap-2 p-3.5">
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <div class="leader-avatar is-lg">${initial}</div>
+                                <div class="min-w-0">
+                                    <div class="font-bold text-[13px] truncate">${item.nama || '-'}</div>
+                                    <div class="text-[10px] text-slate-400 flex items-center gap-1"><i data-lucide="users" class="w-3 h-3"></i> ${anggota.length} anggota aktif</div>
+                                </div>
                             </div>
-                            <div class="flex gap-2">
-                                <button onclick="editLeaderData('${key}')" class="px-2 py-1 rounded-md bg-blue-50 text-blue-600 text-[10px] font-bold">Edit</button>
-                                <button onclick="hapusLeaderData('${key}')" class="px-2 py-1 rounded-md bg-rose-50 text-rose-600 text-[10px] font-bold">Hapus</button>
-                            </div>
-                        </div>
-        
-                        <div class="space-y-1 text-[10px]">
-                            <div class="font-semibold text-slate-500">Daftar Anggota:</div>
-                            <div class="flex flex-wrap gap-1">
-                                ${anggota.map(a => `<span class="px-2 py-1 rounded-full bg-white dark:bg-darkBg border">${a}</span>`).join('') || '-'}
+                            <div class="flex gap-1.5 shrink-0">
+                                <button onclick="editLeaderData('${key}')" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/40 text-[10px] font-bold active:scale-95 transition-transform"><i data-lucide="pencil" class="w-3 h-3"></i> Edit</button>
+                                <button onclick="hapusLeaderData('${key}')" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-rose-50 text-rose-600 dark:bg-rose-950/40 text-[10px] font-bold active:scale-95 transition-transform"><i data-lucide="trash-2" class="w-3 h-3"></i> Hapus</button>
                             </div>
                         </div>
-        
-                        <div class="grid grid-cols-3 gap-2 text-[10px]">
-                            <div class="p-2 rounded-lg bg-emerald-50 text-emerald-700">
-                                <div class="font-bold">Terbaik</div>
-                                <div>${terbaik ? terbaik.nama : '-'}</div>
-                                <div>Rating: ${terbaik ? terbaik.rating : 0}%</div>
+
+                        <div class="p-3.5 space-y-3">
+                            <div class="space-y-1.5">
+                                <div class="font-semibold text-slate-400 text-[9px] uppercase tracking-wide flex items-center gap-1"><i data-lucide="user-round" class="w-3 h-3"></i> Daftar Anggota</div>
+                                <div class="flex flex-wrap gap-1.5">
+                                    ${anggota.map(a => `<span class="anggota-chip"><span class="ac-avatar">${(a||'?').trim().charAt(0).toUpperCase()}</span>${a}</span>`).join('') || '<span class="text-[10px] text-slate-400">Belum ada anggota.</span>'}
+                                </div>
                             </div>
-                            <div class="p-2 rounded-lg bg-amber-50 text-amber-700">
-                                <div class="font-bold">Sedang</div>
-                                <div>${sedang ? sedang.nama : '-'}</div>
-                                <div>Rating: ${sedang ? sedang.rating : 0}%</div>
-                            </div>
-                            <div class="p-2 rounded-lg bg-rose-50 text-rose-700">
-                                <div class="font-bold">Beban</div>
-                                <div>${beban ? beban.nama : '-'}</div>
-                                <div>Rating: ${beban ? beban.rating : 0}%</div>
+
+                            <div class="grid grid-cols-3 gap-1.5 text-[10px]">
+                                <div class="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300">
+                                    <div class="font-bold flex items-center gap-1"><i data-lucide="trophy" class="w-3 h-3"></i> Terbaik</div>
+                                    <div class="truncate mt-0.5">${terbaik ? terbaik.nama : '-'}</div>
+                                    <div class="font-bold">${terbaik ? terbaik.rating : 0}%</div>
+                                </div>
+                                <div class="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300">
+                                    <div class="font-bold flex items-center gap-1"><i data-lucide="minus" class="w-3 h-3"></i> Sedang</div>
+                                    <div class="truncate mt-0.5">${sedang ? sedang.nama : '-'}</div>
+                                    <div class="font-bold">${sedang ? sedang.rating : 0}%</div>
+                                </div>
+                                <div class="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300">
+                                    <div class="font-bold flex items-center gap-1"><i data-lucide="trending-down" class="w-3 h-3"></i> Beban</div>
+                                    <div class="truncate mt-0.5">${beban ? beban.nama : '-'}</div>
+                                    <div class="font-bold">${beban ? beban.rating : 0}%</div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 `;
             }).join('');
+            if (window.lucide) lucide.createIcons();
         };
         window.editLeaderData = function(key) {
             const d = cloudLeaderList[key];
@@ -6984,14 +7288,16 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         
             document.getElementById('leader-id-edit').value = key;
             document.getElementById('leader-nama').value = d.nama || '';
+            const modeEl = document.getElementById('leader-form-mode');
+            if (modeEl) modeEl.innerText = `Mode: Edit leader "${d.nama || '-'}"`;
         
-            populateAnggotaDropdownLeader();
-            const select = document.getElementById('leader-anggota');
-            if (select && Array.isArray(d.anggota)) {
-                Array.from(select.options).forEach(opt => {
-                    opt.selected = d.anggota.includes(opt.value);
-                });
-            }
+            leaderAnggotaSelected = new Set(Array.isArray(d.anggota) ? d.anggota : []);
+            const searchEl = document.getElementById('leader-anggota-search');
+            if (searchEl) searchEl.value = '';
+            renderLeaderAnggotaOptions();
+
+            // scroll ke form biar user langsung lihat form yang sedang diedit
+            document.getElementById('leader-nama')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         };
 
         window.hapusLeaderData = async function(key) {
@@ -7011,8 +7317,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         window.saveLeaderData = function() {
             const idEdit = document.getElementById('leader-id-edit').value;
             const nama = document.getElementById('leader-nama').value.trim();
-            const select = document.getElementById('leader-anggota');
-            const anggota = Array.from(select.selectedOptions).map(opt => opt.value.trim()).filter(Boolean);
+            const anggota = Array.from(leaderAnggotaSelected).map(a => (a || '').trim()).filter(Boolean);
         
             if (!nama) return toast('Nama leader wajib diisi!');
             if (!anggota.length) return toast('Pilih minimal 1 anggota!');
@@ -7067,22 +7372,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             if (dropdownEdit) dropdownEdit.innerHTML = html;
         }
         
+        // Catatan: dropdown lama <select multiple> sudah diganti dengan checklist
+        // interaktif (lihat renderLeaderAnggotaOptions). Fungsi ini dipertahankan
+        // sebagai alias supaya kalau ada pemanggilan lama tidak error.
         function populateAnggotaDropdownLeader() {
-            const select = document.getElementById('leader-anggota');
-            if (!select) return;
-        
-            select.innerHTML = '';
-        
-            Object.values(cloudKurirList || {}).forEach(user => {
-                if (user && user.role === 'kurir' && user.status === 'aktif') {
-                    const leaderName = (user.leader || '').trim();
-                    const label = leaderName
-                        ? `🔒 ${user.nama} — Leader: ${leaderName}`
-                        : `✅ ${user.nama} — Belum punya leader`;
-        
-                    select.innerHTML += `<option value="${user.nama}">${label}</option>`;
-                }
-            });
+            if (typeof renderLeaderAnggotaOptions === 'function') renderLeaderAnggotaOptions();
         }
         window.openLeaderModal = function() {
             resetLeaderForm();
@@ -7135,12 +7429,32 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             return { senderRole: 'owner', senderLabel: 'Admin', senderNama: userSession.nama || 'Admin' };
         }
 
-        window.toggleNotifTarget = function() {
-            const target = document.getElementById('notif-target').value;
+        window.setNotifTarget = function(target) {
+            const hidden = document.getElementById('notif-target');
+            if (hidden) hidden.value = target;
+
             const box = document.getElementById('notif-selected-box');
-            if (!box) return;
-            if (target === 'selected') box.classList.remove('hidden');
-            else box.classList.add('hidden');
+            if (box) {
+                if (target === 'selected') {
+                    box.classList.remove('hidden');
+                    populateNotifKurirList();
+                } else {
+                    box.classList.add('hidden');
+                }
+            }
+
+            const btnAll = document.getElementById('notif-target-btn-all');
+            const btnSelected = document.getElementById('notif-target-btn-selected');
+            if (btnAll && btnSelected) {
+                btnAll.classList.toggle('active', target === 'all');
+                btnSelected.classList.toggle('active', target === 'selected');
+            }
+        };
+
+        // Dipertahankan untuk kompatibilitas jika ada pemanggilan lama
+        window.toggleNotifTarget = function() {
+            const target = document.getElementById('notif-target')?.value || 'all';
+            setNotifTarget(target);
         };
         
         
@@ -7167,13 +7481,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         };
         
         window.resetNotifForm = function() {
-            document.getElementById('notif-target').value = 'all';
             document.getElementById('notif-template').value = '';
             document.getElementById('notif-message').value = '';
-            const box = document.getElementById('notif-selected-box');
-            if (box) box.classList.add('hidden');
-            const select = document.getElementById('notif-target-list');
-            if (select) Array.from(select.options).forEach(o => o.selected = false);
+            const searchEl = document.getElementById('notif-kurir-search');
+            if (searchEl) searchEl.value = '';
+            setNotifTarget('all');
         };
 
         function renderKurirNotifications() {
@@ -7481,17 +7793,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 
         window.toggleAdminNotifHistoryOpen = function() {
             const container = document.getElementById('container-admin-notification-history');
-            const btn = document.getElementById('btn-toggle-notif-text');
+            if (!container) return;
             const isOpen = container.dataset.open === '1';
-            
             container.dataset.open = isOpen ? '0' : '1';
-            btn.innerText = isOpen ? 'Buka' : 'Tutup';
-            
-            if (!isOpen) {
-                renderAdminNotificationHistory();
-            } else {
-                container.innerHTML = '';
-            }
+            renderAdminNotificationHistory();
         };
         window.depositKurirSelected = [];
         window.depositKurirAmounts = {};
