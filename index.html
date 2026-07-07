@@ -51,7 +51,7 @@
     </script>
 </head>
 <body class="bg-lightBg text-slate-800 dark:bg-darkBg dark:text-slate-100 font-sans transition-colors duration-300">
-    <div id="screen-login" class="screen active custom-gradient justify-end relative overflow-hidden">
+    <div id="screen-login" class="screen active login-gradient-bg justify-end relative overflow-hidden">
         <!-- Decorative floating blobs -->
         <div class="pointer-events-none absolute -top-16 -left-16 w-56 h-56 bg-white/10 rounded-full blur-2xl login-blob"></div>
         <div class="pointer-events-none absolute top-24 -right-20 w-64 h-64 bg-white/10 rounded-full blur-2xl login-blob login-blob-2"></div>
@@ -60,6 +60,7 @@
         <div class="relative z-10 flex flex-col items-center justify-center text-white px-6 pt-14 pb-8">
             <div class="relative mb-4">
                 <div class="absolute -inset-3 rounded-[28px] bg-white/10 blur-md"></div>
+                <div class="login-logo-ring"></div>
                 <div class="relative w-20 h-20 bg-white rounded-3xl flex items-center justify-center p-0 shadow-xl overflow-hidden ring-4 ring-white/25">
                     <img src="https://uploads.onecompiler.io/43v32m6x5/44rw83fkz/Sahabatku%20(2).png" alt="Logo Sahabatku" class="w-full h-full object-cover">
                 </div>
@@ -71,9 +72,13 @@
             <p class="text-[11px] opacity-90 mt-1 uppercase tracking-[0.2em] font-semibold flex items-center gap-1.5">
                 <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Kurir &amp; Admin Platform
             </p>
+            <div class="flex items-center gap-2 mt-3">
+                <span class="login-role-badge"><i data-lucide="bike" class="w-3 h-3"></i> Kurir</span>
+                <span class="login-role-badge"><i data-lucide="briefcase" class="w-3 h-3"></i> Admin</span>
+            </div>
         </div>
 
-        <div class="relative z-10 bg-white dark:bg-darkCard w-full rounded-t-[32px] p-6 pt-5 shadow-2xl transition-all duration-300">
+        <div class="login-card relative z-10 bg-white dark:bg-darkCard w-full rounded-t-[32px] p-6 pt-5 shadow-2xl transition-all duration-300">
             <div class="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mb-5"></div>
 
             <div class="flex items-center justify-between mb-5">
@@ -89,8 +94,8 @@
             <form id="form-login" onsubmit="handleLogin(event)" class="space-y-4">
                 <div>
                     <label class="block text-[11px] font-bold uppercase tracking-wider mb-1.5 text-slate-500">Username</label>
-                    <div class="relative flex items-center">
-                        <div class="absolute left-2 w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-primary flex items-center justify-center">
+                    <div class="login-input-wrap relative flex items-center">
+                        <div class="login-input-icon absolute left-2 w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-primary flex items-center justify-center">
                             <i data-lucide="user" class="w-3.5 h-3.5"></i>
                         </div>
                         <input type="text" id="login-username" required autocomplete="username" placeholder="Masukkan username"
@@ -99,8 +104,8 @@
                 </div>
                 <div>
                     <label class="block text-[11px] font-bold uppercase tracking-wider mb-1.5 text-slate-500">Password</label>
-                    <div class="relative flex items-center">
-                        <div class="absolute left-2 w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-primary flex items-center justify-center">
+                    <div class="login-input-wrap relative flex items-center">
+                        <div class="login-input-icon absolute left-2 w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-primary flex items-center justify-center">
                             <i data-lucide="lock" class="w-3.5 h-3.5"></i>
                         </div>
                         <input type="password" id="login-password" required autocomplete="current-password" placeholder="Masukkan password"
@@ -111,7 +116,7 @@
                         </button>
                     </div>
                 </div>
-                <button type="submit" id="btn-login-submit" class="w-full custom-gradient text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/30 transition-all ripple uppercase tracking-wide text-xs flex items-center justify-center gap-2">
+                <button type="submit" id="btn-login-submit" class="login-submit-btn w-full custom-gradient text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/30 transition-all ripple uppercase tracking-wide text-xs flex items-center justify-center gap-2">
                     <span id="btn-login-submit-text">Masuk</span>
                     <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </button>
@@ -198,7 +203,7 @@
                             <h4 class="text-[11px] font-bold mt-0.5" id="dash-next-nota">Generating...</h4>
                         </div>
                     </div>
-                    <div class="relative grid grid-cols-3 gap-2">
+                    <div class="relative grid gap-2" style="grid-template-columns: 0.82fr 1.36fr 0.82fr;">
                         <div class="stat-tile">
                             <div class="stat-icon"><i data-lucide="receipt" class="w-3 h-3"></i></div>
                             <div class="stat-text">
@@ -210,7 +215,7 @@
                             <div class="stat-icon"><i data-lucide="wallet" class="w-3 h-3"></i></div>
                             <div class="stat-text">
                                 <p class="stat-label">Pendapatan</p>
-                                <p class="stat-value text-[12px]" id="dash-k-total-income">Rp 0</p>
+                                <p class="stat-value" id="dash-k-total-income">Rp 0</p>
                             </div>
                         </div>
                         <div class="stat-tile">
@@ -228,36 +233,36 @@
                 </button>
                 <div class="grid grid-cols-4 gap-2.5">
                     <button onclick="openModulNota()" class="menu-card-sm active:scale-95 transition-transform">
-                        <div class="icon-tile" data-tone="blue"><i data-lucide="receipt-text" class="w-4 h-4"></i></div>
+                        <div class="icon-tile" data-tone="blue"><i data-lucide="receipt-text" class="w-3.5 h-3.5"></i></div>
                         <span class="label">Nota</span>
                     </button>
                     <button onclick="navigateTo('screen-riwayat')" class="menu-card-sm active:scale-95 transition-transform">
-                        <div class="icon-tile" data-tone="indigo"><i data-lucide="history" class="w-4 h-4"></i></div>
+                        <div class="icon-tile" data-tone="indigo"><i data-lucide="history" class="w-3.5 h-3.5"></i></div>
                         <span class="label">Riwayat</span>
                     </button>
                     <button onclick="navigateTo('screen-rekap')" class="menu-card-sm active:scale-95 transition-transform">
-                        <div class="icon-tile" data-tone="emerald"><i data-lucide="bar-chart-3" class="w-4 h-4"></i></div>
+                        <div class="icon-tile" data-tone="emerald"><i data-lucide="bar-chart-3" class="w-3.5 h-3.5"></i></div>
                         <span class="label">Rekap</span>
                     </button>
                     <button onclick="navigateTo('screen-mitra')" class="menu-card-sm active:scale-95 transition-transform">
-                        <div class="icon-tile" data-tone="amber"><i data-lucide="store" class="w-4 h-4"></i></div>
+                        <div class="icon-tile" data-tone="amber"><i data-lucide="store" class="w-3.5 h-3.5"></i></div>
                         <span class="label">Mitra</span>
                     </button>
                     <button onclick="openOngkirFeature()" class="menu-card-sm active:scale-95 transition-transform">
-                        <div class="icon-tile" data-tone="purple"><i data-lucide="navigation" class="w-4 h-4"></i></div>
+                        <div class="icon-tile" data-tone="purple"><i data-lucide="navigation" class="w-3.5 h-3.5"></i></div>
                         <span class="label">Ongkir</span>
                     </button>
                     <button onclick="openJadwal()" class="menu-card-sm active:scale-95 transition-transform">
-                        <div class="icon-tile" data-tone="teal"><i data-lucide="calendar-days" class="w-4 h-4"></i></div>
+                        <div class="icon-tile" data-tone="teal"><i data-lucide="calendar-days" class="w-3.5 h-3.5"></i></div>
                         <span class="label">Jadwal</span>
                     </button>
                     
                     <button onclick="navigateTo('screen-statistik')" class="menu-card-sm active:scale-95 transition-transform relative">
-                        <div class="icon-tile" data-tone="sky"><i data-lucide="trending-up" class="w-4 h-4"></i></div>
+                        <div class="icon-tile" data-tone="sky"><i data-lucide="trending-up" class="w-3.5 h-3.5"></i></div>
                         <span class="label">Statistik</span>
                     </button>
                     <button onclick="openSOP()" class="menu-card-sm active:scale-95 transition-transform">
-                        <div class="icon-tile" data-tone="orange"><i data-lucide="book-marked" class="w-4 h-4"></i></div>
+                        <div class="icon-tile" data-tone="orange"><i data-lucide="book-marked" class="w-3.5 h-3.5"></i></div>
                         <span class="label">SOP</span>
                     </button>
                 </div>
@@ -325,14 +330,14 @@
 
                 <div class="grid grid-cols-2 gap-3">
                     <button onclick="navigateTo('screen-admin-kurir')" class="menu-card active:scale-95 transition-transform">
-                        <div class="icon-tile" data-tone="blue"><i data-lucide="users" class="w-5 h-5"></i></div>
+                        <div class="icon-tile" data-tone="blue"><i data-lucide="users" class="w-4 h-4"></i></div>
                         <div>
                             <span class="menu-card-title block">Data Akun Kurir</span>
                             <span class="menu-card-sub">Kelola daftar kurir</span>
                         </div>
                     </button>
                     <button onclick="navigateTo('screen-admin-manajemen')" class="menu-card active:scale-95 transition-transform">
-                        <div class="icon-tile" data-tone="fuchsia"><i data-lucide="users-round" class="w-5 h-5"></i></div>
+                        <div class="icon-tile" data-tone="fuchsia"><i data-lucide="users-round" class="w-4 h-4"></i></div>
                         <div>
                             <span class="menu-card-title block">Manajemen</span>
                             <span class="menu-card-sub">Kelola list manajemen</span>
@@ -340,7 +345,7 @@
                     </button>
 
                     <button onclick="navigateTo('screen-admin-leader')" class="menu-card active:scale-95 transition-transform">
-                        <div class="icon-tile" data-tone="sky"><i data-lucide="crown" class="w-5 h-5"></i></div>
+                        <div class="icon-tile" data-tone="sky"><i data-lucide="crown" class="w-4 h-4"></i></div>
                         <div>
                             <span class="menu-card-title block">Leader &amp; Penilaian</span>
                             <span class="menu-card-sub">Daftar leader &amp; skor bulanan</span>
@@ -348,7 +353,7 @@
                     </button>
 
                     <button onclick="navigateTo('screen-admin-nota')" class="menu-card active:scale-95 transition-transform">
-                        <div class="icon-tile" data-tone="indigo"><i data-lucide="file-spreadsheet" class="w-5 h-5"></i></div>
+                        <div class="icon-tile" data-tone="indigo"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i></div>
                         <div>
                             <span class="menu-card-title block">Semua Nota Kurir</span>
                             <span class="menu-card-sub">Pantau nota all kurir</span>
@@ -356,21 +361,21 @@
                     </button>
 
                     <button onclick="navigateTo('screen-admin-mitra')" class="menu-card active:scale-95 transition-transform">
-                        <div class="icon-tile" data-tone="amber"><i data-lucide="store" class="w-5 h-5"></i></div>
+                        <div class="icon-tile" data-tone="amber"><i data-lucide="store" class="w-4 h-4"></i></div>
                         <div>
                             <span class="menu-card-title block">Kelola Mitra</span>
                             <span class="menu-card-sub">Daftar & input mitra</span>
                         </div>
                     </button>
                     <button onclick="navigateTo('screen-admin-laporan')" class="menu-card active:scale-95 transition-transform">
-                        <div class="icon-tile" data-tone="cyan"><i data-lucide="file-text" class="w-5 h-5"></i></div>
+                        <div class="icon-tile" data-tone="cyan"><i data-lucide="file-text" class="w-4 h-4"></i></div>
                         <div>
                             <span class="menu-card-title block">Laporan Data</span>
                             <span class="menu-card-sub">Filter bulan & laporan kurir</span>
                         </div>
                     </button>
                     <button onclick="navigateTo('screen-admin-tracking')" class="menu-card active:scale-95 transition-transform">
-                        <div class="icon-tile" data-tone="emerald"><i data-lucide="radar" class="w-5 h-5"></i></div>
+                        <div class="icon-tile" data-tone="emerald"><i data-lucide="radar" class="w-4 h-4"></i></div>
                         <div>
                             <span class="menu-card-title block">Tracking Kurir</span>
                             <span class="menu-card-sub">Pantau lokasi kurir realtime</span>
@@ -378,49 +383,49 @@
                     </button>
 
                     <button onclick="navigateTo('screen-admin-ongkir')" class="menu-card active:scale-95 transition-transform">
-                        <div class="icon-tile" data-tone="purple"><i data-lucide="truck" class="w-5 h-5"></i></div>
+                        <div class="icon-tile" data-tone="purple"><i data-lucide="truck" class="w-4 h-4"></i></div>
                         <div>
                             <span class="menu-card-title block">Daftar Ongkir</span>
                             <span class="menu-card-sub">Wilayah & tarif</span>
                         </div>
                     </button>
                     <button onclick="window.location.href='absensi-admin-sahabatku.html'" class="menu-card active:scale-95 transition-transform">
-                        <div class="icon-tile" data-tone="teal"><i data-lucide="calendar-days" class="w-5 h-5"></i></div>
+                        <div class="icon-tile" data-tone="teal"><i data-lucide="calendar-days" class="w-4 h-4"></i></div>
                         <div>
                             <span class="menu-card-title block">Absensi Harian Kurir</span>
                             <span class="menu-card-sub">Rekap jadwal kurir</span>
                         </div>
                     </button>
                     <button onclick="navigateTo('screen-admin-kpi')" class="menu-card active:scale-95 transition-transform">
-                        <div class="icon-tile" data-tone="violet"><i data-lucide="trophy" class="w-5 h-5"></i></div>
+                        <div class="icon-tile" data-tone="violet"><i data-lucide="trophy" class="w-4 h-4"></i></div>
                         <div>
-                            <span class="menu-card-title block">KPI Kurir</span>
-                            <span class="menu-card-sub">Ranking & performa</span>
+                            <span class="menu-card-title block">KPI & Penghargaan</span>
+                            <span class="menu-card-sub">Penghargaan, Top 5, ranking & rekap jadwal</span>
                         </div>
                     </button>
                     <button onclick="navigateTo('screen-admin-testimonial')" class="menu-card active:scale-95 transition-transform">
-                        <div class="icon-tile" data-tone="pink"><i data-lucide="message-circle-more" class="w-5 h-5"></i></div>
+                        <div class="icon-tile" data-tone="pink"><i data-lucide="message-circle-more" class="w-4 h-4"></i></div>
                         <div>
                             <span class="menu-card-title block">Testimoni Customer</span>
                             <span class="menu-card-sub">Lihat Testimoni costumer</span>
                         </div>
                     </button>
                     <button onclick="navigateTo('screen-admin-order-deposit')" class="menu-card active:scale-95 transition-transform">
-                        <div class="icon-tile" data-tone="emerald"><i data-lucide="clipboard-list" class="w-5 h-5"></i></div>
+                        <div class="icon-tile" data-tone="emerald"><i data-lucide="clipboard-list" class="w-4 h-4"></i></div>
                         <div>
                             <span class="menu-card-title block">Input Deposit</span>
                             <span class="menu-card-sub">Kirim ke Spreadsheet</span>
                         </div>
                     </button>
                     <button onclick="navigateTo('screen-admin-notifikasi')" class="menu-card active:scale-95 transition-transform">
-                        <div class="icon-tile" data-tone="rose"><i data-lucide="bell-ring" class="w-5 h-5"></i></div>
+                        <div class="icon-tile" data-tone="rose"><i data-lucide="bell-ring" class="w-4 h-4"></i></div>
                         <div>
                             <span class="menu-card-title block">Kirim Notifikasi</span>
                             <span class="menu-card-sub">Ke semua / kurir tertentu</span>
                         </div>
                     </button>
                     <button onclick="navigateTo('screen-pengaturan')" class="menu-card active:scale-95 transition-transform">
-                        <div class="icon-tile" data-tone="slate"><i data-lucide="sliders-horizontal" class="w-5 h-5"></i></div>
+                        <div class="icon-tile" data-tone="slate"><i data-lucide="sliders-horizontal" class="w-4 h-4"></i></div>
                         <div>
                             <span class="menu-card-title block">Sistem Global</span>
                             <span class="menu-card-sub">Setting & logout</span>
@@ -485,9 +490,14 @@
                 <div class="space-y-2">
                     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                         <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Daftar Kurir Terdata</h4>
-                        <button onclick="toggleAdminKurirOpen()" class="w-full sm:w-auto py-2 px-4 rounded-xl bg-slate-800 text-white text-[10px] font-bold uppercase">
+                        <button onclick="toggleAdminKurirOpen()" class="w-full sm:w-auto py-2 px-4 rounded-xl bg-slate-800 text-white text-[10px] font-bold uppercase flex items-center justify-center gap-1.5">
                             <span id="btn-toggle-kurir-text">Buka</span>
+                            <i data-lucide="chevron-down" id="btn-toggle-kurir-icon" class="w-3 h-3 transition-transform"></i>
                         </button>
+                    </div>
+                    <div class="relative">
+                        <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                        <input type="text" id="admin-kurir-search" oninput="renderAdminKurirList()" placeholder="Cari nama kurir..." class="w-full pl-9 pr-3 py-2 border rounded-xl text-xs dark:bg-darkBg dark:border-slate-700">
                     </div>
                     <div id="container-admin-kurir" class="space-y-2.5"></div>
                 </div>
@@ -730,7 +740,7 @@
                                 <input type="text" id="am-log-search" placeholder="Cari nama mitra..." class="w-full px-2 py-1.5 border rounded-lg text-xs dark:bg-darkBg dark:border-slate-700">
                             </div>
                             <div>
-                                <select id="am-log-filter-kurir" class="w-full px-2 py-1.5 border rounded-lg text-xs dark:bg-darkBg dark:border-slate-700">
+                                <select id="am-log-filter-kurir" onchange="renderAdminLogMitra()" class="w-full px-2 py-1.5 border rounded-lg text-xs dark:bg-darkBg dark:border-slate-700">
                                     <option value="semua">-- Semua Kurir --</option>
                                 </select>
                             </div>
@@ -1397,17 +1407,21 @@
                     </div>
 
                     <div class="receipt-body">
-                        <div class="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[9.5px] sm:text-[10.5px] bg-slate-50 rounded-xl p-2.5 mt-3">
-                            <div><span class="text-slate-400 block text-[8.5px] uppercase tracking-wide">Nomor Nota</span><span class="font-bold text-slate-700" id="p-nota-num">NT-******</span></div>
-                            <div><span class="text-slate-400 block text-[8.5px] uppercase tracking-wide">Tanggal</span><span class="font-semibold text-slate-700" id="p-nota-date">00/00/0000 00:00</span></div>
-                            <div><span class="text-slate-400 block text-[8.5px] uppercase tracking-wide">Kurir</span><span class="font-semibold text-slate-700" id="p-nota-kurir">-</span></div>
-                            <div><span class="text-slate-400 block text-[8.5px] uppercase tracking-wide">Status</span><span class="uppercase font-bold text-primary" id="p-nota-status">-</span></div>
+                        <div class="receipt-info-grid text-[10px]">
+                            <div><span class="ri-label">Nomor Nota</span><span class="ri-value" id="p-nota-num">NT-******</span></div>
+                            <div><span class="ri-label">Tanggal</span><span class="ri-value" id="p-nota-date">00/00/0000 00:00</span></div>
+                            <div><span class="ri-label">Kurir</span><span class="ri-value" id="p-nota-kurir">-</span></div>
+                            <div><span class="ri-label">Status</span><span class="receipt-status-pill" id="p-nota-status">-</span></div>
                         </div>
 
-                        <table class="w-full text-[10px] sm:text-[11px] text-left mt-3">
+                        <div class="receipt-section-title">
+                            <span class="rst-label">Rincian Pesanan</span>
+                            <span class="rst-count" id="p-item-count">0 item</span>
+                        </div>
+                        <table class="receipt-item-table text-[10px] sm:text-[11px] text-left">
                             <thead>
-                                <tr class="border-b border-dashed border-slate-300 text-slate-400 font-semibold text-[9px] sm:text-[11px]">
-                                    <th class="py-1">Item</th>
+                                <tr>
+                                    <th class="text-left">Item</th>
                                     <th class="text-center">Qty</th>
                                     <th class="text-right">Harga</th>
                                     <th class="text-right">Total</th>
@@ -1820,7 +1834,7 @@
     </div>
 
     <div id="modal-preview-nota" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
-        <div class="w-full max-w-[360px] sm:max-w-md space-y-3 max-h-[90vh] overflow-y-auto">
+        <div class="w-full max-w-[340px] space-y-3 max-h-[90vh] overflow-y-auto">
 
             <div id="canvas-nota-admin" class="receipt-card text-[10px] leading-tight">
                 <div class="receipt-head">
