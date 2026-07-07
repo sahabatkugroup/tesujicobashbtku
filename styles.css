@@ -24,6 +24,75 @@ body { -webkit-tap-highlight-color: transparent; }
   .login-blob { animation: none; }
 }
 
+/* ================= Modern Login Screen v2 ================= */
+.login-gradient-bg {
+  background: linear-gradient(160deg, #001C4D 0%, #003FBF 30%, #0066FF 62%, #17A6FF 100%);
+  position: relative;
+}
+.login-gradient-bg::before {
+  content: "";
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(56, 220, 255, 0.28), transparent 45%),
+    radial-gradient(circle at 88% 78%, rgba(255, 255, 255, 0.14), transparent 50%);
+  pointer-events: none;
+}
+
+/* Spinning ring accent around the logo */
+.login-logo-ring {
+  position: absolute; inset: -9px;
+  border-radius: 30px;
+  border: 1.5px dashed rgba(255, 255, 255, 0.4);
+  animation: loginRingSpin 14s linear infinite;
+  pointer-events: none;
+}
+@keyframes loginRingSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .login-logo-ring { animation: none; }
+}
+
+/* Small role badges under the title */
+.login-role-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.04em;
+  backdrop-filter: blur(4px);
+}
+
+/* Bottom sheet card polish */
+.login-card {
+  box-shadow: 0 -24px 60px -20px rgba(0, 30, 90, 0.45);
+}
+
+/* Input icon chip reacts when its field is focused */
+.login-input-icon { transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease; }
+.login-input-wrap:focus-within .login-input-icon {
+  background: #0066FF; color: #fff; transform: scale(1.05);
+}
+.login-input-wrap input {
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+/* Shine sweep on the submit button */
+.login-submit-btn { position: relative; overflow: hidden; }
+.login-submit-btn::before {
+  content: "";
+  position: absolute; top: 0; left: -60%; width: 35%; height: 100%;
+  background: linear-gradient(115deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  transform: skewX(-18deg);
+  animation: loginBtnShine 3.4s ease-in-out infinite;
+}
+@keyframes loginBtnShine {
+  0% { left: -60%; }
+  55% { left: 130%; }
+  100% { left: 130%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .login-submit-btn::before { animation: none; display: none; }
+}
+
 /* Quick-menu cards: subtle lift on hover (desktop) / press feedback (mobile) */
 .quick-menu-btn { transition: transform 0.15s ease, box-shadow 0.15s ease; }
 .quick-menu-btn:active { transform: scale(0.95); }
@@ -113,9 +182,9 @@ body { -webkit-tap-highlight-color: transparent; }
   position: relative;
   background: #fff;
   border: 1px solid rgba(226, 232, 240, 0.9);
-  border-radius: 20px;
-  padding: 14px;
-  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+  border-radius: 16px;
+  padding: 11px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
   text-align: left;
   box-shadow: 0 1px 2px rgba(15,23,42,0.04);
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
@@ -125,17 +194,17 @@ body { -webkit-tap-highlight-color: transparent; }
 @media (hover: hover) {
   .menu-card:hover { box-shadow: 0 10px 24px -12px rgba(15,23,42,0.22); border-color: rgba(0,102,255,0.25); transform: translateY(-2px); }
 }
-.menu-card .icon-tile { width: 42px; height: 42px; }
-.menu-card-title { font-size: 12px; font-weight: 800; display: block; letter-spacing: 0.01em; }
-.menu-card-sub { font-size: 10px; color: #94a3b8; line-height: 1.3; }
+.menu-card .icon-tile { width: 34px; height: 34px; }
+.menu-card-title { font-size: 11px; font-weight: 800; display: block; letter-spacing: 0.01em; }
+.menu-card-sub { font-size: 9px; color: #94a3b8; line-height: 1.25; }
 
 .menu-card-sm {
   position: relative;
   background: #fff;
   border: 1px solid rgba(226, 232, 240, 0.9);
-  border-radius: 18px;
-  padding: 10px 8px 9px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  border-radius: 14px;
+  padding: 8px 6px 7px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
   box-shadow: 0 1px 2px rgba(15,23,42,0.04);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
@@ -144,8 +213,8 @@ body { -webkit-tap-highlight-color: transparent; }
 @media (hover: hover) {
   .menu-card-sm:hover { box-shadow: 0 10px 22px -12px rgba(15,23,42,0.22); transform: translateY(-2px); }
 }
-.menu-card-sm .icon-tile { width: 34px; height: 34px; }
-.menu-card-sm span.label { font-size: 10.5px; font-weight: 700; color: inherit; }
+.menu-card-sm .icon-tile { width: 27px; height: 27px; }
+.menu-card-sm span.label { font-size: 9.5px; font-weight: 700; color: inherit; }
 
 /* ---------- Monitoring / stat tiles (dashboard kurir & admin) ---------- */
 /* Icon + judul sejajar satu baris (rapi di mobile), value di bawahnya */
@@ -153,28 +222,29 @@ body { -webkit-tap-highlight-color: transparent; }
   position: relative;
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   border-radius: 16px;
-  padding: 8px 9px;
+  padding: 8px 7px;
   background: rgba(255,255,255,0.14);
   border: 1px solid rgba(255,255,255,0.18);
   backdrop-filter: blur(6px);
   min-width: 0;
 }
 .stat-tile .stat-icon {
-  width: 26px; height: 26px; border-radius: 9px;
+  width: 24px; height: 24px; border-radius: 8px;
   background: rgba(255,255,255,0.2);
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
 .stat-tile .stat-text { min-width: 0; flex: 1; }
 .stat-tile .stat-label {
-  font-size: 8px; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.85;
+  font-size: 7.5px; text-transform: uppercase; letter-spacing: 0.03em; opacity: 0.85;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;
 }
 .stat-tile .stat-value {
-  font-size: 13px; font-weight: 900; margin-top: 1px; line-height: 1.15;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-size: clamp(10.5px, 3.4vw, 13px);
+  font-weight: 900; margin-top: 1px; line-height: 1.2;
+  white-space: normal; overflow-wrap: break-word; word-break: break-word;
 }
 
 /* Monitoring cerah (dipakai di kartu Monitoring Omset admin - light amber) */
