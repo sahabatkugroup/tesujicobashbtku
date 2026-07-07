@@ -1930,6 +1930,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 </div>
             `;
             if (window.lucide) lucide.createIcons();
+            // Siapkan cache gambar di background begitu preview admin tampil, biar pas
+            // tombol Unduh Gambar/Bagikan WhatsApp ditekan prosesnya sudah instan.
+            requestAnimationFrame(() => prefetchNotaImages(modalCanvas));
 
             // RESET isi history (biar nggak nyangkut dari nota sebelumnya)
             const box = document.getElementById('p-ongkir-history-container');
@@ -1976,38 +1979,28 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         window.closeAdminModal = function() {
             document.getElementById('modal-preview-nota').classList.add('hidden');
         }
+        function getAdminNotaIdentity() {
+            const noNota = document.querySelector('#canvas-nota-admin .ri-value')?.innerText || 'Nota';
+            const kurir = document.querySelectorAll('#canvas-nota-admin .ri-value')[2]?.innerText || 'Kurir';
+            return { noNota, kurir };
+        }
         window.downloadAdminNotaJpg = function() {
-            if (notaImageBusy) return; // cegah dobel-tap saat proses sebelumnya masih jalan
-
-            const el = document.getElementById('canvas-nota-admin');
-            if (!el) return;
-        
-            if (typeof html2canvas === 'undefined') {
-                toast('Fitur gambar belum siap. Coba reload halaman.');
-                return;
-            }
-
-            const btn = document.querySelector("#modal-preview-nota button[onclick='downloadAdminNotaJpg()']");
-            setNotaImageBusy(true, btn);
-        
-            captureNotaCanvas(el).then(canvas => {
-                const link = document.createElement('a');
-        
-                const noNota = document.querySelector('#canvas-nota-admin .ri-value')?.innerText || 'Nota';
-                const kurir = document.querySelectorAll('#canvas-nota-admin .ri-value')[2]?.innerText || 'Kurir';
-        
-                const fileName = `${noNota}_${kurir}.jpg`
-                    .replace(/\s+/g, '_')
-                    .replace(/[\/\\:*?"<>|]/g, '');
-        
-                link.download = fileName;
-                link.href = canvas.toDataURL('image/jpeg', NOTA_JPEG_QUALITY);
-                link.click();
-                toast('Gambar nota berhasil diunduh!');
-            }).catch(err => {
-                toast("Terjadi kesalahan gambar: " + err.message);
-            }).finally(() => {
-                setNotaImageBusy(false, btn);
+            const { noNota, kurir } = getAdminNotaIdentity();
+            processNotaImage('canvas-nota-admin', {
+                mode: 'download',
+                num: noNota,
+                kurir,
+                btn: document.getElementById('btn-unduh-admin'),
+                successMsg: 'Gambar nota berhasil diunduh!'
+            });
+        }
+        window.shareWhatsAppAdmin = function() {
+            const { noNota, kurir } = getAdminNotaIdentity();
+            processNotaImage('canvas-nota-admin', {
+                mode: 'share',
+                num: noNota,
+                kurir,
+                btn: document.getElementById('btn-share-wa-admin')
             });
         }
         window.saveDataMitra = function() {
@@ -2760,6 +2753,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             if (btnSimpanNota) btnSimpanNota.classList.remove('hidden');
             updatePreviewButtonsLayout();
             navigateTo('screen-preview');
+            // Siapkan cache gambar di background begitu preview tampil, biar pas tombol
+            // Simpan Gambar/Bagikan WhatsApp ditekan prosesnya sudah instan.
+            requestAnimationFrame(() => prefetchNotaImages(document.getElementById('canvas-nota')));
         }
         // ---------- Helper: pastikan gambar (mis. logo) ikut ter-capture ----------
         // Gambar dari domain lain kadang gagal muncul di hasil html2canvas karena
@@ -2771,32 +2767,53 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         // Ini yang paling sering bikin "lag/nge-loop" di HP RAM kecil / koneksi lambat,
         // karena tanpa cache, setiap kali tombol ditekan javascript fetch ulang gambar yang sama.
         const notaImageCache = {};
+        async function fetchAndCacheNotaImage(src) {
+            if (!src || src.startsWith('data:') || notaImageCache[src]) return notaImageCache[src];
+            try {
+                const res = await fetch(src, { mode: 'cors', cache: 'force-cache' });
+                const blob = await res.blob();
+                const dataUrl = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+                notaImageCache[src] = dataUrl;
+                return dataUrl;
+            } catch (e) {
+                return null; // Kalau gagal fetch, biarkan html2canvas coba render seperti biasa.
+            }
+        }
+        // Prefetch gambar (mis. logo) di background begitu preview nota tampil (bukan saat
+        // tombol ditekan), supaya waktu proses Simpan Gambar/Bagikan WhatsApp dimulai,
+        // gambar sudah ready dari cache dan tidak perlu nunggu download lagi.
+        function prefetchNotaImages(el) {
+            if (!el) return;
+            const srcs = Array.from(el.querySelectorAll('img')).map(img => img.getAttribute('src') || '').filter(Boolean);
+            Promise.all(srcs.map(fetchAndCacheNotaImage)).catch(() => {});
+        }
         async function inlineExternalImagesForCapture(el) {
             const imgs = Array.from(el.querySelectorAll('img'));
             await Promise.all(imgs.map(async (img) => {
                 const src = img.getAttribute('src') || '';
                 if (!src || src.startsWith('data:')) return;
-                try {
-                    if (notaImageCache[src]) {
-                        img.setAttribute('data-original-src', src);
-                        img.src = notaImageCache[src];
-                        return;
-                    }
-                    const res = await fetch(src, { mode: 'cors', cache: 'force-cache' });
-                    const blob = await res.blob();
-                    const dataUrl = await new Promise((resolve, reject) => {
-                        const reader = new FileReader();
-                        reader.onload = () => resolve(reader.result);
-                        reader.onerror = reject;
-                        reader.readAsDataURL(blob);
-                    });
-                    notaImageCache[src] = dataUrl;
+                const dataUrl = await fetchAndCacheNotaImage(src);
+                if (dataUrl) {
                     img.setAttribute('data-original-src', src);
                     img.src = dataUrl;
-                } catch (e) {
-                    // Kalau gagal fetch, biarkan html2canvas coba render seperti biasa.
                 }
             }));
+        }
+        // Pastikan font (mis. Google Fonts "Inter") sudah selesai dimuat sebelum capture,
+        // supaya hasil gambar tidak "meleset" dari tampilan preview (ukuran teks berubah
+        // gara-gara font fallback dipakai saat capture berlangsung). Dibatasi 1.5 detik
+        // supaya tetap cepat walau font gagal/lambat termuat.
+        function waitFontsReady() {
+            if (!(document.fonts && document.fonts.ready)) return Promise.resolve();
+            return Promise.race([
+                document.fonts.ready,
+                new Promise((resolve) => setTimeout(resolve, 1500))
+            ]);
         }
 
         // ---------- Anti dobel-tap / anti macet saat proses gambar nota ----------
@@ -2806,7 +2823,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         // berjalan bersamaan dan terasa seperti "loop"/macet. notaImageBusy mengunci
         // semua tombol terkait sampai proses sebelumnya selesai.
         let notaImageBusy = false;
-        const NOTA_BUSY_BUTTON_IDS = ['btn-simpan-gambar', 'btn-simpan-nota', 'btn-share-wa'];
+        const NOTA_BUSY_BUTTON_IDS = ['btn-simpan-gambar', 'btn-simpan-nota', 'btn-share-wa', 'btn-unduh-admin', 'btn-share-wa-admin'];
         function setNotaImageBusy(busy, activeBtn) {
             notaImageBusy = busy;
             NOTA_BUSY_BUTTON_IDS.forEach(id => {
@@ -2837,44 +2854,103 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         const NOTA_CAPTURE_SCALE = 2;
         const NOTA_JPEG_QUALITY = 0.85;
         async function captureNotaCanvas(el) {
-            await inlineExternalImagesForCapture(el);
+            await Promise.all([
+                inlineExternalImagesForCapture(el),
+                waitFontsReady()
+            ]);
+            // Kasih jeda 1 frame supaya browser sempat menggambar ulang (repaint) tombol
+            // "Memproses..." dulu sebelum html2canvas membekukan main thread. Tanpa ini,
+            // di HP dengan RAM kecil tombol terasa "macet" karena spinner belum sempat
+            // muncul saat proses berat sudah mulai berjalan.
+            await new Promise(requestAnimationFrame);
             try {
                 const canvas = await html2canvas(el, {
                     scale: NOTA_CAPTURE_SCALE,
                     useCORS: true,
                     allowTaint: false,
                     backgroundColor: '#ffffff',
-                    imageTimeout: 8000
+                    imageTimeout: 8000,
+                    logging: false,
+                    // scrollX/scrollY: 0 mencegah bug umum html2canvas yang membuat hasil
+                    // capture "bergeser"/terpotong dari tampilan aslinya kalau halaman atau
+                    // modal preview sedang dalam kondisi ter-scroll saat tombol ditekan.
+                    scrollX: -window.scrollX,
+                    scrollY: -window.scrollY,
+                    windowWidth: document.documentElement.clientWidth,
+                    windowHeight: document.documentElement.clientHeight
                 });
                 return canvas;
             } finally {
                 restoreExternalImagesAfterCapture(el);
             }
         }
-        window.saveNotaAsJpg = function() {
+        // ---------- Fungsi generik: capture nota jadi gambar, lalu unduh / bagikan ke WhatsApp ----------
+        // Dipakai bareng oleh layar kurir & modal admin supaya semua optimasi kecepatan
+        // (prefetch gambar, tunggu font ready, anti dobel-tap) konsisten di kedua tempat,
+        // dan hasil gambar selalu presisi sama dengan yang tampil di preview.
+        async function processNotaImage(elementId, { mode, num, kurir, btn, successMsg }) {
             if (notaImageBusy) return; // cegah dobel-tap saat proses sebelumnya masih jalan
 
-            const el = document.getElementById('canvas-nota');
-            if (!el) return;
+            const el = document.getElementById(elementId);
+            if (!el) { toast('Preview nota tidak ditemukan.'); return; }
 
             if (typeof html2canvas === 'undefined') {
                 toast('Fitur gambar belum siap. Coba reload halaman.');
                 return;
             }
 
-            const btn = document.getElementById('btn-simpan-gambar');
             setNotaImageBusy(true, btn);
+            try {
+                const canvas = await captureNotaCanvas(el);
+                const fileName = `${num}_${kurir}.jpg`.replace(/\s+/g, '_').replace(/[\/\\:*?"<>|]/g, '');
 
-            captureNotaCanvas(el).then(canvas => {
-                const link = document.createElement('a');
-                link.download = `${document.getElementById('p-nota-num').innerText}.jpg`;
-                link.href = canvas.toDataURL('image/jpeg', NOTA_JPEG_QUALITY);
-                link.click();
-                toast('Gambar nota berhasil disimpan!');
-            }).catch(err => {
-                toast("Terjadi kesalahan gambar: " + err.message);
-            }).finally(() => {
+                if (mode === 'download') {
+                    const link = document.createElement('a');
+                    link.download = fileName;
+                    link.href = canvas.toDataURL('image/jpeg', NOTA_JPEG_QUALITY);
+                    link.click();
+                    toast(successMsg || 'Gambar nota berhasil disimpan!');
+                    return;
+                }
+
+                // mode === 'share': bagikan lewat share-sheet (kalau didukung) atau fallback unduh + buka WhatsApp
+                const captionText = `Nota: ${num}\nKurir: ${kurir}`;
+                await new Promise((resolve) => {
+                    canvas.toBlob(function(blob) {
+                        if (!blob) {
+                            toast('Gagal memproses gambar nota.');
+                            resolve();
+                            return;
+                        }
+                        const file = new File([blob], fileName, { type: 'image/jpeg' });
+                        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                            navigator.share({ files: [file], title: `Nota ${num}`, text: captionText })
+                                .catch(() => {})
+                                .finally(resolve);
+                        } else {
+                            const link = document.createElement('a');
+                            link.download = fileName;
+                            link.href = canvas.toDataURL('image/jpeg', NOTA_JPEG_QUALITY);
+                            link.click();
+                            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(captionText)}`, '_blank');
+                            resolve();
+                        }
+                    }, 'image/jpeg', NOTA_JPEG_QUALITY);
+                });
+            } catch (err) {
+                toast('Terjadi kesalahan gambar: ' + (err?.message || err));
+            } finally {
                 setNotaImageBusy(false, btn);
+            }
+        }
+        window.saveNotaAsJpg = function() {
+            const num = document.getElementById('p-nota-num').innerText || 'Nota';
+            const kurir = document.getElementById('p-nota-kurir').innerText || (userSession?.nama || 'Kurir');
+            processNotaImage('canvas-nota', {
+                mode: 'download',
+                num,
+                kurir,
+                btn: document.getElementById('btn-simpan-gambar')
             });
         }
         window.commitSaveNota = function() {
@@ -2979,58 +3055,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             });
         };
         window.shareWhatsApp = function() {
-            if (notaImageBusy) return; // cegah dobel-tap saat proses sebelumnya masih jalan
-
             const num = document.getElementById('p-nota-num').innerText;
             const kurir = document.getElementById('p-nota-kurir').innerText;
-            const element = document.getElementById('canvas-nota');
-            const captionText = `Nota: ${num}\nKurir: ${kurir}`;
-            const fileNameJpg = `${num}_${kurir}.jpg`.replace(/\s+/g, '_');
-            const btnShare = document.getElementById('btn-share-wa');
-
-            if (!element) {
-                toast('Preview nota tidak ditemukan.');
-                return;
-            }
-
-            if (typeof html2canvas === 'undefined') {
-                toast('Fitur gambar belum siap. Coba reload halaman.');
-                return;
-            }
-
-            setNotaImageBusy(true, btnShare);
-
-            captureNotaCanvas(element).then(canvas => {
-                canvas.toBlob(function(blob) {
-                    if (!blob) {
-                        toast("Gagal memproses gambar nota.");
-                        setNotaImageBusy(false, btnShare);
-                        return;
-                    }
-
-                    const file = new File([blob], fileNameJpg, { type: 'image/jpeg' });
-
-                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                        navigator.share({
-                            files: [file],
-                            title: `Nota ${num}`,
-                            text: captionText
-                        }).finally(() => {
-                            setNotaImageBusy(false, btnShare);
-                        });
-                    } else {
-                        const link = document.createElement('a');
-                        link.download = fileNameJpg;
-                        link.href = canvas.toDataURL('image/jpeg', NOTA_JPEG_QUALITY);
-                        link.click();
-
-                        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(captionText)}`, '_blank');
-                        setNotaImageBusy(false, btnShare);
-                    }
-                }, 'image/jpeg', NOTA_JPEG_QUALITY);
-            }).catch(err => {
-                setNotaImageBusy(false, btnShare);
-                toast("Terjadi kesalahan gambar: " + err.message);
+            processNotaImage('canvas-nota', {
+                mode: 'share',
+                num,
+                kurir,
+                btn: document.getElementById('btn-share-wa')
             });
         }
 
