@@ -1866,7 +1866,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 
             modalCanvas.innerHTML = `
                 <div class="receipt-head">
-                    <div class="receipt-logo-chip"><img src="https://uploads.onecompiler.io/43v32m6x5/44rw83fkz/Sahabatku%20(2).png" alt="Logo Sahabatku"></div>
                     <h3 class="font-extrabold text-sm tracking-wide">SAHABATKU DELIVERY</h3>
                     <p class="text-[9px] text-white/80 mt-0.5">Jatibarang, Indramayu</p>
                 </div>
