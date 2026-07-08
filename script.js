@@ -1872,12 +1872,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 
             modalCanvas.innerHTML = `
                 <div class="receipt-head">
-                    <h3 class="font-extrabold text-sm tracking-wide">SAHABATKU DELIVERY</h3>
-                    <p class="text-[9px] text-white/80 mt-0.5">Jatibarang, Indramayu</p>
+                    <h3 class="font-extrabold text-base tracking-wide">SAHABATKU DELIVERY</h3>
+                    <p class="text-[10px] text-white/80 mt-0.5">Jatibarang, Indramayu</p>
                 </div>
 
                 <div class="receipt-body">
-                    <div class="receipt-info-grid text-[10px]">
+                    <div class="receipt-info-grid text-[11px]">
                         <div><span class="ri-label">Nomor Nota</span><span class="ri-value">${n.id || '-'}</span></div>
                         <div><span class="ri-label">Tanggal</span><span class="ri-value">${n.tanggal || '-'}</span></div>
                         <div><span class="ri-label">Kurir</span><span class="ri-value">${n.kurirNama || '-'}</span></div>
@@ -1888,7 +1888,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                         <span class="rst-label">Rincian Pesanan</span>
                         <span class="rst-count">${jumlahItemAdmin} item</span>
                     </div>
-                    <table class="receipt-item-table text-[11px] text-left">
+                    <table class="receipt-item-table text-[12px] text-left">
                         <thead>
                             <tr>
                                 <th class="text-left">Item</th>
@@ -1903,21 +1903,21 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                     </table>
 
                     <div class="receipt-divider"></div>
-                    <div class="text-[11px] space-y-1">
+                    <div class="text-[12px] space-y-1.5">
                         <div class="flex justify-between text-slate-500"><span>Subtotal Item</span><span>${(n.subtotal || 0).toLocaleString('id-ID')}</span></div>
                         <div class="flex justify-between text-slate-500"><span>Ongkir</span><span>${(n.ongkir || 0).toLocaleString('id-ID')}</span></div>
                         <div class="flex justify-between text-slate-500"><span>Tambahan Biaya</span><span>${totalBiaya.toLocaleString('id-ID')}</span></div>
-                        ${rincianBiaya ? `<div id="p-rincian-biaya-list" class="pl-2 space-y-0.5 text-[10px] text-slate-400">${rincianBiaya}</div>` : ''}
+                        ${rincianBiaya ? `<div id="p-rincian-biaya-list" class="pl-2 space-y-0.5 text-[10.5px] text-slate-400">${rincianBiaya}</div>` : ''}
                     </div>
 
-                    <div class="receipt-total-box mt-2.5">
-                        <span class="text-[10px] font-bold uppercase tracking-wider text-white/70">Total</span>
-                        <span class="text-base font-black">${(n.total || 0).toLocaleString('id-ID')}</span>
+                    <div class="receipt-total-box mt-3">
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-white/70">Total</span>
+                        <span class="text-lg font-black">${(n.total || 0).toLocaleString('id-ID')}</span>
                     </div>
 
                     <!-- Ongkir History -->
                     <div class="receipt-divider"></div>
-                    <div class="text-[10px] space-y-2">
+                    <div class="text-[11px] space-y-2">
                         <div class="flex items-center justify-between">
                             <span class="text-slate-400 font-bold uppercase">Ongkir History</span>
                             <span id="p-ongkir-history-count" class="text-slate-400">-</span>
@@ -1927,10 +1927,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 
                     <div class="receipt-divider"></div>
                     <div class="text-center space-y-1">
-                        <p class="text-[10px] text-slate-400 italic">Terima kasih telah menggunakan jasa Sahabatku Delivery.</p>
-                        <p class="text-[10px] font-medium text-slate-600">
+                        <p class="text-[10.5px] text-slate-400 italic">Terima kasih telah menggunakan jasa Sahabatku Delivery.</p>
+                        <p class="text-[10.5px] font-medium text-slate-600">
                             Pastikan Selalu Order Melalui WhatsApp Resmi Kami:<br>
-                            <span class="text-primary font-bold text-xs">0821-1845-415</span>
+                            <span class="text-primary font-bold text-sm">0821-1845-415</span>
                         </p>
                     </div>
                 </div>
@@ -1990,10 +1990,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                     <div class="bg-slate-50 dark:bg-darkBg p-2 rounded-lg border border-slate-200/70">
                         <div class="flex justify-between gap-2">
                             <div class="min-w-0">
-                                <div class="font-bold text-[10px] text-slate-700 truncate">${asal} → ${tujuan}</div>
-                                <div class="text-[9px] text-slate-400">${tgl}</div>
+                                <div class="font-bold text-[11px] text-slate-700 truncate">${asal} → ${tujuan}</div>
+                                <div class="text-[10px] text-slate-400">${tgl}</div>
                             </div>
-                            <div class="font-extrabold text-[10px] text-primary shrink-0">Rp ${val.toLocaleString('id-ID')}</div>
+                            <div class="font-extrabold text-[11px] text-primary shrink-0">Rp ${val.toLocaleString('id-ID')}</div>
                         </div>
                     </div>
                 `;
@@ -2004,101 +2004,21 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         window.closeAdminModal = function() {
             document.getElementById('modal-preview-nota').classList.add('hidden');
         }
-        window.downloadAdminNotaJpg = async function () {
+        window.downloadAdminNotaJpg = function() {
             if (!adminNotaPreviewData) { toast('Preview nota belum siap.'); return; }
-            const btn = document.getElementById('btn-unduh-admin');
-
-            try {
-                if (btn) setNotaImageBusy(true, btn);
-
-                const el = document.getElementById('canvas-nota-admin');
-                if (!el) throw new Error('Elemen #canvas-nota-admin tidak ditemukan');
-
-                if (typeof html2canvas !== "function") throw new Error('html2canvas belum siap');
-
-                await new Promise((r) => requestAnimationFrame(() => r()));
-                await new Promise((r) => setTimeout(r, 100));
-
-                const shot = await html2canvas(el, {
-                    backgroundColor: "#ffffff",
-                    scale: 2,
-                    useCORS: true,
-                    allowTaint: true,
-                    logging: false
-                });
-
-                const fileName = `${adminNotaPreviewData.notaNum}_${adminNotaPreviewData.kurir}`.replace(/\s+/g, '_')
-                    .replace(/[\/\\:*?"<>|]/g, '');
-
-                const link = document.createElement('a');
-                link.download = fileName.endsWith('.png') ? fileName : `${fileName}.png`;
-                link.href = shot.toDataURL('image/png');
-                link.click();
-
-                toast('Gambar nota berhasil diunduh!');
-            } catch (e) {
-                toast('Gagal unduh gambar: ' + (e?.message || e));
-            } finally {
-                if (btn) setNotaImageBusy(false, btn);
-            }
-        };
-
-        window.shareWhatsAppAdmin = async function () {
+            processNotaImage('canvas-nota-admin', adminNotaPreviewData, {
+                mode: 'download',
+                btn: document.getElementById('btn-unduh-admin'),
+                successMsg: 'Gambar nota berhasil diunduh!'
+            });
+        }
+        window.shareWhatsAppAdmin = function() {
             if (!adminNotaPreviewData) { toast('Preview nota belum siap.'); return; }
-            const btn = document.getElementById('btn-share-wa-admin');
-
-            try {
-                if (btn) setNotaImageBusy(true, btn);
-
-                const el = document.getElementById('canvas-nota-admin');
-                if (!el) throw new Error('Elemen #canvas-nota-admin tidak ditemukan');
-
-                if (typeof html2canvas !== "function") throw new Error('html2canvas belum siap');
-
-                await new Promise((r) => requestAnimationFrame(() => r()));
-                await new Promise((r) => setTimeout(r, 100));
-
-                const shot = await html2canvas(el, {
-                    backgroundColor: "#ffffff",
-                    scale: 2,
-                    useCORS: true,
-                    allowTaint: true,
-                    logging: false
-                });
-
-                const fileNameBase = `${adminNotaPreviewData.notaNum}_${adminNotaPreviewData.kurir}`.replace(/\s+/g, '_')
-                    .replace(/[\/\\:*?"<>|]/g, '');
-                const fileName = fileNameBase.endsWith('.png') ? fileNameBase : `${fileNameBase}.png`;
-
-                const captionText = `Nota: ${adminNotaPreviewData.notaNum}\nKurir: ${adminNotaPreviewData.kurir}`;
-
-                await new Promise((resolve) => {
-                    shot.toBlob(async (blob) => {
-                        if (!blob) { toast('Gagal memproses gambar nota.'); resolve(); return; }
-
-                        const file = new File([blob], fileName, { type: 'image/png' });
-
-                        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                            navigator.share({ files: [file], title: `Nota ${adminNotaPreviewData.notaNum}`, text: captionText })
-                                .catch(() => {})
-                                .finally(resolve);
-                        } else {
-                            const link = document.createElement('a');
-                            link.download = fileName;
-                            link.href = shot.toDataURL('image/png');
-                            link.click();
-
-                            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(captionText)}`, '_blank');
-                            resolve();
-                        }
-                    }, 'image/png');
-                });
-            } catch (e) {
-                toast('Gagal bagikan WhatsApp: ' + (e?.message || e));
-            } finally {
-                if (btn) setNotaImageBusy(false, btn);
-            }
-        };
+            processNotaImage('canvas-nota-admin', adminNotaPreviewData, {
+                mode: 'share',
+                btn: document.getElementById('btn-share-wa-admin')
+            });
+        }
         window.saveDataMitra = function() {
             const idEdit = document.getElementById('am-id-edit').value;
             const nama = document.getElementById('am-nama').value.trim();
@@ -2942,16 +2862,24 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const biayaList = data.biayaList || [];
             const history = data.history; // null/undefined = nota kurir (tanpa section history)
 
+            // Proporsi kartu ini SENGAJA dibuat "portrait" (lebih sempit & setiap baris
+            // lebih tinggi) supaya hasil gambar download/share match dengan tampilan
+            // preview di layar (kartu nota ramping, bukan melebar ke samping) dan
+            // teksnya cukup besar/jelas dibaca waktu dibuka di HP. Sebelumnya CARD_W
+            // terlalu lebar dibanding tinggi tiap baris, jadi nota dengan item sedikit
+            // hasil gambarnya malah landscape (lebih lebar dari tinggi) — itu yang
+            // bikin kelihatan "kelebaran" & tulisan kecil. Sekarang dibalik: lebih
+            // sempit & padat vertikal supaya selalu portrait seperti struk asli.
             const L = {
                 u, S,
-                MARGIN: u(14), CARD_W: u(692), HEADER_H: u(116),
-                INFO_OVERLAP: u(30), INFO_PAD: u(16), INFO_ROW_H: u(38), INFO_ROW_GAP: u(12),
-                SECTION_GAP: u(18), SECTION_TITLE_H: u(22),
-                TABLE_HEAD_H: u(26), TABLE_ROW_H: u(30),
-                DIV_GAP: u(13), TOTALS_ROW_H: u(20), BIAYA_ROW_H: u(16),
-                TOTALBOX_MARGIN_TOP: u(10), TOTALBOX_H: u(46), FOOTER_H: u(66),
-                CARD_PAD_X: u(16), BOTTOM_PAD: u(16),
-                HIST_ROW_H: u(40), HIST_ROW_GAP: u(6), HIST_HEAD_H: u(26),
+                MARGIN: u(14), CARD_W: u(620), HEADER_H: u(150),
+                INFO_OVERLAP: u(30), INFO_PAD: u(18), INFO_ROW_H: u(46), INFO_ROW_GAP: u(14),
+                SECTION_GAP: u(20), SECTION_TITLE_H: u(26),
+                TABLE_HEAD_H: u(32), TABLE_ROW_H: u(42),
+                DIV_GAP: u(14), TOTALS_ROW_H: u(26), BIAYA_ROW_H: u(20),
+                TOTALBOX_MARGIN_TOP: u(12), TOTALBOX_H: u(58), FOOTER_H: u(90),
+                CARD_PAD_X: u(18), BOTTOM_PAD: u(20),
+                HIST_ROW_H: u(50), HIST_ROW_GAP: u(8), HIST_HEAD_H: u(30),
                 items, biayaList, history
             };
             L.INFO_GRID_H = L.INFO_PAD * 2 + L.INFO_ROW_H * 2 + L.INFO_ROW_GAP;
@@ -2977,20 +2905,17 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             L.totalBoxTop = y;
             y += L.TOTALBOX_H;
             y += L.DIV_GAP; L.divider2Y = y; y += L.DIV_GAP;
+            L.footerTop = y;
+            y += L.FOOTER_H;
 
-            // Ongkir History digambar SEBELUM footer, supaya urutannya sama
-            // persis dengan preview HTML (Total -> Ongkir History -> Footer).
             if (history) {
+                y += L.DIV_GAP; L.divider3Y = y; y += L.DIV_GAP;
                 L.historyTop = y;
                 y += L.HIST_HEAD_H;
                 L.historyRowsTop = y;
                 const hRows = history.length ? history.length : 1;
                 y += L.HIST_ROW_H * hRows + L.HIST_ROW_GAP * Math.max(0, hRows - 1);
-                y += L.DIV_GAP; L.divider3Y = y; y += L.DIV_GAP;
             }
-
-            L.footerTop = y;
-            y += L.FOOTER_H;
 
             y += L.BOTTOM_PAD;
             L.cardBottom = y;
@@ -3030,8 +2955,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             grad.addColorStop(1, '#14A0FF');
             ctx.fillStyle = grad;
             ctx.fillRect(cardX, L.headerTop, cardW, L.HEADER_H);
-            notaText(ctx, 'SAHABATKU DELIVERY', cardX + cardW / 2, L.headerTop + u(40), { font: `800 ${u(19)}px ${NOTA_FONT}`, color: '#ffffff', align: 'center' });
-            notaText(ctx, 'Jatibarang, Indramayu', cardX + cardW / 2, L.headerTop + u(64), { font: `500 ${u(12)}px ${NOTA_FONT}`, color: 'rgba(255,255,255,0.85)', align: 'center' });
+            notaText(ctx, 'SAHABATKU DELIVERY', cardX + cardW / 2, L.headerTop + u(48), { font: `800 ${u(22)}px ${NOTA_FONT}`, color: '#ffffff', align: 'center' });
+            notaText(ctx, 'Jatibarang, Indramayu', cardX + cardW / 2, L.headerTop + u(76), { font: `500 ${u(13)}px ${NOTA_FONT}`, color: 'rgba(255,255,255,0.85)', align: 'center' });
 
             // Info grid (overlap header, seperti desain aslinya)
             const gx = cardX + u(16), gw = cardW - u(32);
@@ -3044,15 +2969,15 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 const cx = gx + L.INFO_PAD + col * (colW + u(12));
                 const cyLabel = L.infoGridTop + L.INFO_PAD + row * (L.INFO_ROW_H + L.INFO_ROW_GAP) + u(10);
                 const cyValue = cyLabel + u(15);
-                notaText(ctx, String(label).toUpperCase(), cx, cyLabel, { font: `800 ${u(8.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'left' });
+                notaText(ctx, String(label).toUpperCase(), cx, cyLabel, { font: `800 ${u(9.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'left' });
                 if (isPill) {
-                    ctx.font = `800 ${u(9.5)}px ${NOTA_FONT}`;
+                    ctx.font = `800 ${u(10.5)}px ${NOTA_FONT}`;
                     const pillText = notaTruncateText(ctx, String(value || '-').toUpperCase(), colW - u(18));
-                    const pillW = Math.min(ctx.measureText(pillText).width + u(18), colW), pillH = u(18);
+                    const pillW = Math.min(ctx.measureText(pillText).width + u(18), colW), pillH = u(20);
                     notaFillRoundRect(ctx, cx, cyValue - pillH / 2, pillW, pillH, pillH / 2, 'rgba(0,102,255,0.12)');
-                    notaText(ctx, pillText, cx + pillW / 2, cyValue + u(1), { font: `800 ${u(9.5)}px ${NOTA_FONT}`, color: '#0066FF', align: 'center' });
+                    notaText(ctx, pillText, cx + pillW / 2, cyValue + u(1), { font: `800 ${u(10.5)}px ${NOTA_FONT}`, color: '#0066FF', align: 'center' });
                 } else {
-                    notaText(ctx, value || '-', cx, cyValue, { font: `800 ${u(11)}px ${NOTA_FONT}`, color: '#1e293b', align: 'left', maxWidth: colW });
+                    notaText(ctx, value || '-', cx, cyValue, { font: `800 ${u(12.5)}px ${NOTA_FONT}`, color: '#1e293b', align: 'left', maxWidth: colW });
                 }
             };
             cell(0, 0, 'Nomor Nota', data.notaNum);
@@ -3061,21 +2986,21 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             cell(1, 1, 'Status', data.status, true);
 
             // Judul section + badge jumlah item
-            notaText(ctx, 'RINCIAN PESANAN', cardX + L.CARD_PAD_X, L.sectionTitleTop + L.SECTION_TITLE_H / 2, { font: `800 ${u(9.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'left' });
+            notaText(ctx, 'RINCIAN PESANAN', cardX + L.CARD_PAD_X, L.sectionTitleTop + L.SECTION_TITLE_H / 2, { font: `800 ${u(10.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'left' });
             const countText = `${L.items ? L.items.length : 0} ITEM`;
-            ctx.font = `800 ${u(9)}px ${NOTA_FONT}`;
-            const countW = ctx.measureText(countText).width + u(14);
-            notaFillRoundRect(ctx, cardX + cardW - L.CARD_PAD_X - countW, L.sectionTitleTop, countW, u(17), u(9), 'rgba(0,102,255,0.1)');
-            notaText(ctx, countText, cardX + cardW - L.CARD_PAD_X - countW / 2, L.sectionTitleTop + u(9), { font: `800 ${u(9)}px ${NOTA_FONT}`, color: '#0066FF', align: 'center' });
+            ctx.font = `800 ${u(10)}px ${NOTA_FONT}`;
+            const countW = ctx.measureText(countText).width + u(16);
+            notaFillRoundRect(ctx, cardX + cardW - L.CARD_PAD_X - countW, L.sectionTitleTop, countW, u(19), u(9.5), 'rgba(0,102,255,0.1)');
+            notaText(ctx, countText, cardX + cardW - L.CARD_PAD_X - countW / 2, L.sectionTitleTop + u(10), { font: `800 ${u(10)}px ${NOTA_FONT}`, color: '#0066FF', align: 'center' });
 
             // Tabel rincian
             const tX = cardX + L.CARD_PAD_X, tW = cardW - L.CARD_PAD_X * 2;
             const col1 = tX, col2 = tX + tW * 0.42, col3 = tX + tW * 0.68, col4 = tX + tW;
             const headY = L.tableTop + L.TABLE_HEAD_H / 2;
-            notaText(ctx, 'ITEM', col1, headY, { font: `800 ${u(8.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'left' });
-            notaText(ctx, 'QTY', (col2 + col3) / 2, headY, { font: `800 ${u(8.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'center' });
-            notaText(ctx, 'HARGA', col3, headY, { font: `800 ${u(8.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'right' });
-            notaText(ctx, 'TOTAL', col4, headY, { font: `800 ${u(8.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'right' });
+            notaText(ctx, 'ITEM', col1, headY, { font: `800 ${u(9.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'left' });
+            notaText(ctx, 'QTY', (col2 + col3) / 2, headY, { font: `800 ${u(9.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'center' });
+            notaText(ctx, 'HARGA', col3, headY, { font: `800 ${u(9.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'right' });
+            notaText(ctx, 'TOTAL', col4, headY, { font: `800 ${u(9.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'right' });
             ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = u(1);
             ctx.beginPath(); ctx.moveTo(tX, L.tableTop + L.TABLE_HEAD_H); ctx.lineTo(tX + tW, L.tableTop + L.TABLE_HEAD_H); ctx.stroke();
 
@@ -3084,21 +3009,21 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                     const rowY = L.tableRowsTop + i * L.TABLE_ROW_H;
                     if (i % 2 === 0) notaFillRoundRect(ctx, tX, rowY + u(2), tW, L.TABLE_ROW_H - u(4), u(6), '#f8fafc');
                     const midY = rowY + L.TABLE_ROW_H / 2;
-                    notaText(ctx, it.nama, col1, midY, { font: `700 ${u(10.5)}px ${NOTA_FONT}`, color: '#334155', align: 'left', maxWidth: tW * 0.4 });
-                    notaText(ctx, String(it.qty), (col2 + col3) / 2, midY, { font: `500 ${u(10.5)}px ${NOTA_FONT}`, color: '#334155', align: 'center' });
-                    notaText(ctx, notaFmtRp(it.harga), col3, midY, { font: `500 ${u(10.5)}px ${NOTA_FONT}`, color: '#334155', align: 'right' });
-                    notaText(ctx, notaFmtRp(it.subtotal), col4, midY, { font: `800 ${u(10.5)}px ${NOTA_FONT}`, color: '#0066FF', align: 'right' });
+                    notaText(ctx, it.nama, col1, midY, { font: `700 ${u(12)}px ${NOTA_FONT}`, color: '#334155', align: 'left', maxWidth: tW * 0.4 });
+                    notaText(ctx, String(it.qty), (col2 + col3) / 2, midY, { font: `500 ${u(12)}px ${NOTA_FONT}`, color: '#334155', align: 'center' });
+                    notaText(ctx, notaFmtRp(it.harga), col3, midY, { font: `500 ${u(12)}px ${NOTA_FONT}`, color: '#334155', align: 'right' });
+                    notaText(ctx, notaFmtRp(it.subtotal), col4, midY, { font: `800 ${u(12)}px ${NOTA_FONT}`, color: '#0066FF', align: 'right' });
                 });
             } else {
-                notaText(ctx, '- Tidak ada rincian -', tX + tW / 2, L.tableRowsTop + L.TABLE_ROW_H / 2, { font: `italic 500 ${u(10.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'center' });
+                notaText(ctx, '- Tidak ada rincian -', tX + tW / 2, L.tableRowsTop + L.TABLE_ROW_H / 2, { font: `italic 500 ${u(12)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'center' });
             }
 
             ctx.beginPath(); ctx.moveTo(tX, L.divider1Y); ctx.lineTo(tX + tW, L.divider1Y); ctx.stroke();
 
             const totalsRow = (i, label, value) => {
                 const rowY = L.totalsTop + i * L.TOTALS_ROW_H + L.TOTALS_ROW_H / 2;
-                notaText(ctx, label, tX, rowY, { font: `500 ${u(11)}px ${NOTA_FONT}`, color: '#64748b', align: 'left' });
-                notaText(ctx, notaFmtRp(value), tX + tW, rowY, { font: `500 ${u(11)}px ${NOTA_FONT}`, color: '#64748b', align: 'right' });
+                notaText(ctx, label, tX, rowY, { font: `500 ${u(12)}px ${NOTA_FONT}`, color: '#64748b', align: 'left' });
+                notaText(ctx, notaFmtRp(value), tX + tW, rowY, { font: `500 ${u(12)}px ${NOTA_FONT}`, color: '#64748b', align: 'right' });
             };
             totalsRow(0, 'Subtotal Item', data.subtotal);
             totalsRow(1, 'Ongkir', data.ongkir);
@@ -3106,37 +3031,36 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             totalsRow(2, 'Tambahan Biaya', totalBiaya);
             L.biayaList.forEach((b, i) => {
                 const rowY = L.totalsTop + L.TOTALS_ROW_H * 3 + i * L.BIAYA_ROW_H + L.BIAYA_ROW_H / 2;
-                notaText(ctx, `+ ${b.nama}`, tX + u(8), rowY, { font: `italic 500 ${u(9.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'left', maxWidth: tW * 0.6 });
-                notaText(ctx, notaFmtRp(b.nominal), tX + tW, rowY, { font: `italic 500 ${u(9.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'right' });
+                notaText(ctx, `+ ${b.nama}`, tX + u(8), rowY, { font: `italic 500 ${u(10.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'left', maxWidth: tW * 0.6 });
+                notaText(ctx, notaFmtRp(b.nominal), tX + tW, rowY, { font: `italic 500 ${u(10.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'right' });
             });
 
             notaFillRoundRect(ctx, tX, L.totalBoxTop, tW, L.TOTALBOX_H, u(14), '#10192e');
-            notaText(ctx, 'TOTAL', tX + u(14), L.totalBoxTop + L.TOTALBOX_H / 2, { font: `800 ${u(10)}px ${NOTA_FONT}`, color: 'rgba(255,255,255,0.7)', align: 'left' });
-            notaText(ctx, notaFmtRp(data.total), tX + tW - u(14), L.totalBoxTop + L.TOTALBOX_H / 2, { font: `900 ${u(16)}px ${NOTA_FONT}`, color: '#ffffff', align: 'right' });
+            notaText(ctx, 'TOTAL', tX + u(14), L.totalBoxTop + L.TOTALBOX_H / 2, { font: `800 ${u(11)}px ${NOTA_FONT}`, color: 'rgba(255,255,255,0.7)', align: 'left' });
+            notaText(ctx, notaFmtRp(data.total), tX + tW - u(14), L.totalBoxTop + L.TOTALBOX_H / 2, { font: `900 ${u(18)}px ${NOTA_FONT}`, color: '#ffffff', align: 'right' });
 
             ctx.beginPath(); ctx.moveTo(tX, L.divider2Y); ctx.lineTo(tX + tW, L.divider2Y); ctx.stroke();
 
-            // Ongkir History digambar SEBELUM footer (sama seperti urutan di preview HTML).
+            notaText(ctx, 'Terima kasih telah menggunakan jasa Sahabatku Delivery.', cardX + cardW / 2, L.footerTop + u(14), { font: `italic 500 ${u(10.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'center', maxWidth: tW });
+            notaText(ctx, 'Pastikan Selalu Order Melalui WhatsApp Resmi Kami:', cardX + cardW / 2, L.footerTop + u(38), { font: `600 ${u(10.5)}px ${NOTA_FONT}`, color: '#475569', align: 'center', maxWidth: tW });
+            notaText(ctx, '0821-1845-415', cardX + cardW / 2, L.footerTop + u(60), { font: `800 ${u(13)}px ${NOTA_FONT}`, color: '#0066FF', align: 'center' });
+
             if (L.history) {
-                notaText(ctx, 'ONGKIR HISTORY', tX, L.historyTop + u(9), { font: `800 ${u(9.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'left' });
-                notaText(ctx, `${L.history.length} item`, tX + tW, L.historyTop + u(9), { font: `500 ${u(9.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'right' });
+                ctx.beginPath(); ctx.moveTo(tX, L.divider3Y); ctx.lineTo(tX + tW, L.divider3Y); ctx.stroke();
+                notaText(ctx, 'ONGKIR HISTORY', tX, L.historyTop + u(10), { font: `800 ${u(10.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'left' });
+                notaText(ctx, `${L.history.length} item`, tX + tW, L.historyTop + u(10), { font: `500 ${u(10.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'right' });
                 if (L.history.length) {
                     L.history.forEach((h, i) => {
                         const rowY = L.historyRowsTop + i * (L.HIST_ROW_H + L.HIST_ROW_GAP);
                         notaFillRoundRect(ctx, tX, rowY, tW, L.HIST_ROW_H, u(10), '#f8fafc');
-                        notaText(ctx, `${h.asal} → ${h.tujuan}`, tX + u(10), rowY + u(15), { font: `800 ${u(10)}px ${NOTA_FONT}`, color: '#334155', align: 'left', maxWidth: tW * 0.55 });
-                        notaText(ctx, h.tgl, tX + u(10), rowY + u(29), { font: `500 ${u(9)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'left' });
-                        notaText(ctx, `Rp ${notaFmtRp(h.val)}`, tX + tW - u(10), rowY + L.HIST_ROW_H / 2, { font: `800 ${u(10)}px ${NOTA_FONT}`, color: '#0066FF', align: 'right' });
+                        notaText(ctx, `${h.asal} → ${h.tujuan}`, tX + u(10), rowY + u(18), { font: `800 ${u(11)}px ${NOTA_FONT}`, color: '#334155', align: 'left', maxWidth: tW * 0.55 });
+                        notaText(ctx, h.tgl, tX + u(10), rowY + u(35), { font: `500 ${u(10)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'left' });
+                        notaText(ctx, `Rp ${notaFmtRp(h.val)}`, tX + tW - u(10), rowY + L.HIST_ROW_H / 2, { font: `800 ${u(11)}px ${NOTA_FONT}`, color: '#0066FF', align: 'right' });
                     });
                 } else {
-                    notaText(ctx, 'Belum ada history ongkir.', tX + tW / 2, L.historyRowsTop + L.HIST_ROW_H / 2, { font: `italic 500 ${u(10)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'center' });
+                    notaText(ctx, 'Belum ada history ongkir.', tX + tW / 2, L.historyRowsTop + L.HIST_ROW_H / 2, { font: `italic 500 ${u(11)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'center' });
                 }
-                ctx.beginPath(); ctx.moveTo(tX, L.divider3Y); ctx.lineTo(tX + tW, L.divider3Y); ctx.stroke();
             }
-
-            notaText(ctx, 'Terima kasih telah menggunakan jasa Sahabatku Delivery.', cardX + cardW / 2, L.footerTop + u(10), { font: `italic 500 ${u(9.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'center', maxWidth: tW });
-            notaText(ctx, 'Pastikan Selalu Order Melalui WhatsApp Resmi Kami:', cardX + cardW / 2, L.footerTop + u(28), { font: `600 ${u(9.5)}px ${NOTA_FONT}`, color: '#475569', align: 'center', maxWidth: tW });
-            notaText(ctx, '0821-1845-415', cardX + cardW / 2, L.footerTop + u(46), { font: `800 ${u(12)}px ${NOTA_FONT}`, color: '#0066FF', align: 'center' });
 
             ctx.restore(); // lepas clip
 
@@ -3166,7 +3090,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         // tajam — konten nota (warna solid + teks) membuat ukuran file PNG
         // tetap kecil, jadi tidak ada alasan untuk mengorbankan ketajaman.
         const NOTA_CANVAS_WIDTH = NOTA_VERY_LOW_RAM_DEVICE ? 760 : (NOTA_LOW_RAM_DEVICE ? 900 : 1080);
-        const NOTA_SCALE = NOTA_CANVAS_WIDTH / 720;
+        // Basis lebar desain kartu = CARD_W(620) + MARGIN(14)*2 = 648 (lihat buildNotaLayout).
+        // Dulu basisnya 720 (lebih lebar dari tinggi baris), sekarang 648 supaya kartu
+        // proporsinya portrait/ramping dan tiap elemen digambar lebih besar & jelas.
+        const NOTA_SCALE = NOTA_CANVAS_WIDTH / 648;
 
         // key -> <canvas> hasil generate. Di-invalidate manual tiap kali isi nota
         // berganti (lihat invalidateNotaCanvasCache di prosesPratinjauNota & viewAdminNota).
@@ -3264,56 +3191,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 setNotaImageBusy(false, btn);
             }
         }
-        async function snapshotNotaPreviewToCanvas({
-        sourceElId = "canvas-nota",
-        scale = 2
-        } = {}) {
-        const src = document.getElementById(sourceElId);
-        if (!src) throw new Error(`Elemen nota preview tidak ditemukan: #${sourceElId}`);
-
-        // biar layout & font “settle”
-        await new Promise((r) => requestAnimationFrame(() => r()));
-
-        if (typeof html2canvas !== "function") {
-            throw new Error("html2canvas belum siap");
+        window.saveNotaAsJpg = function() {
+            if (!kurirNotaPreviewData) { toast('Preview nota belum siap.'); return; }
+            processNotaImage('canvas-nota', kurirNotaPreviewData, {
+                mode: 'download',
+                btn: document.getElementById('btn-simpan-gambar'),
+                successMsg: 'Gambar nota berhasil disimpan!'
+            });
         }
-
-        return html2canvas(src, {
-            backgroundColor: "#ffffff",
-            scale,
-            useCORS: true,
-            allowTaint: true,
-            logging: false,
-        });
-        }
-
-        window.saveNotaAsJpg = async function () {
-        if (!kurirNotaPreviewData) { toast('Preview nota belum siap.'); return; }
-
-        const btn = document.getElementById('btn-simpan-gambar');
-        if (btn) { setNotaImageBusy(true, btn); }
-
-        try {
-            const canvas = await snapshotNotaPreviewToCanvas({ sourceElId: "canvas-nota", scale: 2 });
-
-            const data = kurirNotaPreviewData;
-            const fileName = `${data.notaNum}_${data.kurir}.png`
-            .replace(/\s+/g, '_')
-            .replace(/[\/\\:*?"<>|]/g, '');
-
-            const link = document.createElement('a');
-            link.download = fileName;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-
-            toast('Gambar nota berhasil disimpan!');
-        } catch (e) {
-            toast('Gagal simpan gambar: ' + (e?.message || e));
-        } finally {
-            if (btn) { setNotaImageBusy(false, btn); }
-        }
-        };
-
         window.commitSaveNota = function() {
             const notaNum = document.getElementById('p-nota-num').innerText || "Nota";
             const payload = {
@@ -3414,54 +3299,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 toast('Gagal simpan nota.');
             });
         };
-        window.shareWhatsApp = async function () {
-        if (!kurirNotaPreviewData) { toast('Preview nota belum siap.'); return; }
-
-        const btn = document.getElementById('btn-share-wa');
-        if (btn) { setNotaImageBusy(true, btn); }
-
-        try {
-            const data = kurirNotaPreviewData;
-            const captionText = `Nota: ${data.notaNum}\nKurir: ${data.kurir}`;
-
-            const canvas = await snapshotNotaPreviewToCanvas({ sourceElId: "canvas-nota", scale: 2 });
-
-            const fileName = `${data.notaNum}_${data.kurir}.png`
-            .replace(/\s+/g, '_')
-            .replace(/[\/\\:*?"<>|]/g, '');
-
-            await new Promise((resolve) => {
-            canvas.toBlob(async (blob) => {
-                if (!blob) { toast('Gagal memproses gambar nota.'); resolve(); return; }
-
-                const file = new File([blob], fileName, { type: 'image/png' });
-
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                navigator
-                    .share({ files: [file], title: `Nota ${data.notaNum}`, text: captionText })
-                    .catch(() => {})
-                    .finally(resolve);
-                } else {
-                const link = document.createElement('a');
-                link.download = fileName;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-
-                window.open(
-                    `https://api.whatsapp.com/send?text=${encodeURIComponent(captionText)}`,
-                    '_blank'
-                );
-                resolve();
-                }
-            }, 'image/png');
+        window.shareWhatsApp = function() {
+            if (!kurirNotaPreviewData) { toast('Preview nota belum siap.'); return; }
+            processNotaImage('canvas-nota', kurirNotaPreviewData, {
+                mode: 'share',
+                btn: document.getElementById('btn-share-wa')
             });
-        } catch (e) {
-            toast('Gagal bagikan WhatsApp: ' + (e?.message || e));
-        } finally {
-            if (btn) { setNotaImageBusy(false, btn); }
         }
-        };
-
 
         window.updatePreviewButtonsLayout = function() {
             const btnSimpanNota = document.getElementById('btn-simpan-nota');
@@ -3624,36 +3468,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const btnSimpanNota = document.getElementById('btn-simpan-nota');
             if (btnSimpanNota) btnSimpanNota.classList.add('hidden');
             updatePreviewButtonsLayout();
-
-            // Data terstruktur buat gambar nota (canvas) — WAJIB di-refresh tiap kali
-            // buka preview nota dari riwayat, kalau tidak, tombol Simpan Gambar/Bagikan
-            // WhatsApp akan tetap memakai data nota SEBELUMNYA (gambar tidak sesuai
-            // dengan nota yang sedang di-preview).
-            const histRiwayat = Array.isArray(n.ongkir_history) ? n.ongkir_history : [];
-            const sortedRiwayat = histRiwayat
-                .slice()
-                .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
-            kurirNotaPreviewData = {
-                notaNum: n.id || '-',
-                tanggal: n.tanggal || '-',
-                kurir: n.kurirNama || n.kurirUsername || '-',
-                status: n.status || 'Lunas',
-                items: Array.isArray(n.items) ? n.items.map(it => ({ nama: it.nama, qty: it.qty, harga: it.harga || 0, subtotal: it.subtotal || 0 })) : [],
-                subtotal: n.subtotal || (n.total - n.ongkir - totalBiayaTambahan) || 0,
-                ongkir: n.ongkir || 0,
-                biayaList: Array.isArray(n.biayaTambahan) ? n.biayaTambahan.map(b => ({ nama: b.nama, nominal: b.nominal || 0 })) : [],
-                total: n.total || 0,
-                history: sortedRiwayat.length ? sortedRiwayat.map(e => ({
-                    asal: e.asal || '-',
-                    tujuan: e.tujuan || '-',
-                    val: parseInt(e.estimasiOngkir || e.ongkir || 0) || 0,
-                    tgl: e.createdAt ? new Date(e.createdAt).toLocaleString('id-ID') : (e.tglRaw || '-')
-                })) : null
-            };
-            // Siapkan canvas-nya di background begitu preview tampil, biar pas tombol
-            // Simpan Gambar/Bagikan WhatsApp ditekan prosesnya sudah instan (dari cache).
-            requestAnimationFrame(() => { getNotaCanvas('canvas-nota', kurirNotaPreviewData).catch(() => {}); });
-
             navigateTo('screen-preview');
         }
         function saveNotaDraft() {
