@@ -1,4 +1,4 @@
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, set, push, onValue, remove, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         const firebaseConfig = {
         apiKey: "AIzaSyDweL8xXcOu6ZODYzCa1KpqZVPLH5Ocijk",
@@ -2004,21 +2004,101 @@
         window.closeAdminModal = function() {
             document.getElementById('modal-preview-nota').classList.add('hidden');
         }
-        window.downloadAdminNotaJpg = function() {
+        window.downloadAdminNotaJpg = async function () {
             if (!adminNotaPreviewData) { toast('Preview nota belum siap.'); return; }
-            processNotaImage('canvas-nota-admin', adminNotaPreviewData, {
-                mode: 'download',
-                btn: document.getElementById('btn-unduh-admin'),
-                successMsg: 'Gambar nota berhasil diunduh!'
-            });
-        }
-        window.shareWhatsAppAdmin = function() {
+            const btn = document.getElementById('btn-unduh-admin');
+
+            try {
+                if (btn) setNotaImageBusy(true, btn);
+
+                const el = document.getElementById('canvas-nota-admin');
+                if (!el) throw new Error('Elemen #canvas-nota-admin tidak ditemukan');
+
+                if (typeof html2canvas !== "function") throw new Error('html2canvas belum siap');
+
+                await new Promise((r) => requestAnimationFrame(() => r()));
+                await new Promise((r) => setTimeout(r, 100));
+
+                const shot = await html2canvas(el, {
+                    backgroundColor: "#ffffff",
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    logging: false
+                });
+
+                const fileName = `${adminNotaPreviewData.notaNum}_${adminNotaPreviewData.kurir}`.replace(/\s+/g, '_')
+                    .replace(/[\/\\:*?"<>|]/g, '');
+
+                const link = document.createElement('a');
+                link.download = fileName.endsWith('.png') ? fileName : `${fileName}.png`;
+                link.href = shot.toDataURL('image/png');
+                link.click();
+
+                toast('Gambar nota berhasil diunduh!');
+            } catch (e) {
+                toast('Gagal unduh gambar: ' + (e?.message || e));
+            } finally {
+                if (btn) setNotaImageBusy(false, btn);
+            }
+        };
+
+        window.shareWhatsAppAdmin = async function () {
             if (!adminNotaPreviewData) { toast('Preview nota belum siap.'); return; }
-            processNotaImage('canvas-nota-admin', adminNotaPreviewData, {
-                mode: 'share',
-                btn: document.getElementById('btn-share-wa-admin')
-            });
-        }
+            const btn = document.getElementById('btn-share-wa-admin');
+
+            try {
+                if (btn) setNotaImageBusy(true, btn);
+
+                const el = document.getElementById('canvas-nota-admin');
+                if (!el) throw new Error('Elemen #canvas-nota-admin tidak ditemukan');
+
+                if (typeof html2canvas !== "function") throw new Error('html2canvas belum siap');
+
+                await new Promise((r) => requestAnimationFrame(() => r()));
+                await new Promise((r) => setTimeout(r, 100));
+
+                const shot = await html2canvas(el, {
+                    backgroundColor: "#ffffff",
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    logging: false
+                });
+
+                const fileNameBase = `${adminNotaPreviewData.notaNum}_${adminNotaPreviewData.kurir}`.replace(/\s+/g, '_')
+                    .replace(/[\/\\:*?"<>|]/g, '');
+                const fileName = fileNameBase.endsWith('.png') ? fileNameBase : `${fileNameBase}.png`;
+
+                const captionText = `Nota: ${adminNotaPreviewData.notaNum}\nKurir: ${adminNotaPreviewData.kurir}`;
+
+                await new Promise((resolve) => {
+                    shot.toBlob(async (blob) => {
+                        if (!blob) { toast('Gagal memproses gambar nota.'); resolve(); return; }
+
+                        const file = new File([blob], fileName, { type: 'image/png' });
+
+                        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                            navigator.share({ files: [file], title: `Nota ${adminNotaPreviewData.notaNum}`, text: captionText })
+                                .catch(() => {})
+                                .finally(resolve);
+                        } else {
+                            const link = document.createElement('a');
+                            link.download = fileName;
+                            link.href = shot.toDataURL('image/png');
+                            link.click();
+
+                            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(captionText)}`, '_blank');
+                            resolve();
+                        }
+                    }, 'image/png');
+                });
+            } catch (e) {
+                toast('Gagal bagikan WhatsApp: ' + (e?.message || e));
+            } finally {
+                if (btn) setNotaImageBusy(false, btn);
+            }
+        };
         window.saveDataMitra = function() {
             const idEdit = document.getElementById('am-id-edit').value;
             const nama = document.getElementById('am-nama').value.trim();
@@ -2897,17 +2977,20 @@
             L.totalBoxTop = y;
             y += L.TOTALBOX_H;
             y += L.DIV_GAP; L.divider2Y = y; y += L.DIV_GAP;
-            L.footerTop = y;
-            y += L.FOOTER_H;
 
+            // Ongkir History digambar SEBELUM footer, supaya urutannya sama
+            // persis dengan preview HTML (Total -> Ongkir History -> Footer).
             if (history) {
-                y += L.DIV_GAP; L.divider3Y = y; y += L.DIV_GAP;
                 L.historyTop = y;
                 y += L.HIST_HEAD_H;
                 L.historyRowsTop = y;
                 const hRows = history.length ? history.length : 1;
                 y += L.HIST_ROW_H * hRows + L.HIST_ROW_GAP * Math.max(0, hRows - 1);
+                y += L.DIV_GAP; L.divider3Y = y; y += L.DIV_GAP;
             }
+
+            L.footerTop = y;
+            y += L.FOOTER_H;
 
             y += L.BOTTOM_PAD;
             L.cardBottom = y;
@@ -2963,9 +3046,9 @@
                 const cyValue = cyLabel + u(15);
                 notaText(ctx, String(label).toUpperCase(), cx, cyLabel, { font: `800 ${u(8.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'left' });
                 if (isPill) {
-                    const pillText = String(value || '-').toUpperCase();
                     ctx.font = `800 ${u(9.5)}px ${NOTA_FONT}`;
-                    const pillW = ctx.measureText(pillText).width + u(18), pillH = u(18);
+                    const pillText = notaTruncateText(ctx, String(value || '-').toUpperCase(), colW - u(18));
+                    const pillW = Math.min(ctx.measureText(pillText).width + u(18), colW), pillH = u(18);
                     notaFillRoundRect(ctx, cx, cyValue - pillH / 2, pillW, pillH, pillH / 2, 'rgba(0,102,255,0.12)');
                     notaText(ctx, pillText, cx + pillW / 2, cyValue + u(1), { font: `800 ${u(9.5)}px ${NOTA_FONT}`, color: '#0066FF', align: 'center' });
                 } else {
@@ -3033,12 +3116,8 @@
 
             ctx.beginPath(); ctx.moveTo(tX, L.divider2Y); ctx.lineTo(tX + tW, L.divider2Y); ctx.stroke();
 
-            notaText(ctx, 'Terima kasih telah menggunakan jasa Sahabatku Delivery.', cardX + cardW / 2, L.footerTop + u(10), { font: `italic 500 ${u(9.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'center', maxWidth: tW });
-            notaText(ctx, 'Pastikan Selalu Order Melalui WhatsApp Resmi Kami:', cardX + cardW / 2, L.footerTop + u(28), { font: `600 ${u(9.5)}px ${NOTA_FONT}`, color: '#475569', align: 'center', maxWidth: tW });
-            notaText(ctx, '0821-1845-415', cardX + cardW / 2, L.footerTop + u(46), { font: `800 ${u(12)}px ${NOTA_FONT}`, color: '#0066FF', align: 'center' });
-
+            // Ongkir History digambar SEBELUM footer (sama seperti urutan di preview HTML).
             if (L.history) {
-                ctx.beginPath(); ctx.moveTo(tX, L.divider3Y); ctx.lineTo(tX + tW, L.divider3Y); ctx.stroke();
                 notaText(ctx, 'ONGKIR HISTORY', tX, L.historyTop + u(9), { font: `800 ${u(9.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'left' });
                 notaText(ctx, `${L.history.length} item`, tX + tW, L.historyTop + u(9), { font: `500 ${u(9.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'right' });
                 if (L.history.length) {
@@ -3052,7 +3131,12 @@
                 } else {
                     notaText(ctx, 'Belum ada history ongkir.', tX + tW / 2, L.historyRowsTop + L.HIST_ROW_H / 2, { font: `italic 500 ${u(10)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'center' });
                 }
+                ctx.beginPath(); ctx.moveTo(tX, L.divider3Y); ctx.lineTo(tX + tW, L.divider3Y); ctx.stroke();
             }
+
+            notaText(ctx, 'Terima kasih telah menggunakan jasa Sahabatku Delivery.', cardX + cardW / 2, L.footerTop + u(10), { font: `italic 500 ${u(9.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'center', maxWidth: tW });
+            notaText(ctx, 'Pastikan Selalu Order Melalui WhatsApp Resmi Kami:', cardX + cardW / 2, L.footerTop + u(28), { font: `600 ${u(9.5)}px ${NOTA_FONT}`, color: '#475569', align: 'center', maxWidth: tW });
+            notaText(ctx, '0821-1845-415', cardX + cardW / 2, L.footerTop + u(46), { font: `800 ${u(12)}px ${NOTA_FONT}`, color: '#0066FF', align: 'center' });
 
             ctx.restore(); // lepas clip
 
@@ -3073,10 +3157,16 @@
             !!(NOTA_MEM && NOTA_MEM <= 2) ||
             (!NOTA_MEM && !!(NOTA_CORES && NOTA_CORES <= 4));
         // Lebar canvas (bukan lagi "scale" DOM) — makin kecil RAM, makin kecil
-        // jumlah piksel yang perlu digambar & di-encode ke JPEG.
-        const NOTA_CANVAS_WIDTH = NOTA_VERY_LOW_RAM_DEVICE ? 540 : (NOTA_LOW_RAM_DEVICE ? 620 : 720);
+        // jumlah piksel yang perlu digambar & di-encode.
+        // Catatan: sebelumnya nilai-nilai ini terlalu kecil (540-720px) dan
+        // di-encode sebagai JPEG, sehingga hasil gambar nota kelihatan buram/
+        // pecah-pecah & bergaris (artefak kompresi JPEG) saat dibuka di HP atau
+        // dibagikan ke WhatsApp. Sekarang resolusinya dinaikkan dan formatnya
+        // diganti ke PNG (lihat processNotaImage) supaya teks & garis tetap
+        // tajam — konten nota (warna solid + teks) membuat ukuran file PNG
+        // tetap kecil, jadi tidak ada alasan untuk mengorbankan ketajaman.
+        const NOTA_CANVAS_WIDTH = NOTA_VERY_LOW_RAM_DEVICE ? 760 : (NOTA_LOW_RAM_DEVICE ? 900 : 1080);
         const NOTA_SCALE = NOTA_CANVAS_WIDTH / 720;
-        const NOTA_JPEG_QUALITY = NOTA_VERY_LOW_RAM_DEVICE ? 0.75 : (NOTA_LOW_RAM_DEVICE ? 0.82 : 0.88);
 
         // key -> <canvas> hasil generate. Di-invalidate manual tiap kali isi nota
         // berganti (lihat invalidateNotaCanvasCache di prosesPratinjauNota & viewAdminNota).
@@ -3133,12 +3223,12 @@
             setNotaImageBusy(true, btn);
             try {
                 const canvas = await getNotaCanvas(cacheKey, data);
-                const fileName = `${data.notaNum}_${data.kurir}.jpg`.replace(/\s+/g, '_').replace(/[\/\\:*?"<>|]/g, '');
+                const fileName = `${data.notaNum}_${data.kurir}.png`.replace(/\s+/g, '_').replace(/[\/\\:*?"<>|]/g, '');
 
                 if (mode === 'download') {
                     const link = document.createElement('a');
                     link.download = fileName;
-                    link.href = canvas.toDataURL('image/jpeg', NOTA_JPEG_QUALITY);
+                    link.href = canvas.toDataURL('image/png');
                     link.click();
                     toast(successMsg || 'Gambar nota berhasil disimpan!');
                     return;
@@ -3153,7 +3243,7 @@
                             resolve();
                             return;
                         }
-                        const file = new File([blob], fileName, { type: 'image/jpeg' });
+                        const file = new File([blob], fileName, { type: 'image/png' });
                         if (navigator.canShare && navigator.canShare({ files: [file] })) {
                             navigator.share({ files: [file], title: `Nota ${data.notaNum}`, text: captionText })
                                 .catch(() => {})
@@ -3161,12 +3251,12 @@
                         } else {
                             const link = document.createElement('a');
                             link.download = fileName;
-                            link.href = canvas.toDataURL('image/jpeg', NOTA_JPEG_QUALITY);
+                            link.href = canvas.toDataURL('image/png');
                             link.click();
                             window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(captionText)}`, '_blank');
                             resolve();
                         }
-                    }, 'image/jpeg', NOTA_JPEG_QUALITY);
+                    }, 'image/png');
                 });
             } catch (err) {
                 toast('Terjadi kesalahan gambar: ' + (err?.message || err));
@@ -3174,14 +3264,56 @@
                 setNotaImageBusy(false, btn);
             }
         }
-        window.saveNotaAsJpg = function() {
-            if (!kurirNotaPreviewData) { toast('Preview nota belum siap.'); return; }
-            processNotaImage('canvas-nota', kurirNotaPreviewData, {
-                mode: 'download',
-                btn: document.getElementById('btn-simpan-gambar'),
-                successMsg: 'Gambar nota berhasil disimpan!'
-            });
+        async function snapshotNotaPreviewToCanvas({
+        sourceElId = "canvas-nota",
+        scale = 2
+        } = {}) {
+        const src = document.getElementById(sourceElId);
+        if (!src) throw new Error(`Elemen nota preview tidak ditemukan: #${sourceElId}`);
+
+        // biar layout & font “settle”
+        await new Promise((r) => requestAnimationFrame(() => r()));
+
+        if (typeof html2canvas !== "function") {
+            throw new Error("html2canvas belum siap");
         }
+
+        return html2canvas(src, {
+            backgroundColor: "#ffffff",
+            scale,
+            useCORS: true,
+            allowTaint: true,
+            logging: false,
+        });
+        }
+
+        window.saveNotaAsJpg = async function () {
+        if (!kurirNotaPreviewData) { toast('Preview nota belum siap.'); return; }
+
+        const btn = document.getElementById('btn-simpan-gambar');
+        if (btn) { setNotaImageBusy(true, btn); }
+
+        try {
+            const canvas = await snapshotNotaPreviewToCanvas({ sourceElId: "canvas-nota", scale: 2 });
+
+            const data = kurirNotaPreviewData;
+            const fileName = `${data.notaNum}_${data.kurir}.png`
+            .replace(/\s+/g, '_')
+            .replace(/[\/\\:*?"<>|]/g, '');
+
+            const link = document.createElement('a');
+            link.download = fileName;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+
+            toast('Gambar nota berhasil disimpan!');
+        } catch (e) {
+            toast('Gagal simpan gambar: ' + (e?.message || e));
+        } finally {
+            if (btn) { setNotaImageBusy(false, btn); }
+        }
+        };
+
         window.commitSaveNota = function() {
             const notaNum = document.getElementById('p-nota-num').innerText || "Nota";
             const payload = {
@@ -3282,13 +3414,54 @@
                 toast('Gagal simpan nota.');
             });
         };
-        window.shareWhatsApp = function() {
-            if (!kurirNotaPreviewData) { toast('Preview nota belum siap.'); return; }
-            processNotaImage('canvas-nota', kurirNotaPreviewData, {
-                mode: 'share',
-                btn: document.getElementById('btn-share-wa')
+        window.shareWhatsApp = async function () {
+        if (!kurirNotaPreviewData) { toast('Preview nota belum siap.'); return; }
+
+        const btn = document.getElementById('btn-share-wa');
+        if (btn) { setNotaImageBusy(true, btn); }
+
+        try {
+            const data = kurirNotaPreviewData;
+            const captionText = `Nota: ${data.notaNum}\nKurir: ${data.kurir}`;
+
+            const canvas = await snapshotNotaPreviewToCanvas({ sourceElId: "canvas-nota", scale: 2 });
+
+            const fileName = `${data.notaNum}_${data.kurir}.png`
+            .replace(/\s+/g, '_')
+            .replace(/[\/\\:*?"<>|]/g, '');
+
+            await new Promise((resolve) => {
+            canvas.toBlob(async (blob) => {
+                if (!blob) { toast('Gagal memproses gambar nota.'); resolve(); return; }
+
+                const file = new File([blob], fileName, { type: 'image/png' });
+
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                navigator
+                    .share({ files: [file], title: `Nota ${data.notaNum}`, text: captionText })
+                    .catch(() => {})
+                    .finally(resolve);
+                } else {
+                const link = document.createElement('a');
+                link.download = fileName;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+
+                window.open(
+                    `https://api.whatsapp.com/send?text=${encodeURIComponent(captionText)}`,
+                    '_blank'
+                );
+                resolve();
+                }
+            }, 'image/png');
             });
+        } catch (e) {
+            toast('Gagal bagikan WhatsApp: ' + (e?.message || e));
+        } finally {
+            if (btn) { setNotaImageBusy(false, btn); }
         }
+        };
+
 
         window.updatePreviewButtonsLayout = function() {
             const btnSimpanNota = document.getElementById('btn-simpan-nota');
@@ -3451,6 +3624,36 @@
             const btnSimpanNota = document.getElementById('btn-simpan-nota');
             if (btnSimpanNota) btnSimpanNota.classList.add('hidden');
             updatePreviewButtonsLayout();
+
+            // Data terstruktur buat gambar nota (canvas) — WAJIB di-refresh tiap kali
+            // buka preview nota dari riwayat, kalau tidak, tombol Simpan Gambar/Bagikan
+            // WhatsApp akan tetap memakai data nota SEBELUMNYA (gambar tidak sesuai
+            // dengan nota yang sedang di-preview).
+            const histRiwayat = Array.isArray(n.ongkir_history) ? n.ongkir_history : [];
+            const sortedRiwayat = histRiwayat
+                .slice()
+                .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+            kurirNotaPreviewData = {
+                notaNum: n.id || '-',
+                tanggal: n.tanggal || '-',
+                kurir: n.kurirNama || n.kurirUsername || '-',
+                status: n.status || 'Lunas',
+                items: Array.isArray(n.items) ? n.items.map(it => ({ nama: it.nama, qty: it.qty, harga: it.harga || 0, subtotal: it.subtotal || 0 })) : [],
+                subtotal: n.subtotal || (n.total - n.ongkir - totalBiayaTambahan) || 0,
+                ongkir: n.ongkir || 0,
+                biayaList: Array.isArray(n.biayaTambahan) ? n.biayaTambahan.map(b => ({ nama: b.nama, nominal: b.nominal || 0 })) : [],
+                total: n.total || 0,
+                history: sortedRiwayat.length ? sortedRiwayat.map(e => ({
+                    asal: e.asal || '-',
+                    tujuan: e.tujuan || '-',
+                    val: parseInt(e.estimasiOngkir || e.ongkir || 0) || 0,
+                    tgl: e.createdAt ? new Date(e.createdAt).toLocaleString('id-ID') : (e.tglRaw || '-')
+                })) : null
+            };
+            // Siapkan canvas-nya di background begitu preview tampil, biar pas tombol
+            // Simpan Gambar/Bagikan WhatsApp ditekan prosesnya sudah instan (dari cache).
+            requestAnimationFrame(() => { getNotaCanvas('canvas-nota', kurirNotaPreviewData).catch(() => {}); });
+
             navigateTo('screen-preview');
         }
         function saveNotaDraft() {
