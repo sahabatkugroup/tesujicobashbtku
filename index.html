@@ -19,7 +19,6 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 
     <script>
         // Fix Leaflet marker icons path
@@ -53,8 +52,8 @@
 <body class="bg-lightBg text-slate-800 dark:bg-darkBg dark:text-slate-100 font-sans transition-colors duration-300">
     <div id="screen-login" class="screen active login-gradient-bg justify-end relative overflow-hidden">
         <!-- Decorative floating blobs -->
-        <div class="pointer-events-none absolute -top-16 -left-16 w-56 h-56 bg-white/10 rounded-full blur-2xl login-blob"></div>
-        <div class="pointer-events-none absolute top-24 -right-20 w-64 h-64 bg-white/10 rounded-full blur-2xl login-blob login-blob-2"></div>
+        <div class="pointer-events-none absolute -top-16 -left-16 w-56 h-56 bg-white/10 rounded-full blur-xl login-blob"></div>
+        <div class="pointer-events-none absolute top-24 -right-20 w-64 h-64 bg-white/10 rounded-full blur-xl login-blob login-blob-2"></div>
         <div class="pointer-events-none absolute inset-0 opacity-[0.06]" style="background-image:radial-gradient(circle,#fff 1px,transparent 1px);background-size:22px 22px;"></div>
 
         <div class="relative z-10 flex flex-col items-center justify-center text-white px-6 pt-14 pb-8">
@@ -132,7 +131,7 @@
 
     <div id="main-layout" class="hidden min-h-screen flex flex-col pb-20">
         
-        <header id="app-bar" class="bg-white/90 dark:bg-darkCard/90 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 px-3 py-2.5 sticky top-0 z-40 hidden items-center gap-2.5 shadow-sm">
+        <header id="app-bar" class="bg-white/95 dark:bg-darkCard/95 border-b border-slate-100 dark:border-slate-800 px-3 py-2.5 sticky top-0 z-40 hidden items-center gap-2.5 shadow-sm">
             <button onclick="navigateBack()" class="ripple w-9 h-9 flex items-center justify-center bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl text-slate-600 dark:text-slate-300 active:scale-90 transition-transform shrink-0">
                 <i data-lucide="arrow-left" class="w-4.5 h-4.5"></i>
             </button>
@@ -227,7 +226,7 @@
                     </div>
                 </div>
                 <button onclick="window.location.href='kehadiran.html'" 
-                        class="fixed bottom-24 right-6 z-50 bg-blue-500 text-white p-3.5 rounded-full shadow-lg shadow-blue-500/30 flex items-center justify-center transition-all duration-300 ease-out hover:scale-105 active:scale-90 border border-white/20 backdrop-blur-sm">
+                        class="fixed bottom-24 right-6 z-50 bg-blue-500 text-white p-3.5 rounded-full shadow-lg shadow-blue-500/30 flex items-center justify-center transition-all duration-300 ease-out hover:scale-105 active:scale-90 border border-white/20">
                     <i data-lucide="calendar-check" class="w-5 h-5"></i>
                 </button>
                 <div class="grid grid-cols-4 gap-2.5">
@@ -895,7 +894,7 @@
                 </div>
             </div>
 
-            <div id="modal-tracking-kurir" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div id="modal-tracking-kurir" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
                 <div class="bg-white dark:bg-darkCard w-full max-w-sm rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 p-3 space-y-3">
                     <div class="flex items-start justify-between gap-2">
                         <div class="min-w-0">
@@ -1039,7 +1038,7 @@
                     </div>
                 </div>
             
-                <div id="admin-ongkir-popup" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+                <div id="admin-ongkir-popup" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
                     <div class="bg-white dark:bg-darkCard w-full max-w-md rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 p-4 space-y-4 relative">
                         <button onclick="closeAdminOngkirPopup()" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 flex items-center justify-center">
                             ✕
@@ -1105,7 +1104,7 @@
                     <div id="container-admin-ongkir" class="space-y-2"></div>
                 </div>
             </div>
-            <div id="modal-edit-ongkir" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div id="modal-edit-ongkir" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
                 <div class="bg-white dark:bg-darkCard w-full max-w-md rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 p-4 space-y-4 relative">
                     <button onclick="closeEditOngkirModal()" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 flex items-center justify-center">
                         ✕
@@ -1128,7 +1127,7 @@
                     </div>
                 </div>
             </div>
-            <div id="modal-edit-mitra" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div id="modal-edit-mitra" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
                 <div class="bg-white dark:bg-darkCard w-full max-w-md rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 p-4 space-y-4 relative">
                     <button onclick="closeEditMitraModal()" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 flex items-center justify-center">
                         ✕
@@ -1742,7 +1741,7 @@
                 </div>
             </div>
             
-            <div id="modal-cek-ongkir" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div id="modal-cek-ongkir" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
             <div class="bg-white dark:bg-darkCard w-full max-w-md rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 p-4 space-y-3 relative">
                 <button onclick="closeCekOngkirPopup()" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 flex items-center justify-center">✕</button>
 
@@ -1834,7 +1833,7 @@
 
         </main>
 
-        <nav id="global-nav" class="bg-white/90 dark:bg-darkCard/90 backdrop-blur-md border-t border-slate-100 dark:border-slate-800 fixed bottom-0 left-0 right-0 z-50 px-2 shadow-lg">
+        <nav id="global-nav" class="bg-white/95 dark:bg-darkCard/95 border-t border-slate-100 dark:border-slate-800 fixed bottom-0 left-0 right-0 z-50 px-2 shadow-lg">
             <div class="flex justify-around items-center h-16 relative">
                 <button id="nav-dashboard-btn" onclick="backToDashboardRole()" class="flex flex-col items-center justify-center w-12 h-12 text-primary hidden opacity-0 pointer-events-none">
                     <i data-lucide="home" class="w-5 h-5"></i>
@@ -1853,7 +1852,7 @@
         </nav>
     </div>
 
-    <div id="modal-preview-nota" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+    <div id="modal-preview-nota" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-3 sm:p-4">
         <div class="w-full max-w-[340px] space-y-3 max-h-[90vh] overflow-y-auto">
 
             <div id="canvas-nota-admin" class="receipt-card text-[10px] leading-tight">
@@ -1878,7 +1877,7 @@
         </div>
     </div>
     
-    <div id="modal-edit-kurir" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+    <div id="modal-edit-kurir" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-3 sm:p-4">
         <div class="bg-white dark:bg-darkCard w-full max-w-[360px] sm:max-w-md rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 p-4 space-y-4 relative max-h-[90vh] overflow-y-auto">
             <button onclick="closeEditKurirModal()" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 flex items-center justify-center">
                 ✕
@@ -1936,7 +1935,7 @@
         </div>
     </div>
 
-    <div id="modal-sop" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div id="modal-sop" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/70">
         <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-slate-200 dark:border-slate-700">
             <h3 class="text-lg font-bold text-slate-800 dark:text-white">Panduan SOP Kurir</h3>
             <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
@@ -1948,7 +1947,7 @@
             </div>
         </div>
     </div>
-    <div id="modal-input-trx-mitra" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div id="modal-input-trx-mitra" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-darkCard w-full max-w-md rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 p-4 space-y-4 relative">
             <button onclick="closeInputTrxMitraModal()" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 flex items-center justify-center">
                 ✕
@@ -1971,7 +1970,7 @@
             </div>
         </div>
     </div>
-    <div id="modal-kpi-detail" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+    <div id="modal-kpi-detail" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-3 sm:p-4">
         <div class="bg-white dark:bg-darkCard w-full max-w-[360px] sm:max-w-lg rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 p-3 sm:p-5 max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between mb-3 sm:mb-4">
                 <h3 class="text-sm sm:text-base font-black">Detail Perhitungan KPI</h3>
@@ -1980,7 +1979,7 @@
             <div id="container-kpi-detail" class="space-y-3"></div>
         </div>
     </div>
-    <div id="modal-edit-manajemen" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div id="modal-edit-manajemen" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-darkCard w-full max-w-md rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 p-4 space-y-4 relative">
             <button onclick="closeEditManajemenModal()" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 flex items-center justify-center">✕</button>
     
@@ -2038,7 +2037,7 @@
     <!-- ===== Sistem Notifikasi Toast & Konfirmasi Modern (pengganti alert/confirm bawaan browser) ===== -->
     <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] flex flex-col gap-2 w-[92%] max-w-sm pointer-events-none"></div>
 
-    <div id="modal-confirm-global" class="hidden fixed inset-0 z-[9998] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div id="modal-confirm-global" class="hidden fixed inset-0 z-[9998] bg-black/70 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-darkCard w-full max-w-xs rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 p-5 text-center space-y-4">
             <div id="confirm-icon-wrap" class="w-14 h-14 mx-auto rounded-2xl bg-rose-50 dark:bg-rose-950/40 flex items-center justify-center text-danger">
                 <i data-lucide="alert-triangle" class="w-7 h-7"></i>
