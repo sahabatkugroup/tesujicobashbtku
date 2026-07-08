@@ -6,23 +6,16 @@ body { -webkit-tap-highlight-color: transparent; }
 .ripple:after {
     content: ""; background: rgba(255, 255, 255, 0.3); display: block; position: absolute;
     border-radius: 50%; padding-top: 240%; padding-left: 240%; margin-top: -120%; margin-left: -120%;
-    opacity: 0; transition: all 0.8s;
+    opacity: 0; transition: opacity 0.8s, padding 0.8s, margin 0.8s;
 }
 .ripple:active:after { padding: 0; margin: 0; opacity: 1; transition: 0s; }
 
-/* Login screen decorative blobs (lightweight, GPU-friendly, no layout thrash) */
-.login-blob {
-  animation: loginBlobFloat 9s ease-in-out infinite;
-  will-change: transform;
-}
-.login-blob-2 { animation-duration: 12s; animation-delay: -3s; }
-@keyframes loginBlobFloat {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  50% { transform: translate3d(0, 14px, 0) scale(1.05); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .login-blob { animation: none; }
-}
+/* Login screen decorative blobs — dibuat STATIS (tanpa animasi).
+   Kombinasi filter:blur() + animasi transform:scale() yang berjalan TERUS
+   MENERUS adalah beban GPU paling berat di layar login: tiap kali scale
+   berubah, browser harus menghitung ulang area blur-nya lagi, setiap frame,
+   selama layar login masih terbuka. Tanpa animasi, blur cukup dihitung SEKALI
+   saja saat halaman tampil, jadi ringan di HP manapun tapi visualnya tetap ada. */
 
 /* ================= Modern Login Screen v2 ================= */
 .login-gradient-bg {
@@ -55,10 +48,9 @@ body { -webkit-tap-highlight-color: transparent; }
 .login-role-badge {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 4px 10px; border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.20);
   border: 1px solid rgba(255, 255, 255, 0.22);
   font-size: 9.5px; font-weight: 700; letter-spacing: 0.04em;
-  backdrop-filter: blur(4px);
 }
 
 /* Bottom sheet card polish */
@@ -79,15 +71,16 @@ body { -webkit-tap-highlight-color: transparent; }
 .login-submit-btn { position: relative; overflow: hidden; }
 .login-submit-btn::before {
   content: "";
-  position: absolute; top: 0; left: -60%; width: 35%; height: 100%;
+  position: absolute; top: 0; left: -35%; width: 35%; height: 100%;
   background: linear-gradient(115deg, transparent, rgba(255, 255, 255, 0.5), transparent);
-  transform: skewX(-18deg);
+  transform: skewX(-18deg) translateX(0%);
   animation: loginBtnShine 3.4s ease-in-out infinite;
+  will-change: transform;
 }
 @keyframes loginBtnShine {
-  0% { left: -60%; }
-  55% { left: 130%; }
-  100% { left: 130%; }
+  0% { transform: skewX(-18deg) translateX(0%); }
+  55% { transform: skewX(-18deg) translateX(470%); }
+  100% { transform: skewX(-18deg) translateX(470%); }
 }
 @media (prefers-reduced-motion: reduce) {
   .login-submit-btn::before { animation: none; display: none; }
@@ -225,9 +218,8 @@ body { -webkit-tap-highlight-color: transparent; }
   gap: 6px;
   border-radius: 16px;
   padding: 8px 7px;
-  background: rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.20);
   border: 1px solid rgba(255,255,255,0.18);
-  backdrop-filter: blur(6px);
   min-width: 0;
 }
 .stat-tile .stat-icon {
@@ -274,7 +266,7 @@ body { -webkit-tap-highlight-color: transparent; }
   padding: 9px 4px; border-radius: 14px; font-size: 10px; font-weight: 800;
   text-transform: uppercase; letter-spacing: 0.02em;
   background: #f1f5f9; color: #64748b;
-  transition: all 0.18s ease; border: 1px solid transparent;
+  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease; border: 1px solid transparent;
 }
 .dark .kpi-tab { background: #1e293b; color: #94a3b8; }
 .kpi-tab.active {
@@ -303,10 +295,13 @@ body { -webkit-tap-highlight-color: transparent; }
 .receipt-card {
   position: relative;
   background: #fff;
-  border-radius: 20px;
-  /* Satu shadow tipis saja (bukan 2 layer) — tetap kelihatan "melayang" &
-     modern tapi jauh lebih ringan buat html2canvas menghitungnya. */
-  box-shadow: 0 8px 18px -10px rgba(15,23,42,0.22);
+  border-radius: 16px;
+  /* Shadow diperkecil blur-nya (dari 18px jadi 8px). Blur radius besar adalah
+     salah satu operasi TERBERAT buat html2canvas (harus disimulasikan pakai
+     banyak layer piksel). Hasil visual tetap kelihatan "melayang" tipis,
+     tapi proses render/unduh/share jadi jauh lebih cepat & tidak macet di
+     HP RAM kecil. */
+  box-shadow: 0 4px 8px -4px rgba(15,23,42,0.18);
   overflow: hidden;
 }
 .receipt-head {
@@ -330,7 +325,10 @@ body { -webkit-tap-highlight-color: transparent; }
 }
 .receipt-notch-wrap svg { display: block; width: 100%; height: 22px; }
 .receipt-body { padding: 4px 16px 16px; }
-.receipt-divider { border-top: 1.5px dashed #cbd5e1; margin: 10px 0; }
+/* Garis solid tipis, bukan dashed. Pola dashed harus digambar per-segmen
+   berulang oleh html2canvas di sepanjang garis — solid cukup satu langkah
+   dan tetap terlihat rapi/modern sebagai pemisah bagian nota. */
+.receipt-divider { border-top: 1px solid #e2e8f0; margin: 10px 0; }
 .receipt-total-box {
   background: linear-gradient(135deg, #0f172a, #1e293b);
   color: #fff; border-radius: 14px; padding: 10px 14px;
@@ -457,7 +455,7 @@ select[multiple] {
 .receipt-item-table { width: 100%; border-collapse: separate; border-spacing: 0; }
 .receipt-item-table thead th {
   font-size: 8.5px; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8;
-  font-weight: 800; padding: 5px 6px; border-bottom: 1.5px dashed #cbd5e1;
+  font-weight: 800; padding: 5px 6px; border-bottom: 1px solid #e2e8f0;
 }
 .receipt-item-table tbody td {
   font-size: 10.5px; padding: 6px; color: #334155; vertical-align: middle;
@@ -641,7 +639,7 @@ select[multiple] {
   display: flex; align-items: center; justify-content: center; gap: 6px;
   padding: 10px 6px; border-radius: 12px; font-size: 10.5px; font-weight: 800;
   text-transform: uppercase; letter-spacing: 0.02em; color: #64748b;
-  transition: all 0.16s ease; border: none; background: transparent;
+  transition: background 0.16s ease, color 0.16s ease; border: none; background: transparent;
 }
 .dark .notif-target-btn { color: #94a3b8; }
 .notif-target-btn.active {
@@ -665,11 +663,11 @@ select[multiple] {
 .notif-kurir-chip-item .nci-check {
   width: 18px; height: 18px; border-radius: 6px; border: 2px solid #cbd5e1;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  transition: all 0.12s ease;
+  transition: background 0.12s ease, border-color 0.12s ease;
 }
 .dark .notif-kurir-chip-item .nci-check { border-color: #475569; }
 .notif-kurir-chip-item.is-checked .nci-check { background: #e11d48; border-color: #e11d48; }
-.notif-kurir-chip-item .nci-check svg { width: 11px; height: 11px; opacity: 0; transform: scale(0.6); transition: all 0.12s ease; }
+.notif-kurir-chip-item .nci-check svg { width: 11px; height: 11px; opacity: 0; transform: scale(0.6); transition: opacity 0.12s ease, transform 0.12s ease; }
 .notif-kurir-chip-item.is-checked .nci-check svg { opacity: 1; transform: scale(1); }
 .notif-kurir-chip-item .nci-avatar {
   width: 26px; height: 26px; border-radius: 9px; flex-shrink: 0;
