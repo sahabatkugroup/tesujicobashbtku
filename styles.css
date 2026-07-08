@@ -6,16 +6,23 @@ body { -webkit-tap-highlight-color: transparent; }
 .ripple:after {
     content: ""; background: rgba(255, 255, 255, 0.3); display: block; position: absolute;
     border-radius: 50%; padding-top: 240%; padding-left: 240%; margin-top: -120%; margin-left: -120%;
-    opacity: 0; transition: opacity 0.8s, padding 0.8s, margin 0.8s;
+    opacity: 0; transition: all 0.8s;
 }
 .ripple:active:after { padding: 0; margin: 0; opacity: 1; transition: 0s; }
 
-/* Login screen decorative blobs — dibuat STATIS (tanpa animasi).
-   Kombinasi filter:blur() + animasi transform:scale() yang berjalan TERUS
-   MENERUS adalah beban GPU paling berat di layar login: tiap kali scale
-   berubah, browser harus menghitung ulang area blur-nya lagi, setiap frame,
-   selama layar login masih terbuka. Tanpa animasi, blur cukup dihitung SEKALI
-   saja saat halaman tampil, jadi ringan di HP manapun tapi visualnya tetap ada. */
+/* Login screen decorative blobs (lightweight, GPU-friendly, no layout thrash) */
+.login-blob {
+  animation: loginBlobFloat 9s ease-in-out infinite;
+  will-change: transform;
+}
+.login-blob-2 { animation-duration: 12s; animation-delay: -3s; }
+@keyframes loginBlobFloat {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(0, 14px, 0) scale(1.05); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .login-blob { animation: none; }
+}
 
 /* ================= Modern Login Screen v2 ================= */
 .login-gradient-bg {
@@ -48,9 +55,10 @@ body { -webkit-tap-highlight-color: transparent; }
 .login-role-badge {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 4px 10px; border-radius: 999px;
-  background: rgba(255, 255, 255, 0.20);
+  background: rgba(255, 255, 255, 0.14);
   border: 1px solid rgba(255, 255, 255, 0.22);
   font-size: 9.5px; font-weight: 700; letter-spacing: 0.04em;
+  backdrop-filter: blur(4px);
 }
 
 /* Bottom sheet card polish */
@@ -71,16 +79,15 @@ body { -webkit-tap-highlight-color: transparent; }
 .login-submit-btn { position: relative; overflow: hidden; }
 .login-submit-btn::before {
   content: "";
-  position: absolute; top: 0; left: -35%; width: 35%; height: 100%;
+  position: absolute; top: 0; left: -60%; width: 35%; height: 100%;
   background: linear-gradient(115deg, transparent, rgba(255, 255, 255, 0.5), transparent);
-  transform: skewX(-18deg) translateX(0%);
+  transform: skewX(-18deg);
   animation: loginBtnShine 3.4s ease-in-out infinite;
-  will-change: transform;
 }
 @keyframes loginBtnShine {
-  0% { transform: skewX(-18deg) translateX(0%); }
-  55% { transform: skewX(-18deg) translateX(470%); }
-  100% { transform: skewX(-18deg) translateX(470%); }
+  0% { left: -60%; }
+  55% { left: 130%; }
+  100% { left: 130%; }
 }
 @media (prefers-reduced-motion: reduce) {
   .login-submit-btn::before { animation: none; display: none; }
@@ -218,8 +225,9 @@ body { -webkit-tap-highlight-color: transparent; }
   gap: 6px;
   border-radius: 16px;
   padding: 8px 7px;
-  background: rgba(255,255,255,0.20);
+  background: rgba(255,255,255,0.14);
   border: 1px solid rgba(255,255,255,0.18);
+  backdrop-filter: blur(6px);
   min-width: 0;
 }
 .stat-tile .stat-icon {
@@ -266,7 +274,7 @@ body { -webkit-tap-highlight-color: transparent; }
   padding: 9px 4px; border-radius: 14px; font-size: 10px; font-weight: 800;
   text-transform: uppercase; letter-spacing: 0.02em;
   background: #f1f5f9; color: #64748b;
-  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease; border: 1px solid transparent;
+  transition: all 0.18s ease; border: 1px solid transparent;
 }
 .dark .kpi-tab { background: #1e293b; color: #94a3b8; }
 .kpi-tab.active {
@@ -639,7 +647,7 @@ select[multiple] {
   display: flex; align-items: center; justify-content: center; gap: 6px;
   padding: 10px 6px; border-radius: 12px; font-size: 10.5px; font-weight: 800;
   text-transform: uppercase; letter-spacing: 0.02em; color: #64748b;
-  transition: background 0.16s ease, color 0.16s ease; border: none; background: transparent;
+  transition: all 0.16s ease; border: none; background: transparent;
 }
 .dark .notif-target-btn { color: #94a3b8; }
 .notif-target-btn.active {
@@ -663,11 +671,11 @@ select[multiple] {
 .notif-kurir-chip-item .nci-check {
   width: 18px; height: 18px; border-radius: 6px; border: 2px solid #cbd5e1;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  transition: background 0.12s ease, border-color 0.12s ease;
+  transition: all 0.12s ease;
 }
 .dark .notif-kurir-chip-item .nci-check { border-color: #475569; }
 .notif-kurir-chip-item.is-checked .nci-check { background: #e11d48; border-color: #e11d48; }
-.notif-kurir-chip-item .nci-check svg { width: 11px; height: 11px; opacity: 0; transform: scale(0.6); transition: opacity 0.12s ease, transform 0.12s ease; }
+.notif-kurir-chip-item .nci-check svg { width: 11px; height: 11px; opacity: 0; transform: scale(0.6); transition: all 0.12s ease; }
 .notif-kurir-chip-item.is-checked .nci-check svg { opacity: 1; transform: scale(1); }
 .notif-kurir-chip-item .nci-avatar {
   width: 26px; height: 26px; border-radius: 9px; flex-shrink: 0;
@@ -709,3 +717,18 @@ select[multiple] {
 }
 .rekap-mini-stat .rms-label { font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; color: #94a3b8; }
 .rekap-mini-stat .rms-value { font-size: 13px; font-weight: 900; margin-top: 2px; }
+
+/* ================= Stabilitas render icon (anti "berantakan" di HP) =================
+   Sebelum Lucide sempat mengganti <i data-lucide="..."> menjadi <svg>, elemen ini
+   diberi ukuran & bentuk yang sama seperti hasil akhirnya, supaya tidak ada elemen
+   kosong / layout yang "kedut" atau berantakan saat baru dibuka di HP dengan koneksi lambat. */
+[data-lucide] {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+svg.lucide {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
