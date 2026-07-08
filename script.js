@@ -1,4 +1,4 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, set, push, onValue, remove, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         const firebaseConfig = {
         apiKey: "AIzaSyDweL8xXcOu6ZODYzCa1KpqZVPLH5Ocijk",
@@ -108,6 +108,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         let currentScreen = 'screen-login';
         let navigationHistory = [];
         let notaState = { items: [], biaya: [], subtotal: 0, ongkir: 10000, total: 0 };
+        // Data nota terstruktur (bukan HTML) yang dipakai untuk MENGGAMBAR gambar nota
+        // langsung ke <canvas> — terpisah dari notaState supaya urutan/isi nota yang
+        // sedang dilihat tetap terkunci walau notaState berubah di layar lain.
+        let kurirNotaPreviewData = null;
+        let adminNotaPreviewData = null;
         let cloudKurirList = {};
         let cloudNotaList = {};
         let cloudMitraList = {};
@@ -1931,9 +1936,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 </div>
             `;
             if (window.lucide) lucide.createIcons();
-            // Siapkan cache gambar di background begitu preview admin tampil, biar pas
-            // tombol Unduh Gambar/Bagikan WhatsApp ditekan prosesnya sudah instan.
-            requestAnimationFrame(() => prefetchNotaImages(modalCanvas));
 
             // RESET isi history (biar nggak nyangkut dari nota sebelumnya)
             const box = document.getElementById('p-ongkir-history-container');
@@ -1947,6 +1949,28 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const sorted = histories
                 .slice()
                 .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+
+            // Data terstruktur buat gambar nota (canvas), terpisah dari HTML preview di atas.
+            adminNotaPreviewData = {
+                notaNum: n.id || '-',
+                tanggal: n.tanggal || '-',
+                kurir: n.kurirNama || '-',
+                status: n.status || '-',
+                items: Array.isArray(n.items) ? n.items.map(it => ({ nama: it.nama, qty: it.qty, harga: it.harga || 0, subtotal: it.subtotal || 0 })) : [],
+                subtotal: n.subtotal || 0,
+                ongkir: n.ongkir || 0,
+                biayaList: Array.isArray(n.biayaTambahan) ? n.biayaTambahan.map(b => ({ nama: b.nama, nominal: b.nominal || 0 })) : [],
+                total: n.total || 0,
+                history: sorted.map(e => ({
+                    asal: e.asal || '-',
+                    tujuan: e.tujuan || '-',
+                    val: parseInt(e.estimasiOngkir || e.ongkir || 0) || 0,
+                    tgl: e.createdAt ? new Date(e.createdAt).toLocaleString('id-ID') : (e.tglRaw || '-')
+                }))
+            };
+            // Siapkan canvas-nya di background begitu preview admin tampil, biar pas
+            // tombol Unduh Gambar/Bagikan WhatsApp ditekan prosesnya sudah instan.
+            requestAnimationFrame(() => { getNotaCanvas('canvas-nota-admin', adminNotaPreviewData).catch(() => {}); });
 
             if (!sorted.length) {
                 box.innerHTML = `<div class="text-center text-slate-400 italic py-1">Belum ada history ongkir.</div>`;
@@ -1980,27 +2004,18 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
         window.closeAdminModal = function() {
             document.getElementById('modal-preview-nota').classList.add('hidden');
         }
-        function getAdminNotaIdentity() {
-            const noNota = document.querySelector('#canvas-nota-admin .ri-value')?.innerText || 'Nota';
-            const kurir = document.querySelectorAll('#canvas-nota-admin .ri-value')[2]?.innerText || 'Kurir';
-            return { noNota, kurir };
-        }
         window.downloadAdminNotaJpg = function() {
-            const { noNota, kurir } = getAdminNotaIdentity();
-            processNotaImage('canvas-nota-admin', {
+            if (!adminNotaPreviewData) { toast('Preview nota belum siap.'); return; }
+            processNotaImage('canvas-nota-admin', adminNotaPreviewData, {
                 mode: 'download',
-                num: noNota,
-                kurir,
                 btn: document.getElementById('btn-unduh-admin'),
                 successMsg: 'Gambar nota berhasil diunduh!'
             });
         }
         window.shareWhatsAppAdmin = function() {
-            const { noNota, kurir } = getAdminNotaIdentity();
-            processNotaImage('canvas-nota-admin', {
+            if (!adminNotaPreviewData) { toast('Preview nota belum siap.'); return; }
+            processNotaImage('canvas-nota-admin', adminNotaPreviewData, {
                 mode: 'share',
-                num: noNota,
-                kurir,
                 btn: document.getElementById('btn-share-wa-admin')
             });
         }
@@ -2754,76 +2769,343 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             const btnSimpanNota = document.getElementById('btn-simpan-nota');
             if (btnSimpanNota) btnSimpanNota.classList.remove('hidden');
             updatePreviewButtonsLayout();
+
+            // Data terstruktur buat gambar nota (canvas), terpisah dari HTML preview di atas.
+            kurirNotaPreviewData = {
+                notaNum: document.getElementById('dash-next-nota') ? document.getElementById('dash-next-nota').innerText : (document.getElementById('p-nota-num').innerText || 'Nota'),
+                tanggal: tgl.toLocaleString('id-ID'),
+                kurir: userSession.nama,
+                status: document.getElementById('nota-status').value,
+                items: notaState.items.map(it => ({ nama: it.nama, qty: it.qty, harga: it.harga, subtotal: it.subtotal })),
+                subtotal: notaState.subtotal,
+                ongkir: notaState.ongkir,
+                biayaList: notaState.biaya.map(b => ({ nama: b.nama, nominal: b.nominal })),
+                total: notaState.total,
+                history: null
+            };
+            // Siapkan canvas-nya di background begitu preview tampil, biar pas tombol
+            // Simpan Gambar/Bagikan WhatsApp ditekan, prosesnya sudah instan (dari cache).
+            requestAnimationFrame(() => { getNotaCanvas('canvas-nota', kurirNotaPreviewData).catch(() => {}); });
+
             navigateTo('screen-preview');
-            // Siapkan cache gambar di background begitu preview tampil, biar pas tombol
-            // Simpan Gambar/Bagikan WhatsApp ditekan prosesnya sudah instan.
-            requestAnimationFrame(() => prefetchNotaImages(document.getElementById('canvas-nota')));
         }
-        // ---------- Helper: pastikan gambar (mis. logo) ikut ter-capture ----------
-        // Gambar dari domain lain kadang gagal muncul di hasil html2canvas karena
-        // batasan CORS pada canvas, walau useCORS:true. Solusinya: unduh gambar
-        // sebagai blob lalu ubah ke base64 (data URI) sebelum capture, sehingga
-        // logo pasti ikut tanpa risiko gambar kosong/blank.
-        // Cache logo/gambar yang sudah pernah di-fetch supaya proses simpan gambar /
-        // bagikan WhatsApp berikutnya tidak perlu download ulang dari internet.
-        // Ini yang paling sering bikin "lag/nge-loop" di HP RAM kecil / koneksi lambat,
-        // karena tanpa cache, setiap kali tombol ditekan javascript fetch ulang gambar yang sama.
-        const notaImageCache = {};
-        async function fetchAndCacheNotaImage(src) {
-            if (!src || src.startsWith('data:') || notaImageCache[src]) return notaImageCache[src];
-            try {
-                const res = await fetch(src, { mode: 'cors', cache: 'force-cache' });
-                const blob = await res.blob();
-                const dataUrl = await new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = () => resolve(reader.result);
-                    reader.onerror = reject;
-                    reader.readAsDataURL(blob);
-                });
-                notaImageCache[src] = dataUrl;
-                return dataUrl;
-            } catch (e) {
-                return null; // Kalau gagal fetch, biarkan html2canvas coba render seperti biasa.
+        // ============================================================
+        // GAMBAR NOTA — digambar LANGSUNG ke <canvas> (Canvas 2D API),
+        // BUKAN screenshot dari DOM (html2canvas sudah tidak dipakai lagi).
+        // ------------------------------------------------------------
+        // html2canvas harus meng-clone seluruh DOM nota, menghitung ulang semua
+        // CSS (gradient, shadow, border-radius, font, dst), menunggu font/gambar,
+        // baru "melukis" hasilnya ke canvas piksel demi piksel — proses inilah
+        // yang bikin lambat/lag di HP RAM kecil, walau CSS-nya sudah diringankan.
+        // Dengan menggambar LANGSUNG dari data nota (persegi + teks + garis),
+        // tidak ada DOM yang di-clone/dihitung ulang sama sekali, jadi proses
+        // simpan gambar / bagikan WhatsApp jadi cepat & konsisten di HP apapun.
+        // ============================================================
+        const NOTA_FONT = "'Inter', -apple-system, 'Segoe UI', Roboto, Arial, sans-serif";
+        function notaFmtRp(n) { return (Math.round(n) || 0).toLocaleString('id-ID'); }
+
+        function notaRoundRectPath(ctx, x, y, w, h, r) {
+            const rr = typeof r === 'number' ? { tl: r, tr: r, br: r, bl: r } : r;
+            ctx.beginPath();
+            ctx.moveTo(x + rr.tl, y);
+            ctx.lineTo(x + w - rr.tr, y);
+            ctx.arcTo(x + w, y, x + w, y + rr.tr, rr.tr);
+            ctx.lineTo(x + w, y + h - rr.br);
+            ctx.arcTo(x + w, y + h, x + w - rr.br, y + h, rr.br);
+            ctx.lineTo(x + rr.bl, y + h);
+            ctx.arcTo(x, y + h, x, y + h - rr.bl, rr.bl);
+            ctx.lineTo(x, y + rr.tl);
+            ctx.arcTo(x, y, x + rr.tl, y, rr.tl);
+            ctx.closePath();
+        }
+        function notaFillRoundRect(ctx, x, y, w, h, r, fill) {
+            notaRoundRectPath(ctx, x, y, w, h, r);
+            ctx.fillStyle = fill;
+            ctx.fill();
+        }
+        function notaTruncateText(ctx, text, maxWidth) {
+            text = String(text == null ? '' : text);
+            if (ctx.measureText(text).width <= maxWidth) return text;
+            let lo = 0, hi = text.length;
+            while (lo < hi) {
+                const mid = (lo + hi + 1) >> 1;
+                if (ctx.measureText(text.slice(0, mid) + '…').width <= maxWidth) lo = mid; else hi = mid - 1;
             }
+            return lo <= 0 ? '…' : text.slice(0, lo) + '…';
         }
-        // Prefetch gambar (mis. logo) di background begitu preview nota tampil (bukan saat
-        // tombol ditekan), supaya waktu proses Simpan Gambar/Bagikan WhatsApp dimulai,
-        // gambar sudah ready dari cache dan tidak perlu nunggu download lagi.
-        function prefetchNotaImages(el) {
-            if (!el) return;
-            const srcs = Array.from(el.querySelectorAll('img')).map(img => img.getAttribute('src') || '').filter(Boolean);
-            Promise.all(srcs.map(fetchAndCacheNotaImage)).catch(() => {});
+        function notaText(ctx, text, x, y, opts) {
+            ctx.font = opts.font;
+            ctx.fillStyle = opts.color;
+            ctx.textAlign = opts.align || 'left';
+            ctx.textBaseline = 'middle';
+            const t = opts.maxWidth ? notaTruncateText(ctx, text, opts.maxWidth) : String(text == null ? '' : text);
+            ctx.fillText(t, x, y);
         }
-        async function inlineExternalImagesForCapture(el) {
-            const imgs = Array.from(el.querySelectorAll('img'));
-            await Promise.all(imgs.map(async (img) => {
-                const src = img.getAttribute('src') || '';
-                if (!src || src.startsWith('data:')) return;
-                const dataUrl = await fetchAndCacheNotaImage(src);
-                if (dataUrl) {
-                    img.setAttribute('data-original-src', src);
-                    img.src = dataUrl;
-                }
-            }));
-        }
-        // Pastikan font (mis. Google Fonts "Inter") sudah selesai dimuat sebelum capture,
-        // supaya hasil gambar tidak "meleset" dari tampilan preview (ukuran teks berubah
-        // gara-gara font fallback dipakai saat capture berlangsung). Dibatasi 1.5 detik
-        // supaya tetap cepat walau font gagal/lambat termuat.
-        function waitFontsReady() {
-            if (!(document.fonts && document.fonts.ready)) return Promise.resolve();
-            return Promise.race([
-                document.fonts.ready,
-                new Promise((resolve) => setTimeout(resolve, 1500))
-            ]);
+        // Font "Inter" sudah dimuat sejak awal halaman (dipakai di seluruh UI),
+        // jadi biasanya sudah siap sebelum layar nota dibuka. Kalau ternyata
+        // belum, tunggu MAKSIMAL 250ms saja lalu tetap lanjut (fallback ke font
+        // sistem) — supaya proses generate gambar tidak pernah ikut "nge-lag".
+        async function ensureNotaFontReady() {
+            try {
+                if (!(document.fonts && document.fonts.check)) return;
+                if (document.fonts.check("800 16px 'Inter'")) return;
+                await Promise.race([
+                    document.fonts.ready,
+                    new Promise((resolve) => setTimeout(resolve, 250))
+                ]);
+            } catch (e) { /* abaikan, fallback ke font sistem */ }
         }
 
-        // ---------- Anti dobel-tap / anti macet saat proses gambar nota ----------
-        // Tanpa lock, tombol Simpan Gambar / Simpan Nota / Bagikan WhatsApp bisa
-        // ditekan berkali-kali saat html2canvas masih memproses (terutama di HP RAM
-        // kecil yang render-nya lambat), sehingga muncul beberapa proses capture
-        // berjalan bersamaan dan terasa seperti "loop"/macet. notaImageBusy mengunci
-        // semua tombol terkait sampai proses sebelumnya selesai.
+        function buildNotaLayout(data, S) {
+            const u = (v) => Math.round(v * S);
+            const items = (data.items && data.items.length) ? data.items : null;
+            const biayaList = data.biayaList || [];
+            const history = data.history; // null/undefined = nota kurir (tanpa section history)
+
+            const L = {
+                u, S,
+                MARGIN: u(14), CARD_W: u(692), HEADER_H: u(116),
+                INFO_OVERLAP: u(30), INFO_PAD: u(16), INFO_ROW_H: u(38), INFO_ROW_GAP: u(12),
+                SECTION_GAP: u(18), SECTION_TITLE_H: u(22),
+                TABLE_HEAD_H: u(26), TABLE_ROW_H: u(30),
+                DIV_GAP: u(13), TOTALS_ROW_H: u(20), BIAYA_ROW_H: u(16),
+                TOTALBOX_MARGIN_TOP: u(10), TOTALBOX_H: u(46), FOOTER_H: u(66),
+                CARD_PAD_X: u(16), BOTTOM_PAD: u(16),
+                HIST_ROW_H: u(40), HIST_ROW_GAP: u(6), HIST_HEAD_H: u(26),
+                items, biayaList, history
+            };
+            L.INFO_GRID_H = L.INFO_PAD * 2 + L.INFO_ROW_H * 2 + L.INFO_ROW_GAP;
+
+            let y = L.MARGIN;
+            L.cardTop = y;
+            L.headerTop = y;
+            y += L.HEADER_H;
+            L.infoGridTop = y - L.INFO_OVERLAP;
+            y = L.infoGridTop + L.INFO_GRID_H;
+            y += L.SECTION_GAP;
+            L.sectionTitleTop = y;
+            y += L.SECTION_TITLE_H;
+            L.tableTop = y;
+            y += L.TABLE_HEAD_H;
+            L.tableRowsTop = y;
+            y += L.TABLE_ROW_H * (items ? items.length : 1);
+            y += L.DIV_GAP; L.divider1Y = y; y += L.DIV_GAP;
+            L.totalsTop = y;
+            y += L.TOTALS_ROW_H * 3;
+            y += L.BIAYA_ROW_H * biayaList.length;
+            y += L.TOTALBOX_MARGIN_TOP;
+            L.totalBoxTop = y;
+            y += L.TOTALBOX_H;
+            y += L.DIV_GAP; L.divider2Y = y; y += L.DIV_GAP;
+            L.footerTop = y;
+            y += L.FOOTER_H;
+
+            if (history) {
+                y += L.DIV_GAP; L.divider3Y = y; y += L.DIV_GAP;
+                L.historyTop = y;
+                y += L.HIST_HEAD_H;
+                L.historyRowsTop = y;
+                const hRows = history.length ? history.length : 1;
+                y += L.HIST_ROW_H * hRows + L.HIST_ROW_GAP * Math.max(0, hRows - 1);
+            }
+
+            y += L.BOTTOM_PAD;
+            L.cardBottom = y;
+            L.cardH = L.cardBottom - L.cardTop;
+            L.canvasW = L.CARD_W + L.MARGIN * 2;
+            L.canvasH = y + L.MARGIN;
+            return L;
+        }
+
+        function drawNotaOnCanvas(canvas, data, S) {
+            const L = buildNotaLayout(data, S);
+            canvas.width = L.canvasW;
+            canvas.height = L.canvasH;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const cardX = L.MARGIN, cardW = L.CARD_W, u = L.u;
+
+            // "Shadow" solid tanpa blur (BUKAN ctx.shadowBlur). shadowBlur di Canvas
+            // 2D itu operasi GPU yang harus me-raster area blur secara terpisah —
+            // di GPU low-end/HP RAM kecil, untuk canvas yang TINGGI (nota dengan
+            // banyak item/history), ini yang menyebabkan hasil gambar jadi
+            // korup/bergaris-garis (glitch). Diganti kotak solid sedikit offset di
+            // belakang kartu — tetap kelihatan "melayang" tipis tapi 100% aman &
+            // konsisten di semua HP, karena tidak ada operasi blur sama sekali.
+            notaFillRoundRect(ctx, cardX, L.cardTop + u(3), cardW, L.cardH, u(16), 'rgba(15,23,42,0.10)');
+            notaFillRoundRect(ctx, cardX, L.cardTop, cardW, L.cardH, u(16), '#ffffff');
+
+            notaRoundRectPath(ctx, cardX, L.cardTop, cardW, L.cardH, u(16));
+            ctx.save();
+            ctx.clip();
+
+            // Header gradient
+            const grad = ctx.createLinearGradient(cardX, L.headerTop, cardX + cardW, L.headerTop + L.HEADER_H);
+            grad.addColorStop(0, '#0058E6');
+            grad.addColorStop(1, '#14A0FF');
+            ctx.fillStyle = grad;
+            ctx.fillRect(cardX, L.headerTop, cardW, L.HEADER_H);
+            notaText(ctx, 'SAHABATKU DELIVERY', cardX + cardW / 2, L.headerTop + u(40), { font: `800 ${u(19)}px ${NOTA_FONT}`, color: '#ffffff', align: 'center' });
+            notaText(ctx, 'Jatibarang, Indramayu', cardX + cardW / 2, L.headerTop + u(64), { font: `500 ${u(12)}px ${NOTA_FONT}`, color: 'rgba(255,255,255,0.85)', align: 'center' });
+
+            // Info grid (overlap header, seperti desain aslinya)
+            const gx = cardX + u(16), gw = cardW - u(32);
+            const infoGrad = ctx.createLinearGradient(0, L.infoGridTop, 0, L.infoGridTop + L.INFO_GRID_H);
+            infoGrad.addColorStop(0, '#f8fafc');
+            infoGrad.addColorStop(1, '#f1f5f9');
+            notaFillRoundRect(ctx, gx, L.infoGridTop, gw, L.INFO_GRID_H, u(14), infoGrad);
+            const colW = (gw - u(12)) / 2;
+            const cell = (col, row, label, value, isPill) => {
+                const cx = gx + L.INFO_PAD + col * (colW + u(12));
+                const cyLabel = L.infoGridTop + L.INFO_PAD + row * (L.INFO_ROW_H + L.INFO_ROW_GAP) + u(10);
+                const cyValue = cyLabel + u(15);
+                notaText(ctx, String(label).toUpperCase(), cx, cyLabel, { font: `800 ${u(8.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'left' });
+                if (isPill) {
+                    const pillText = String(value || '-').toUpperCase();
+                    ctx.font = `800 ${u(9.5)}px ${NOTA_FONT}`;
+                    const pillW = ctx.measureText(pillText).width + u(18), pillH = u(18);
+                    notaFillRoundRect(ctx, cx, cyValue - pillH / 2, pillW, pillH, pillH / 2, 'rgba(0,102,255,0.12)');
+                    notaText(ctx, pillText, cx + pillW / 2, cyValue + u(1), { font: `800 ${u(9.5)}px ${NOTA_FONT}`, color: '#0066FF', align: 'center' });
+                } else {
+                    notaText(ctx, value || '-', cx, cyValue, { font: `800 ${u(11)}px ${NOTA_FONT}`, color: '#1e293b', align: 'left', maxWidth: colW });
+                }
+            };
+            cell(0, 0, 'Nomor Nota', data.notaNum);
+            cell(1, 0, 'Tanggal', data.tanggal);
+            cell(0, 1, 'Kurir', data.kurir);
+            cell(1, 1, 'Status', data.status, true);
+
+            // Judul section + badge jumlah item
+            notaText(ctx, 'RINCIAN PESANAN', cardX + L.CARD_PAD_X, L.sectionTitleTop + L.SECTION_TITLE_H / 2, { font: `800 ${u(9.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'left' });
+            const countText = `${L.items ? L.items.length : 0} ITEM`;
+            ctx.font = `800 ${u(9)}px ${NOTA_FONT}`;
+            const countW = ctx.measureText(countText).width + u(14);
+            notaFillRoundRect(ctx, cardX + cardW - L.CARD_PAD_X - countW, L.sectionTitleTop, countW, u(17), u(9), 'rgba(0,102,255,0.1)');
+            notaText(ctx, countText, cardX + cardW - L.CARD_PAD_X - countW / 2, L.sectionTitleTop + u(9), { font: `800 ${u(9)}px ${NOTA_FONT}`, color: '#0066FF', align: 'center' });
+
+            // Tabel rincian
+            const tX = cardX + L.CARD_PAD_X, tW = cardW - L.CARD_PAD_X * 2;
+            const col1 = tX, col2 = tX + tW * 0.42, col3 = tX + tW * 0.68, col4 = tX + tW;
+            const headY = L.tableTop + L.TABLE_HEAD_H / 2;
+            notaText(ctx, 'ITEM', col1, headY, { font: `800 ${u(8.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'left' });
+            notaText(ctx, 'QTY', (col2 + col3) / 2, headY, { font: `800 ${u(8.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'center' });
+            notaText(ctx, 'HARGA', col3, headY, { font: `800 ${u(8.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'right' });
+            notaText(ctx, 'TOTAL', col4, headY, { font: `800 ${u(8.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'right' });
+            ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = u(1);
+            ctx.beginPath(); ctx.moveTo(tX, L.tableTop + L.TABLE_HEAD_H); ctx.lineTo(tX + tW, L.tableTop + L.TABLE_HEAD_H); ctx.stroke();
+
+            if (L.items) {
+                L.items.forEach((it, i) => {
+                    const rowY = L.tableRowsTop + i * L.TABLE_ROW_H;
+                    if (i % 2 === 0) notaFillRoundRect(ctx, tX, rowY + u(2), tW, L.TABLE_ROW_H - u(4), u(6), '#f8fafc');
+                    const midY = rowY + L.TABLE_ROW_H / 2;
+                    notaText(ctx, it.nama, col1, midY, { font: `700 ${u(10.5)}px ${NOTA_FONT}`, color: '#334155', align: 'left', maxWidth: tW * 0.4 });
+                    notaText(ctx, String(it.qty), (col2 + col3) / 2, midY, { font: `500 ${u(10.5)}px ${NOTA_FONT}`, color: '#334155', align: 'center' });
+                    notaText(ctx, notaFmtRp(it.harga), col3, midY, { font: `500 ${u(10.5)}px ${NOTA_FONT}`, color: '#334155', align: 'right' });
+                    notaText(ctx, notaFmtRp(it.subtotal), col4, midY, { font: `800 ${u(10.5)}px ${NOTA_FONT}`, color: '#0066FF', align: 'right' });
+                });
+            } else {
+                notaText(ctx, '- Tidak ada rincian -', tX + tW / 2, L.tableRowsTop + L.TABLE_ROW_H / 2, { font: `italic 500 ${u(10.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'center' });
+            }
+
+            ctx.beginPath(); ctx.moveTo(tX, L.divider1Y); ctx.lineTo(tX + tW, L.divider1Y); ctx.stroke();
+
+            const totalsRow = (i, label, value) => {
+                const rowY = L.totalsTop + i * L.TOTALS_ROW_H + L.TOTALS_ROW_H / 2;
+                notaText(ctx, label, tX, rowY, { font: `500 ${u(11)}px ${NOTA_FONT}`, color: '#64748b', align: 'left' });
+                notaText(ctx, notaFmtRp(value), tX + tW, rowY, { font: `500 ${u(11)}px ${NOTA_FONT}`, color: '#64748b', align: 'right' });
+            };
+            totalsRow(0, 'Subtotal Item', data.subtotal);
+            totalsRow(1, 'Ongkir', data.ongkir);
+            const totalBiaya = L.biayaList.reduce((a, b) => a + (b.nominal || 0), 0);
+            totalsRow(2, 'Tambahan Biaya', totalBiaya);
+            L.biayaList.forEach((b, i) => {
+                const rowY = L.totalsTop + L.TOTALS_ROW_H * 3 + i * L.BIAYA_ROW_H + L.BIAYA_ROW_H / 2;
+                notaText(ctx, `+ ${b.nama}`, tX + u(8), rowY, { font: `italic 500 ${u(9.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'left', maxWidth: tW * 0.6 });
+                notaText(ctx, notaFmtRp(b.nominal), tX + tW, rowY, { font: `italic 500 ${u(9.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'right' });
+            });
+
+            notaFillRoundRect(ctx, tX, L.totalBoxTop, tW, L.TOTALBOX_H, u(14), '#10192e');
+            notaText(ctx, 'TOTAL', tX + u(14), L.totalBoxTop + L.TOTALBOX_H / 2, { font: `800 ${u(10)}px ${NOTA_FONT}`, color: 'rgba(255,255,255,0.7)', align: 'left' });
+            notaText(ctx, notaFmtRp(data.total), tX + tW - u(14), L.totalBoxTop + L.TOTALBOX_H / 2, { font: `900 ${u(16)}px ${NOTA_FONT}`, color: '#ffffff', align: 'right' });
+
+            ctx.beginPath(); ctx.moveTo(tX, L.divider2Y); ctx.lineTo(tX + tW, L.divider2Y); ctx.stroke();
+
+            notaText(ctx, 'Terima kasih telah menggunakan jasa Sahabatku Delivery.', cardX + cardW / 2, L.footerTop + u(10), { font: `italic 500 ${u(9.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'center', maxWidth: tW });
+            notaText(ctx, 'Pastikan Selalu Order Melalui WhatsApp Resmi Kami:', cardX + cardW / 2, L.footerTop + u(28), { font: `600 ${u(9.5)}px ${NOTA_FONT}`, color: '#475569', align: 'center', maxWidth: tW });
+            notaText(ctx, '0821-1845-415', cardX + cardW / 2, L.footerTop + u(46), { font: `800 ${u(12)}px ${NOTA_FONT}`, color: '#0066FF', align: 'center' });
+
+            if (L.history) {
+                ctx.beginPath(); ctx.moveTo(tX, L.divider3Y); ctx.lineTo(tX + tW, L.divider3Y); ctx.stroke();
+                notaText(ctx, 'ONGKIR HISTORY', tX, L.historyTop + u(9), { font: `800 ${u(9.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'left' });
+                notaText(ctx, `${L.history.length} item`, tX + tW, L.historyTop + u(9), { font: `500 ${u(9.5)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'right' });
+                if (L.history.length) {
+                    L.history.forEach((h, i) => {
+                        const rowY = L.historyRowsTop + i * (L.HIST_ROW_H + L.HIST_ROW_GAP);
+                        notaFillRoundRect(ctx, tX, rowY, tW, L.HIST_ROW_H, u(10), '#f8fafc');
+                        notaText(ctx, `${h.asal} → ${h.tujuan}`, tX + u(10), rowY + u(15), { font: `800 ${u(10)}px ${NOTA_FONT}`, color: '#334155', align: 'left', maxWidth: tW * 0.55 });
+                        notaText(ctx, h.tgl, tX + u(10), rowY + u(29), { font: `500 ${u(9)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'left' });
+                        notaText(ctx, `Rp ${notaFmtRp(h.val)}`, tX + tW - u(10), rowY + L.HIST_ROW_H / 2, { font: `800 ${u(10)}px ${NOTA_FONT}`, color: '#0066FF', align: 'right' });
+                    });
+                } else {
+                    notaText(ctx, 'Belum ada history ongkir.', tX + tW / 2, L.historyRowsTop + L.HIST_ROW_H / 2, { font: `italic 500 ${u(10)}px ${NOTA_FONT}`, color: '#94a3b8', align: 'center' });
+                }
+            }
+
+            ctx.restore(); // lepas clip
+
+            ctx.strokeStyle = 'rgba(226,232,240,0.9)';
+            ctx.lineWidth = u(1);
+            notaRoundRectPath(ctx, cardX, L.cardTop, cardW, L.cardH, u(16));
+            ctx.stroke();
+
+            return canvas;
+        }
+
+        // Deteksi kemampuan device: kalau navigator.deviceMemory tidak tersedia
+        // (mis. Safari/iOS), pakai jumlah core CPU sebagai perkiraan cadangan.
+        const NOTA_MEM = navigator.deviceMemory || null;
+        const NOTA_CORES = navigator.hardwareConcurrency || null;
+        const NOTA_VERY_LOW_RAM_DEVICE = !!(NOTA_MEM && NOTA_MEM <= 1);
+        const NOTA_LOW_RAM_DEVICE = NOTA_VERY_LOW_RAM_DEVICE ||
+            !!(NOTA_MEM && NOTA_MEM <= 2) ||
+            (!NOTA_MEM && !!(NOTA_CORES && NOTA_CORES <= 4));
+        // Lebar canvas (bukan lagi "scale" DOM) — makin kecil RAM, makin kecil
+        // jumlah piksel yang perlu digambar & di-encode ke JPEG.
+        const NOTA_CANVAS_WIDTH = NOTA_VERY_LOW_RAM_DEVICE ? 540 : (NOTA_LOW_RAM_DEVICE ? 620 : 720);
+        const NOTA_SCALE = NOTA_CANVAS_WIDTH / 720;
+        const NOTA_JPEG_QUALITY = NOTA_VERY_LOW_RAM_DEVICE ? 0.75 : (NOTA_LOW_RAM_DEVICE ? 0.82 : 0.88);
+
+        // key -> <canvas> hasil generate. Di-invalidate manual tiap kali isi nota
+        // berganti (lihat invalidateNotaCanvasCache di prosesPratinjauNota & viewAdminNota).
+        const notaCanvasCache = {};
+        function invalidateNotaCanvasCache(key) {
+            notaCanvasCache[key] = null;
+        }
+        // Batas aman tinggi canvas. Sebagian GPU HP (terutama yang murah/RAM kecil)
+        // bisa gagal me-render dengan benar (muncul glitch/bergaris) kalau permukaan
+        // canvas terlalu tinggi. Untuk nota dengan SANGAT banyak item/history,
+        // seluruh ukuran diperkecil proporsional (bukan dipotong) supaya tidak
+        // pernah melewati batas ini di HP manapun.
+        const NOTA_MAX_CANVAS_H = 3200;
+        function pickSafeNotaScale(data, desiredS) {
+            const L = buildNotaLayout(data, desiredS);
+            if (L.canvasH <= NOTA_MAX_CANVAS_H) return desiredS;
+            return Math.max(desiredS * (NOTA_MAX_CANVAS_H / L.canvasH), 0.4);
+        }
+        async function getNotaCanvas(key, data) {
+            if (notaCanvasCache[key]) return notaCanvasCache[key];
+            await ensureNotaFontReady();
+            const canvas = document.createElement('canvas');
+            const safeS = pickSafeNotaScale(data, NOTA_SCALE);
+            drawNotaOnCanvas(canvas, data, safeS);
+            notaCanvasCache[key] = canvas;
+            return canvas;
+        }
+
+        // Kunci semua tombol terkait sampai proses sebelumnya selesai (anti dobel-tap).
         let notaImageBusy = false;
         const NOTA_BUSY_BUTTON_IDS = ['btn-simpan-gambar', 'btn-simpan-nota', 'btn-share-wa', 'btn-unduh-admin', 'btn-share-wa-admin'];
         function setNotaImageBusy(busy, activeBtn) {
@@ -2844,106 +3126,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 }
             }
         }
-        function restoreExternalImagesAfterCapture(el) {
-            el.querySelectorAll('img[data-original-src]').forEach((img) => {
-                img.src = img.getAttribute('data-original-src');
-                img.removeAttribute('data-original-src');
-            });
-        }
-        // ---------- Cache hasil CANVAS (bukan cuma gambar) ----------
-        // Sebelumnya tiap klik "Simpan Gambar" / "Bagikan WhatsApp" selalu menjalankan
-        // html2canvas dari nol — padahal ini bagian PALING berat di seluruh proses
-        // (clone DOM, hitung layout, rasterisasi), jauh lebih berat dari sekadar fetch
-        // gambar. Kalau user klik 2 tombol berturut-turut untuk nota yang SAMA (misal
-        // Simpan Gambar lalu langsung Bagikan WA), isinya belum berubah sama sekali,
-        // jadi tidak perlu capture ulang. notaCanvasCache menyimpan hasil canvas
-        // terakhir per elemen, dan otomatis dianggap basi (dihapus) setiap kali fungsi
-        // yang menulis ulang isi nota (prosesPratinjauNota / previewRiwayatNota /
-        // viewAdminNota) dipanggil, supaya tidak pernah menampilkan gambar yang salah.
-        const notaCanvasCache = {};
-        function invalidateNotaCanvasCache(elementId) {
-            notaCanvasCache[elementId] = null;
-        }
-        // Jaga-jaga: kalau layar diputar / ukuran window berubah di antara dua klik,
-        // hasil capture lama bisa jadi tidak presisi lagi — cache dianggap basi juga.
-        window.addEventListener('resize', () => {
-            notaCanvasCache['canvas-nota'] = null;
-            notaCanvasCache['canvas-nota-admin'] = null;
-        });
-        window.addEventListener('orientationchange', () => {
-            notaCanvasCache['canvas-nota'] = null;
-            notaCanvasCache['canvas-nota-admin'] = null;
-        });
-        // Deteksi kasar HP RAM kecil lewat navigator.deviceMemory (kalau browser
-        // mendukung; kalau tidak ada, dianggap perangkat "normal"). Dipakai supaya
-        // scale & kompresi gambar otomatis diturunkan sedikit di HP RAM kecil —
-        // hasil gambar tetap jernih & rapi untuk dibaca/di-share, tapi proses
-        // render-nya jauh lebih ringan sehingga tidak macet/nge-loop.
-        const NOTA_LOW_RAM_DEVICE = !!(navigator.deviceMemory && navigator.deviceMemory <= 2);
-        // Scale 2 = tajam untuk HP normal. Scale 1.5 di HP RAM kecil sudah lebih
-        // dari cukup tajam untuk dibaca & dibagikan, tapi jumlah piksel yang harus
-        // digambar ulang oleh html2canvas turun signifikan (≈44% lebih sedikit).
-        const NOTA_CAPTURE_SCALE = NOTA_LOW_RAM_DEVICE ? 1.5 : 2;
-        // JPEG quality 0.85 supaya ukuran file tetap kecil tanpa terlihat turun kualitas
-        // (nota didominasi warna flat & teks, sehingga kompresi ini nyaris tanpa artefak).
-        // Sedikit lebih rendah di HP RAM kecil supaya proses encode & share ke WhatsApp lebih cepat.
-        const NOTA_JPEG_QUALITY = NOTA_LOW_RAM_DEVICE ? 0.8 : 0.85;
-        async function captureNotaCanvas(el, elementId) {
-            // Kalau nota belum berubah sejak capture terakhir, langsung pakai canvas lama —
-            // skip total proses html2canvas (bagian paling berat) tanpa syarat apapun.
-            if (elementId && notaCanvasCache[elementId]) {
-                return notaCanvasCache[elementId];
-            }
-            await Promise.all([
-                inlineExternalImagesForCapture(el),
-                waitFontsReady()
-            ]);
-            // Kasih jeda 1 frame supaya browser sempat menggambar ulang (repaint) tombol
-            // "Memproses..." dulu sebelum html2canvas membekukan main thread. Tanpa ini,
-            // di HP dengan RAM kecil tombol terasa "macet" karena spinner belum sempat
-            // muncul saat proses berat sudah mulai berjalan.
-            await new Promise(requestAnimationFrame);
-            try {
-                const canvas = await html2canvas(el, {
-                    scale: NOTA_CAPTURE_SCALE,
-                    useCORS: true,
-                    allowTaint: false,
-                    backgroundColor: '#ffffff',
-                    imageTimeout: 8000,
-                    logging: false,
-                    // scrollX/scrollY: 0 mencegah bug umum html2canvas yang membuat hasil
-                    // capture "bergeser"/terpotong dari tampilan aslinya kalau halaman atau
-                    // modal preview sedang dalam kondisi ter-scroll saat tombol ditekan.
-                    scrollX: -window.scrollX,
-                    scrollY: -window.scrollY,
-                    windowWidth: document.documentElement.clientWidth,
-                    windowHeight: document.documentElement.clientHeight
-                });
-                if (elementId) notaCanvasCache[elementId] = canvas;
-                return canvas;
-            } finally {
-                restoreExternalImagesAfterCapture(el);
-            }
-        }
-        // ---------- Fungsi generik: capture nota jadi gambar, lalu unduh / bagikan ke WhatsApp ----------
-        // Dipakai bareng oleh layar kurir & modal admin supaya semua optimasi kecepatan
-        // (prefetch gambar, tunggu font ready, anti dobel-tap) konsisten di kedua tempat,
-        // dan hasil gambar selalu presisi sama dengan yang tampil di preview.
-        async function processNotaImage(elementId, { mode, num, kurir, btn, successMsg }) {
-            if (notaImageBusy) return; // cegah dobel-tap saat proses sebelumnya masih jalan
-
-            const el = document.getElementById(elementId);
-            if (!el) { toast('Preview nota tidak ditemukan.'); return; }
-
-            if (typeof html2canvas === 'undefined') {
-                toast('Fitur gambar belum siap. Coba reload halaman.');
-                return;
-            }
+        async function processNotaImage(cacheKey, data, { mode, btn, successMsg }) {
+            if (notaImageBusy) return;
+            if (!data) { toast('Data nota belum siap.'); return; }
 
             setNotaImageBusy(true, btn);
             try {
-                const canvas = await captureNotaCanvas(el, elementId);
-                const fileName = `${num}_${kurir}.jpg`.replace(/\s+/g, '_').replace(/[\/\\:*?"<>|]/g, '');
+                const canvas = await getNotaCanvas(cacheKey, data);
+                const fileName = `${data.notaNum}_${data.kurir}.jpg`.replace(/\s+/g, '_').replace(/[\/\\:*?"<>|]/g, '');
 
                 if (mode === 'download') {
                     const link = document.createElement('a');
@@ -2955,7 +3145,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 }
 
                 // mode === 'share': bagikan lewat share-sheet (kalau didukung) atau fallback unduh + buka WhatsApp
-                const captionText = `Nota: ${num}\nKurir: ${kurir}`;
+                const captionText = `Nota: ${data.notaNum}\nKurir: ${data.kurir}`;
                 await new Promise((resolve) => {
                     canvas.toBlob(function(blob) {
                         if (!blob) {
@@ -2965,7 +3155,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                         }
                         const file = new File([blob], fileName, { type: 'image/jpeg' });
                         if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                            navigator.share({ files: [file], title: `Nota ${num}`, text: captionText })
+                            navigator.share({ files: [file], title: `Nota ${data.notaNum}`, text: captionText })
                                 .catch(() => {})
                                 .finally(resolve);
                         } else {
@@ -2985,13 +3175,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             }
         }
         window.saveNotaAsJpg = function() {
-            const num = document.getElementById('p-nota-num').innerText || 'Nota';
-            const kurir = document.getElementById('p-nota-kurir').innerText || (userSession?.nama || 'Kurir');
-            processNotaImage('canvas-nota', {
+            if (!kurirNotaPreviewData) { toast('Preview nota belum siap.'); return; }
+            processNotaImage('canvas-nota', kurirNotaPreviewData, {
                 mode: 'download',
-                num,
-                kurir,
-                btn: document.getElementById('btn-simpan-gambar')
+                btn: document.getElementById('btn-simpan-gambar'),
+                successMsg: 'Gambar nota berhasil disimpan!'
             });
         }
         window.commitSaveNota = function() {
@@ -3039,7 +3227,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
                 renderSaldoKurir();
                 updateKurirDashboard();
 
-                // simpan history ongkir ke JSON nota (nota/<pushKey>.ongkir_history)
                 const draftKey = localStorage.getItem('last_ongkir_draft_key');
                 if (draftKey && userSession?.id) {
                     try {
@@ -3096,12 +3283,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
             });
         };
         window.shareWhatsApp = function() {
-            const num = document.getElementById('p-nota-num').innerText;
-            const kurir = document.getElementById('p-nota-kurir').innerText;
-            processNotaImage('canvas-nota', {
+            if (!kurirNotaPreviewData) { toast('Preview nota belum siap.'); return; }
+            processNotaImage('canvas-nota', kurirNotaPreviewData, {
                 mode: 'share',
-                num,
-                kurir,
                 btn: document.getElementById('btn-share-wa')
             });
         }
